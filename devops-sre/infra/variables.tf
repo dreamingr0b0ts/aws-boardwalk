@@ -27,6 +27,18 @@ variable "github_repo" {
   default     = "dreamingr0b0ts/aws-boardwalk"
 }
 
+variable "github_owner_id" {
+  description = "Immutable numeric ID of the GitHub owner (curl -s https://api.github.com/users/<owner> | jq .id) — part of the OIDC sub claim"
+  type        = string
+  default     = "208895789"
+}
+
+variable "github_repo_id" {
+  description = "Immutable numeric ID of the repo (curl -s https://api.github.com/repos/<owner>/<repo> | jq .id) — part of the OIDC sub claim"
+  type        = string
+  default     = "1301699070"
+}
+
 variable "alarm_email" {
   description = "Where CloudWatch alarms land. The SNS subscription must be confirmed once by clicking the link AWS emails."
   type        = string

@@ -16,7 +16,16 @@ resource "aws_iam_openid_connect_provider" "github" {
 }
 
 locals {
-  github_sub_prefix = "repo:${var.github_repo}"
+  # GitHub's OIDC sub claim now embeds immutable owner/repo IDs
+  # (repo:owner@ownerId/name@repoId:...), which pins trust to THIS repo even
+  # if the name is ever released and re-registered by someone else. The
+  # plain-name form is kept as a fallback for the legacy claim format.
+  github_owner = split("/", var.github_repo)[0]
+  github_name  = split("/", var.github_repo)[1]
+  github_sub_prefixes = [
+    "repo:${local.github_owner}@${var.github_owner_id}/${local.github_name}@${var.github_repo_id}",
+    "repo:${var.github_repo}",
+  ]
 
   # Every IAM name the boardwalk creates starts with a plank prefix. The apply
   # role may only touch IAM inside these namespaces — it cannot mint or edit
@@ -42,10 +51,12 @@ resource "aws_iam_role" "gh_plan" {
           "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
         }
         StringLike = {
-          "token.actions.githubusercontent.com:sub" = [
-            "${local.github_sub_prefix}:pull_request",
-            "${local.github_sub_prefix}:ref:refs/heads/main",
-          ]
+          "token.actions.githubusercontent.com:sub" = flatten([
+            for p in local.github_sub_prefixes : [
+              "${p}:pull_request",
+              "${p}:ref:refs/heads/main",
+            ]
+          ])
         }
       }
     }]
@@ -106,7 +117,9 @@ resource "aws_iam_role" "gh_apply" {
           "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
           # Only workflow jobs that passed the repo's "prod" environment
           # protection rules present this subject.
-          "token.actions.githubusercontent.com:sub" = "${local.github_sub_prefix}:environment:prod"
+          "token.actions.githubusercontent.com:sub" = [
+            for p in local.github_sub_prefixes : "${p}:environment:prod"
+          ]
         }
       }
     }]
