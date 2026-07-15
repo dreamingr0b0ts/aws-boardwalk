@@ -1,0 +1,124 @@
+# The boardwalk pipeline (plank 10):
+#   PR      → fmt + validate + Checkov/Trivy scans + read-only terraform plan
+#   main    → the same, then terraform apply through the "prod" environment
+#
+# GitHub exchanges its OIDC token for short-lived AWS credentials — there are
+# no stored AWS keys in this repo or its settings. The plan role is read-only;
+# the apply role is only assumable by jobs that passed the prod environment.
+
+name: terraform
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: terraform-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: us-east-1
+  TF_IN_AUTOMATION: "true"
+
+jobs:
+  scan:
+    name: security scan (Checkov + Trivy)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Checkov (Terraform misconfigurations)
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: .
+          framework: terraform
+          quiet: true
+
+      - name: Trivy (IaC + dependency vulnerabilities)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scanners: vuln,misconfig
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+          ignore-unfixed: true
+
+  plan:
+    name: plan (${{ matrix.dir }})
+    # Fork PRs get no cloud credentials: the OIDC trust names this repo only.
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        dir: [platform, modern-web-app, genai-assistant, demo-hub, devops-sre]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.10"
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/ops-gh-plan
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Build lambda bundles
+        if: hashFiles(format('{0}/backend/package.json', matrix.dir)) != ''
+        working-directory: ${{ matrix.dir }}/backend
+        run: npm ci --no-fund --no-audit && npm run build
+
+      - name: terraform fmt / init / validate / plan
+        working-directory: ${{ matrix.dir }}
+        run: |
+          TF_DIR=$([ -d infra ] && echo infra || echo .) # platform/ has no infra subdir
+          terraform -chdir=$TF_DIR fmt -check -recursive
+          terraform -chdir=$TF_DIR init -input=false \
+            -backend-config="bucket=aws-boardwalk-tfstate-${{ vars.AWS_ACCOUNT_ID }}"
+          terraform -chdir=$TF_DIR validate
+          TF_VAR_state_bucket="aws-boardwalk-tfstate-${{ vars.AWS_ACCOUNT_ID }}" \
+            terraform -chdir=$TF_DIR plan -input=false -lock-timeout=120s -out=tfplan
+
+  apply:
+    name: apply (${{ matrix.dir }})
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [scan, plan]
+    environment: prod
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 1 # platform first, then planks in dependency order
+      matrix:
+        dir: [platform, modern-web-app, genai-assistant, demo-hub, devops-sre]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.10"
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/ops-gh-apply
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Build lambda bundles
+        if: hashFiles(format('{0}/backend/package.json', matrix.dir)) != ''
+        working-directory: ${{ matrix.dir }}/backend
+        run: npm ci --no-fund --no-audit && npm run build
+
+      - name: terraform apply
+        working-directory: ${{ matrix.dir }}
+        run: |
+          TF_DIR=$([ -d infra ] && echo infra || echo .) # platform/ has no infra subdir
+          terraform -chdir=$TF_DIR init -input=false \
+            -backend-config="bucket=aws-boardwalk-tfstate-${{ vars.AWS_ACCOUNT_ID }}"
+          TF_VAR_state_bucket="aws-boardwalk-tfstate-${{ vars.AWS_ACCOUNT_ID }}" \
+            terraform -chdir=$TF_DIR apply -input=false -lock-timeout=120s -auto-approve

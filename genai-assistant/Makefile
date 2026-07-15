@@ -17,6 +17,9 @@ creds:
 		chmod 600 $(CREDS); \
 		echo "generated new demo credential in $(CREDS)"; \
 	fi
+	@aws ssm put-parameter --name /boardwalk/genai-assistant/demo-password \
+		--type SecureString --value "$$(cat $(CREDS))" --overwrite > /dev/null; \
+	echo "SSM parameter /boardwalk/genai-assistant/demo-password in sync (lets keyless CI plan/apply this plank)"
 
 creds-show: creds
 	@echo "url:      https://$$($(TF) output -raw site_url 2>/dev/null | sed 's|https://||' || echo assistant.demos.planetek.org)"; \

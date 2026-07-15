@@ -22,7 +22,7 @@ Design constraints for every plank:
 | 7 | Intelligent Document Processing | always-on | planned |
 | 8 | Security & Governance | deploy-demo-teardown | planned |
 | 9 | Network Architecture | deploy-demo-teardown | planned |
-| 10 | DevOps & SRE (builds all the others) | always-on | planned |
+| 10 | [DevOps & SRE](./devops-sre/) — keyless OIDC CI/CD, scanned + gated Terraform, one CloudWatch pane, executable backup/restore runbook with measured RTO/RPO | always-on | ✅ **[live](https://ops.demos.planetek.org)** |
 
 Plus the **[Demo Hub](./demo-hub/)** at **[demos.planetek.org](https://demos.planetek.org)** — one card per environment with live links.
 

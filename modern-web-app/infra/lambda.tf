@@ -29,6 +29,10 @@ resource "aws_lambda_function" "public" {
       TABLE_NAME = aws_dynamodb_table.permits.name
     }
   }
+
+  tracing_config {
+    mode = "Active" # X-Ray
+  }
 }
 
 resource "aws_lambda_function" "me" {
@@ -47,6 +51,10 @@ resource "aws_lambda_function" "me" {
       TABLE_NAME = aws_dynamodb_table.permits.name
     }
   }
+
+  tracing_config {
+    mode = "Active" # X-Ray
+  }
 }
 
 resource "aws_lambda_function" "admin" {
@@ -64,6 +72,10 @@ resource "aws_lambda_function" "admin" {
     variables = {
       TABLE_NAME = aws_dynamodb_table.permits.name
     }
+  }
+
+  tracing_config {
+    mode = "Active" # X-Ray
   }
 }
 
@@ -88,6 +100,10 @@ resource "aws_lambda_function" "demo" {
       DEMO_CITIZEN_PASSWORD = var.demo_citizen_password
     }
   }
+
+  tracing_config {
+    mode = "Active" # X-Ray
+  }
 }
 
 resource "aws_lambda_function" "postconfirm" {
@@ -101,4 +117,8 @@ resource "aws_lambda_function" "postconfirm" {
   memory_size      = 128
   timeout          = 5
   # No environment: the trigger event carries the user pool id.
+
+  tracing_config {
+    mode = "Active" # X-Ray
+  }
 }

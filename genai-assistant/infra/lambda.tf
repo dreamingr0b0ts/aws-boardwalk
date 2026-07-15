@@ -31,6 +31,10 @@ resource "aws_lambda_function" "public" {
       GLOBAL_DAILY_LIMIT = tostring(var.global_daily_limit)
     }
   }
+
+  tracing_config {
+    mode = "Active" # X-Ray
+  }
 }
 
 resource "aws_lambda_function" "chat" {
@@ -54,6 +58,10 @@ resource "aws_lambda_function" "chat" {
       GLOBAL_DAILY_LIMIT = tostring(var.global_daily_limit)
     }
   }
+
+  tracing_config {
+    mode = "Active" # X-Ray
+  }
 }
 
 resource "aws_lambda_function" "ingest" {
@@ -72,5 +80,9 @@ resource "aws_lambda_function" "ingest" {
       CORPUS_BUCKET  = aws_s3_bucket.corpus.bucket
       EMBED_MODEL_ID = var.embed_model_id
     }
+  }
+
+  tracing_config {
+    mode = "Active" # X-Ray
   }
 }

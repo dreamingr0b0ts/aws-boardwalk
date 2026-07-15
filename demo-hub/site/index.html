@@ -114,7 +114,7 @@
     <div class="hero-meta">
       <div><strong>Terraform</strong>every resource</div>
       <div><strong>≈ $1/mo</strong>total idle cost</div>
-      <div><strong>2 of 10</strong>environments live</div>
+      <div><strong>3 of 10</strong>environments live</div>
     </div>
   </div>
   <svg class="ridge" viewBox="0 0 900 120" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
@@ -155,17 +155,21 @@
       </div>
     </article>
 
-    <article class="card">
-      <div class="card-top"><span class="num">10 · DEVOPS &amp; SRE</span><span class="chip next">Up next</span></div>
+    <article class="card live">
+      <div class="card-top"><span class="num">10 · DEVOPS &amp; SRE</span><span class="chip live">Live</span></div>
       <h3>DevOps &amp; SRE</h3>
       <p>The meta-environment that ships the others: GitHub Actions with OIDC (no stored keys), Terraform plan/apply
-      gates, tfsec/Checkov/Trivy scanning, observability, and a backup/restore runbook that prints RTO/RPO.</p>
-      <span class="stack">GitHub Actions · Terraform · CloudWatch · X-Ray · Synthetics</span>
-      <div class="card-links"><span>In build queue</span></div>
+      gates, Checkov + Trivy scanning on every PR, one CloudWatch pane over every plank, and an executable
+      backup/restore runbook that publishes measured RTO/RPO.</p>
+      <span class="stack">GitHub Actions · Terraform · CloudWatch · X-Ray · Synthetics · Step Functions</span>
+      <div class="card-links">
+        <a href="https://ops.demos.planetek.org">Ops status page</a>
+        <a class="quiet" href="https://github.com/dreamingr0b0ts/aws-boardwalk/tree/main/devops-sre">Code</a>
+      </div>
     </article>
 
     <article class="card">
-      <div class="card-top"><span class="num">07 · DOCUMENTS</span><span class="chip plan">Planned</span></div>
+      <div class="card-top"><span class="num">07 · DOCUMENTS</span><span class="chip next">Up next</span></div>
       <h3>Intelligent Document Processing</h3>
       <p>Drop any PDF or image: OCR, entity and key-value extraction, auto-classification, and a searchable,
       faceted metadata index — the records-modernization skillset, live.</p>

@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Planetek · Boardwalk Ops — CI/CD, observability & resilience</title>
+<meta name="description" content="The meta-environment that builds and watches the AWS Boardwalk: GitHub Actions with OIDC (no stored keys), Terraform plan/apply gates, security scanning, CloudWatch observability, and an executable backup/restore runbook with measured RTO/RPO.">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<style>
+  :root {
+    --bg: #fafaf9;
+    --surface: #ffffff;
+    --border: #e7e5e4;
+    --ink: #1c1917;
+    --ink-2: #57534e;
+    --ink-3: #78716c;
+    --pine: #16302e;
+    --pine-deep: #0b1f1e;
+    --pine-mid: #2f615c;
+    --pine-soft: #dcebe8;
+    --glow: #e4532f;
+    --live-bg: #ecfdf5; --live-ink: #047857; --live-ring: #a7f3d0;
+    --fail-bg: #fef2f2; --fail-ink: #b91c1c; --fail-ring: #fecaca;
+    --plan-bg: #f5f5f4; --plan-ink: #78716c; --plan-ring: #d6d3d1;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0c0a09;
+      --surface: #1c1917;
+      --border: #292524;
+      --ink: #f5f5f4;
+      --ink-2: #d6d3d1;
+      --ink-3: #a8a29e;
+      --pine-soft: #16302e;
+      --live-bg: rgba(5,150,105,.15); --live-ink: #34d399; --live-ring: rgba(52,211,153,.35);
+      --fail-bg: rgba(185,28,28,.15); --fail-ink: #f87171; --fail-ring: rgba(248,113,113,.35);
+      --plan-bg: #292524; --plan-ink: #a8a29e; --plan-ring: #44403c;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font: 16px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 20px; }
+
+  header.hero { background: linear-gradient(180deg, var(--pine-deep), var(--pine)); color: #f2f7f6; }
+  .hero-inner { padding: 64px 0 40px; }
+  .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: #f59e83; }
+  h1 { font-size: clamp(30px, 5vw, 44px); line-height: 1.08; margin-top: 12px; font-weight: 800; }
+  .hero p.lede { margin-top: 14px; max-width: 640px; font-size: 17px; color: #b9d6d1; }
+  .hero-meta { margin-top: 28px; display: flex; gap: 24px; flex-wrap: wrap; font-size: 13px; color: #8db9b3; }
+  .hero-meta strong { display: block; color: #fff; font-size: 15px; }
+
+  main { padding: 48px 0 24px; display: grid; gap: 24px; }
+  section.panel { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 26px; }
+  h2 { font-size: 20px; font-weight: 800; }
+  .sub { margin-top: 4px; color: var(--ink-3); font-size: 14px; }
+  .panel p { margin-top: 12px; font-size: 14.5px; color: var(--ink-2); max-width: 72ch; }
+  .badges { margin-top: 16px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  .badges img { height: 20px; }
+  a { color: var(--glow); font-weight: 600; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .flow { margin-top: 18px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; font-size: 13px; font-weight: 700; }
+  .flow .stage { background: var(--plan-bg); border: 1px solid var(--plan-ring); color: var(--ink-2); border-radius: 999px; padding: 5px 14px; }
+  .flow .stage.gate { background: var(--pine-soft); border-color: var(--pine-mid); color: var(--pine-mid); }
+  @media (prefers-color-scheme: dark) { .flow .stage.gate { color: #8db9b3; } }
+  .flow .arrow { color: var(--ink-3); }
+
+  ul.facts { margin: 14px 0 0; padding: 0; list-style: none; display: grid; gap: 9px; }
+  ul.facts li { font-size: 14px; color: var(--ink-2); padding-left: 22px; position: relative; }
+  ul.facts li::before { content: "⛰"; position: absolute; left: 0; }
+  ul.facts code { font: 12.5px ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--plan-bg); border-radius: 5px; padding: 1px 6px; }
+
+  .report { margin-top: 16px; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .report-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;
+                 padding: 12px 16px; background: var(--plan-bg); font-size: 13px; color: var(--ink-3); }
+  .chip { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em;
+          padding: 3px 10px; border-radius: 999px; border: 1px solid; }
+  .chip.pass { background: var(--live-bg); color: var(--live-ink); border-color: var(--live-ring); }
+  .chip.fail { background: var(--fail-bg); color: var(--fail-ink); border-color: var(--fail-ring); }
+  .chip.idle { background: var(--plan-bg); color: var(--plan-ink); border-color: var(--plan-ring); }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+  .stat { padding: 16px; border-top: 1px solid var(--border); }
+  .stat + .stat { border-left: 1px solid var(--border); }
+  .stat .k { font-size: 12px; text-transform: uppercase; letter-spacing: .07em; color: var(--ink-3); font-weight: 700; }
+  .stat .v { margin-top: 4px; font-size: 22px; font-weight: 800; }
+  .stat .d { font-size: 12px; color: var(--ink-3); }
+  @media (max-width: 640px) { .stat + .stat { border-left: none; } }
+
+  footer { margin-top: 48px; background: var(--pine-deep); color: #b9d6d1; font-size: 13px; }
+  footer .wrap { padding: 28px 20px; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  footer a { color: #dcebe8; }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap hero-inner">
+    <p class="eyebrow">Planetek · Boardwalk plank 10 — DevOps &amp; SRE</p>
+    <h1>The environment that builds the others</h1>
+    <p class="lede">Every plank on the boardwalk ships through this pipeline and is watched by this
+    tooling: keyless CI/CD, gated Terraform applies, security scanning on every change, one
+    observability pane, and a disaster-recovery runbook you can execute — not just read.</p>
+    <div class="hero-meta">
+      <div><strong>0 stored keys</strong>GitHub → AWS via OIDC</div>
+      <div><strong>2 scanners</strong>Checkov + Trivy on every PR</div>
+      <div><strong>≈ $0/mo</strong>idle cost, on-demand everything</div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="panel">
+    <h2>CI/CD — plan on pull request, gated apply on main</h2>
+    <p class="sub">GitHub Actions assumes short-lived AWS credentials via OpenID Connect. There are no
+    access keys in the repo, in GitHub secrets, or anywhere else.</p>
+    <div class="flow">
+      <span class="stage">pull request</span><span class="arrow">→</span>
+      <span class="stage">fmt · validate</span><span class="arrow">→</span>
+      <span class="stage">Checkov + Trivy</span><span class="arrow">→</span>
+      <span class="stage">terraform plan <em>(read-only role)</em></span><span class="arrow">→</span>
+      <span class="stage gate">merge to main</span><span class="arrow">→</span>
+      <span class="stage gate">prod environment gate</span><span class="arrow">→</span>
+      <span class="stage">terraform apply</span>
+    </div>
+    <div class="badges">
+      <a href="https://github.com/dreamingr0b0ts/aws-boardwalk/actions/workflows/terraform.yml"><img
+        src="https://github.com/dreamingr0b0ts/aws-boardwalk/actions/workflows/terraform.yml/badge.svg"
+        alt="terraform pipeline status"></a>
+      <a href="https://github.com/dreamingr0b0ts/aws-boardwalk/actions">all workflow runs →</a>
+    </div>
+    <ul class="facts">
+      <li>The plan role is <strong>read-only</strong> — a malicious or buggy PR can see drift, never cause it.</li>
+      <li>The apply role is only assumable through the repo's <code>prod</code> environment, and its IAM
+          powers are fenced to plank-prefixed roles — it cannot modify its own permissions.</li>
+      <li>Checkov and Trivy fail the build on infrastructure misconfigurations and vulnerable dependencies.</li>
+    </ul>
+  </section>
+
+  <section class="panel">
+    <h2>Resilience — an executable backup &amp; restore runbook</h2>
+    <p class="sub">A Step Functions state machine snapshots the live permits table, restores it into a
+    scratch table, verifies every item survived, tears the copy down, and publishes the evidence below.</p>
+    <div class="report" id="report">
+      <div class="report-head">
+        <span id="report-when">No drill report loaded yet — run <code>make drill</code>.</span>
+        <span class="chip idle" id="report-chip">awaiting first drill</span>
+      </div>
+      <div class="stats" id="report-stats" hidden>
+        <div class="stat"><div class="k">RTO (measured)</div><div class="v" id="rto">—</div><div class="d">backup → restore → verified</div></div>
+        <div class="stat"><div class="k">RPO (PITR)</div><div class="v" id="rpo">—</div><div class="d">point-in-time recovery window</div></div>
+        <div class="stat"><div class="k">Items verified</div><div class="v" id="items">—</div><div class="d">restored vs. source</div></div>
+      </div>
+    </div>
+    <ul class="facts">
+      <li>DynamoDB point-in-time recovery and S3 versioning stay on continuously; the drill proves restores actually work.</li>
+      <li>The scratch table and snapshot are deleted at the end of every run — the drill leaves nothing behind.</li>
+    </ul>
+  </section>
+
+  <section class="panel">
+    <h2>Observability — one pane over every plank</h2>
+    <p>A CloudWatch dashboard tracks CloudFront traffic and error rates, API latency (p95), Lambda errors,
+    DynamoDB capacity, and Bedrock usage across the whole boardwalk. Alarms on API 5xx, chat-Lambda errors,
+    DynamoDB throttling, and canary failures page the operator by email. Lambda and Step Functions run with
+    X-Ray tracing enabled, and a CloudWatch Synthetics canary heartbeats every live plank — started only for
+    demo windows, because an always-on canary is the classic way to pay real money to watch a free site.</p>
+    <ul class="facts">
+      <li>Dashboards, alarms, and traces live in the AWS console — this page is the public, read-only view.</li>
+      <li>Everything here fits the boardwalk's standing rule: idle cost ≈ $0, spend only during demos.</li>
+    </ul>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Plank 10 of the <a href="https://demos.planetek.org">AWS Boardwalk</a> · built with Terraform</span>
+    <span><a href="https://github.com/dreamingr0b0ts/aws-boardwalk/tree/main/devops-sre">source on GitHub</a></span>
+  </div>
+</footer>
+
+<script>
+  (async () => {
+    try {
+      const r = await fetch('/runbook/latest.json', { cache: 'no-store' });
+      if (!r.ok) return;
+      const rep = await r.json();
+      const chip = document.getElementById('report-chip');
+      const pass = rep.result === 'PASS';
+      chip.textContent = pass ? 'pass' : 'fail';
+      chip.className = 'chip ' + (pass ? 'pass' : 'fail');
+      document.getElementById('report-when').textContent =
+        'Last drill: ' + new Date(rep.completedAt).toLocaleString() + ' · execution ' + rep.execution;
+      const fmt = (s) => s == null ? '—' : (s < 90 ? s + 's' : Math.round(s / 6) / 10 + ' min');
+      document.getElementById('rto').textContent = fmt(rep.rtoSeconds);
+      document.getElementById('rpo').textContent = rep.pointInTimeRecovery?.enabled
+        ? fmt(rep.pointInTimeRecovery.rpoSeconds) : 'PITR off';
+      document.getElementById('items').textContent =
+        rep.itemCounts.restored + ' / ' + rep.itemCounts.source;
+      document.getElementById('report-stats').hidden = false;
+    } catch (e) { /* page still works without a report */ }
+  })();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,48 @@
+# Checkov gate config. Skips below are ACCEPTED RISKS, each a deliberate
+# cost/benefit call for a public demo portfolio with a hard "idle ≈ $0"
+# budget rule (see CLAUDE.md). Anything not listed here fails the build.
+# Revisit if any plank starts handling real (non-demo) data.
+
+framework:
+  - terraform
+quiet: true
+compact: true
+
+skip-check:
+  # --- would require always-on paid infrastructure ---
+  - CKV_AWS_68 # WAF on CloudFront: ~$5+/mo per distribution; auth + rate caps live at the app layer
+  - CKV2_AWS_47 # WAFv2 Log4j managed rules: same WAF cost; no Java anywhere in the stack
+  - CKV_AWS_117 # Lambda in VPC: would force NAT gateways (banned always-on cost); no VPC resources exist
+  - CKV_AWS_144 # S3 cross-region replication: doubles storage for reproducible demo assets
+  - CKV_AWS_310 # CloudFront origin failover: second origin for static demo sites isn't worth it
+
+  # --- KMS CMKs are $1/mo each; AWS-managed encryption is on everywhere ---
+  - CKV_AWS_145 # S3 KMS-by-default (SSE-S3 enabled instead)
+  - CKV_AWS_173 # Lambda env-var CMK (no secrets in env vars; AWS-managed key encrypts at rest)
+  - CKV_AWS_119 # DynamoDB CMK (AWS-owned key encryption is always on)
+  - CKV_AWS_26 # SNS topic CMK (carries alarm notifications only; CloudWatch can't use aws/sns)
+  - CKV_AWS_297 # EventBridge Scheduler CMK (payload is an empty reset event)
+
+  # --- logging/eventing surfaces that cost more than the sites they'd watch ---
+  - CKV_AWS_18 # S3 access logging (CloudFront metrics cover the static sites)
+  - CKV_AWS_86 # CloudFront access logging (standard logs bucket + storage)
+  - CKV_AWS_76 # API Gateway access logging (Lambda logs cover request-level detail)
+  - CKV_AWS_285 # Step Functions execution logging (X-Ray tracing is enabled instead)
+  - CKV2_AWS_39 # Route53 query logging
+  - CKV2_AWS_38 # DNSSEC: GoDaddy-delegated subdomain; enable if/when the domain moves to Route53
+  - CKV2_AWS_62 # S3 event notifications (nothing consumes them)
+
+  # --- resilience knobs that don't fit ephemeral demo data ---
+  - CKV_AWS_21 # S3 versioning on site buckets (every deploy would accumulate versions; state bucket IS versioned)
+  - CKV2_AWS_61 # S3 lifecycle on site buckets (content is replaced wholesale on publish)
+  - CKV_AWS_300 # abort-multipart lifecycle on the canary artifacts bucket (30-day expiry rule already set)
+  - CKV_AWS_116 # Lambda DLQs (all invocations are synchronous request/response; nothing to dead-letter)
+  - CKV_AWS_115 # Lambda reserved concurrency (abuse caps enforced via DynamoDB counters + edge throttle)
+  - CKV_AWS_272 # Lambda code signing (terraform-hashed artifacts from a public repo)
+
+  # --- intentional design ---
+  - CKV_AWS_309 # API routes without auth: the /api/public/* routes are public by design; the rest use JWT authorizers
+  - CKV2_AWS_71 # wildcard ACM cert: *.demos.planetek.org deliberately covers every plank site
+  - CKV_AWS_374 # CloudFront geo restriction: public demos for anyone to view
+  - CKV_AWS_174 # false positive: the default-cert block is the disabled branch of a dynamic block; the active branch pins TLSv1.2_2021
+  - CKV_AWS_355 # canary role's cloudwatch:PutMetricData is namespace-conditioned; the action doesn't support resource ARNs

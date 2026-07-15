@@ -49,6 +49,13 @@ resource "aws_iam_role_policy_attachment" "basic_logs" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
+# X-Ray tracing (plank 10 wires the observability side)
+resource "aws_iam_role_policy_attachment" "xray_write" {
+  for_each   = local.lambda_roles
+  role       = each.value.name
+  policy_arn = "arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess"
+}
+
 resource "aws_iam_role_policy" "public_s3" {
   name = "read-index-meta-only"
   role = aws_iam_role.public.id

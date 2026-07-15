@@ -38,16 +38,16 @@ locals {
   # route key => integration; me/admin routes require a valid Cognito JWT,
   # and the admin Lambda additionally enforces the admin group claim.
   routes = {
-    "GET /api/public/permit-types"                = { fn = "public", auth = false }
-    "GET /api/public/stats"                       = { fn = "public", auth = false }
-    "GET /api/me/applications"                    = { fn = "me", auth = true }
-    "POST /api/me/applications"                   = { fn = "me", auth = true }
-    "GET /api/me/applications/{id}"               = { fn = "me", auth = true }
-    "GET /api/admin/applications"                 = { fn = "admin", auth = true }
-    "POST /api/admin/applications/{id}/decision"  = { fn = "admin", auth = true }
-    "GET /api/admin/metrics"                      = { fn = "admin", auth = true }
-    "GET /api/admin/permit-types"                 = { fn = "admin", auth = true }
-    "POST /api/admin/permit-types"                = { fn = "admin", auth = true }
+    "GET /api/public/permit-types"               = { fn = "public", auth = false }
+    "GET /api/public/stats"                      = { fn = "public", auth = false }
+    "GET /api/me/applications"                   = { fn = "me", auth = true }
+    "POST /api/me/applications"                  = { fn = "me", auth = true }
+    "GET /api/me/applications/{id}"              = { fn = "me", auth = true }
+    "GET /api/admin/applications"                = { fn = "admin", auth = true }
+    "POST /api/admin/applications/{id}/decision" = { fn = "admin", auth = true }
+    "GET /api/admin/metrics"                     = { fn = "admin", auth = true }
+    "GET /api/admin/permit-types"                = { fn = "admin", auth = true }
+    "POST /api/admin/permit-types"               = { fn = "admin", auth = true }
   }
 }
 

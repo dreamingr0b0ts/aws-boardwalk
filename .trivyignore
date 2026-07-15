@@ -1,0 +1,19 @@
+# Accepted risks — each one is a deliberate cost/benefit call for a public
+# demo portfolio with a hard "idle ≈ $0" budget rule (see CLAUDE.md).
+# Revisit if any plank starts handling real (non-demo) data.
+
+# CloudFront without WAF: a web ACL costs ~$5+/mo per distribution. The sites
+# are static pages behind OAC with strict security headers; the APIs enforce
+# auth + per-user/global rate caps at the application layer.
+AVD-AWS-0011
+
+# S3 with SSE-S3 (AES256) instead of a customer-managed KMS key: CMKs cost
+# $1/mo each + per-request. Nothing in these buckets is sensitive: public
+# site assets, a fictional demo corpus, terraform state (whose bucket is
+# created outside terraform with encryption + versioning + public-block).
+AVD-AWS-0132
+
+# Unencrypted SNS topic: it carries CloudWatch alarm notifications (no
+# payload secrets). Encrypting it would require a CMK ($1/mo) because
+# CloudWatch can't publish through the AWS-managed aws/sns key.
+AVD-AWS-0095

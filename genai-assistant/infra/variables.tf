@@ -27,8 +27,10 @@ variable "demo_email" {
 }
 
 variable "demo_password" {
-  type      = string
-  sensitive = true
+  description = "Demo user password. Local deploys pass it from the gitignored .demo-creds; when empty (CI), it is read from the SSM parameter /boardwalk/genai-assistant/demo-password, which `make creds` keeps in sync."
+  type        = string
+  sensitive   = true
+  default     = ""
 }
 
 # ---- AI cost guardrails (defense in depth behind the Cognito gate) ----

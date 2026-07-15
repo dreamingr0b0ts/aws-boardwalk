@@ -25,8 +25,17 @@ leaks. Keep it that way for any future plank whose requests cost real money.
 
 ## Build order (from Projects/AWS_SHOWCASE_PROJECTS.md)
 
-✅ 1 Web App · ✅ Demo Hub · ✅ 6 GenAI (RAG) · **next: 10 DevOps/SRE** · then 7, 3, 5, 2, 4, 8, 9.
+✅ 1 Web App · ✅ Demo Hub · ✅ 6 GenAI (RAG) · ✅ 10 DevOps/SRE · **next: 7 IDP** · then 3, 5, 2, 4, 8, 9.
 When a plank goes live: update its card in `demo-hub/site/index.html` (status chip + links), the root README table, and republish the hub (`cd demo-hub && make publish`).
+
+## CI/CD (plank 10 — live)
+
+Every push to `main` plans AND APPLIES all planks via GitHub Actions (OIDC roles `ops-gh-plan`/`ops-gh-apply`, no stored keys; account ID lives in the `AWS_ACCOUNT_ID` repo variable). Two consequences:
+
+- **Variable defaults must match the live state.** CI runs plain `terraform apply` with no extra `-var` flags — a default that differs from production (like plank 1's old `custom_domain_enabled=false`) WILL be "corrected" into an outage on the next push.
+- Checkov (`.checkov.yaml`) + Trivy (`.trivyignore`) gate every PR; both files carry justified, documented skips — add a reasoned entry rather than loosening the gate.
+
+The gai demo password is read from SSM (`/boardwalk/genai-assistant/demo-password`, synced by `make -C genai-assistant creds`) so CI can apply that plank without the gitignored `.demo-creds`.
 
 ## Git
 

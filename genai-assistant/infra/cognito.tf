@@ -37,7 +37,7 @@ resource "aws_cognito_user_pool_client" "spa" {
   generate_secret = false # public SPA client
 
   explicit_auth_flows = [
-    "ALLOW_USER_PASSWORD_AUTH",       # zero-build static frontend authenticates with a plain InitiateAuth call over TLS
+    "ALLOW_USER_PASSWORD_AUTH", # zero-build static frontend authenticates with a plain InitiateAuth call over TLS
     "ALLOW_REFRESH_TOKEN_AUTH",
     "ALLOW_ADMIN_USER_PASSWORD_AUTH", # server-side only: lets the verify script mint tokens via admin-initiate-auth
   ]
@@ -55,10 +55,21 @@ resource "aws_cognito_user_pool_client" "spa" {
   }
 }
 
+# CI has no .demo-creds, so when the var is empty the password comes from SSM
+# (kept in sync by `make creds`). Either way it never touches the repo.
+data "aws_ssm_parameter" "demo_password" {
+  count = var.demo_password == "" ? 1 : 0
+  name  = "/boardwalk/genai-assistant/demo-password"
+}
+
+locals {
+  demo_password = var.demo_password != "" ? var.demo_password : data.aws_ssm_parameter.demo_password[0].value
+}
+
 resource "aws_cognito_user" "demo" {
   user_pool_id = aws_cognito_user_pool.users.id
   username     = var.demo_email
-  password     = var.demo_password # permanent; user lands in CONFIRMED state
+  password     = local.demo_password # permanent; user lands in CONFIRMED state
 
   attributes = {
     email          = var.demo_email

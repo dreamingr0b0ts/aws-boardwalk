@@ -1,7 +1,7 @@
 variable "custom_domain_enabled" {
-  description = "Attach permits.demos.planetek.org + wildcard cert to CloudFront. Flip to true only after the GoDaddy NS delegation is live and the ACM cert shows ISSUED."
+  description = "Attach permits.demos.planetek.org + wildcard cert to CloudFront. Defaults on (delegation is live, cert ISSUED) so plain applies — including CI's — keep the domain attached."
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "site_hostname" {

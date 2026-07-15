@@ -24,10 +24,10 @@ resource "aws_cognito_user_pool" "users" {
   }
 
   schema {
-    name                     = "name"
-    attribute_data_type      = "String"
-    mutable                  = true
-    required                 = false
+    name                = "name"
+    attribute_data_type = "String"
+    mutable             = true
+    required            = false
     string_attribute_constraints {
       min_length = 1
       max_length = 256
