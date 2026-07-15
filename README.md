@@ -13,7 +13,7 @@ Design constraints for every plank:
 
 | # | Environment | Mode | Status |
 |---|-------------|------|--------|
-| 1 | [Modern Web Application](./modern-web-app/) — three-tier serverless app with Cognito RBAC | always-on | 🚧 building |
+| 1 | [Modern Web Application](./modern-web-app/) — three-tier serverless app with Cognito RBAC | always-on | ✅ **[live](https://permits.demos.planetek.org)** |
 | 2 | API & Microservices | always-on | planned |
 | 3 | Event-Driven & Messaging | always-on | planned |
 | 4 | Containers (ECS Fargate, scale-to-zero) | on-demand | planned |
@@ -24,13 +24,14 @@ Design constraints for every plank:
 | 9 | Network Architecture | deploy-demo-teardown | planned |
 | 10 | DevOps & SRE (builds all the others) | always-on | planned |
 
-Plus the **Demo Hub** at `demos.planetek.org` — one card per environment with architecture, screenshots, and live links.
+Plus the **[Demo Hub](./demo-hub/)** at **[demos.planetek.org](https://demos.planetek.org)** — one card per environment with live links.
 
 ## Repository layout
 
 ```
 aws-boardwalk/
 ├── platform/          # Shared: Route53 zone (demos.planetek.org) + wildcard ACM cert
+├── demo-hub/          # The boardwalk entrance — static hub at demos.planetek.org
 ├── modern-web-app/    # Plank 1 — Alpenglow Permits (see its README)
 └── ...                # One folder per plank as they're built
 ```
