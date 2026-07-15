@@ -19,7 +19,7 @@ Design constraints for every plank:
 | 4 | Containers (ECS Fargate, scale-to-zero) | on-demand | planned |
 | 5 | Data Lake & Analytics | always-on | planned |
 | 6 | [Generative AI (RAG)](./genai-assistant/) — cited RAG assistant with hard cost caps behind a Cognito gate | always-on | ✅ **[live](https://assistant.demos.planetek.org)** (access on request) |
-| 7 | Intelligent Document Processing | always-on | planned |
+| 7 | [Intelligent Document Processing](./doc-processing/) — Textract/Comprehend/Bedrock pipeline on Step Functions with a faceted search index | always-on | ✅ **[live](https://documents.demos.planetek.org)** (uploads on request) |
 | 8 | Security & Governance | deploy-demo-teardown | planned |
 | 9 | Network Architecture | deploy-demo-teardown | planned |
 | 10 | [DevOps & SRE](./devops-sre/) — keyless OIDC CI/CD, scanned + gated Terraform, one CloudWatch pane, executable backup/restore runbook with measured RTO/RPO | always-on | ✅ **[live](https://ops.demos.planetek.org)** |

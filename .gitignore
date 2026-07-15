@@ -33,3 +33,7 @@ Thumbs.db
 # GenAI plank demo credentials (never committed)
 .demo-creds
 genai-assistant/frontend/config.json
+
+# IDP plank: runtime config + locally generated seed PDFs
+doc-processing/frontend/config.json
+doc-processing/corpus/pdfs/

@@ -81,6 +81,9 @@ locals {
             ["...", "mwa-admin", { label = "mwa-admin" }],
             ["...", "gai-public", { label = "gai-public" }],
             ["...", "gai-chat", { label = "gai-chat" }],
+            ["...", "idp-api", { label = "idp-api" }],
+            ["...", "idp-ocr", { label = "idp-ocr" }],
+            ["...", "idp-enrich", { label = "idp-enrich" }],
           ]
         }
       },

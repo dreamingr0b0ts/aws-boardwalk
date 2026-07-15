@@ -30,7 +30,7 @@ locals {
   # Every IAM name the boardwalk creates starts with a plank prefix. The apply
   # role may only touch IAM inside these namespaces — it cannot mint or edit
   # unrelated roles (including humans' and its own: 'ops-gh-*' is carved out).
-  plank_iam_prefixes = ["mwa-*", "gai-*", "hub-*", "ops-*", "platform-*"]
+  plank_iam_prefixes = ["mwa-*", "gai-*", "hub-*", "idp-*", "ops-*", "platform-*"]
   plank_role_arns    = [for p in local.plank_iam_prefixes : "arn:aws:iam::${local.account_id}:role/${p}"]
   plank_policy_arns  = [for p in local.plank_iam_prefixes : "arn:aws:iam::${local.account_id}:policy/${p}"]
 }

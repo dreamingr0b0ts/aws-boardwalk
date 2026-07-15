@@ -1,0 +1,9 @@
+{
+  "name": "doc-processing-corpus",
+  "private": true,
+  "type": "module",
+  "description": "Generates the fictional City of Alpenglow seed documents (PDFs are built locally, not committed)",
+  "dependencies": {
+    "pdf-lib": "^1.17.1"
+  }
+}

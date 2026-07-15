@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Alpenglow Document Intelligence · Planetek AWS Boardwalk</title>
+<meta name="description" content="An intelligent document processing pipeline: OCR, key-value extraction, entity detection, AI classification, and a faceted, searchable metadata index. Plank 7 of the Planetek AWS Boardwalk.">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">Planetek · AWS Boardwalk · Plank 7</p>
+    <h1>Alpenglow Document Intelligence</h1>
+    <p class="lede">Drop in any PDF or image and watch it become structured, searchable data:
+    Textract OCR and form extraction, Comprehend entity and PII detection, Bedrock classification,
+    and a faceted metadata index — orchestrated by Step Functions, visible step by step.</p>
+    <div class="hero-meta">
+      <div><strong id="stat-docs">–</strong>documents indexed</div>
+      <div><strong id="stat-pages">–</strong>pages OCR'd</div>
+      <div><strong id="stat-entities">–</strong>entities extracted</div>
+      <div><strong id="stat-types">–</strong>document types</div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- Public, free-to-browse index of processed documents -->
+  <section class="panel">
+    <h2>Browse the processed index</h2>
+    <p class="muted">Everything below came out of the pipeline — no hand-entered metadata. All documents
+    are fictional City of Alpenglow records. Filter by what the pipeline extracted:</p>
+
+    <div class="controls">
+      <input type="search" id="search" placeholder="Search titles, summaries, filenames…" aria-label="Search documents">
+    </div>
+    <div id="facets" class="facets" aria-label="Filter by document type"></div>
+
+    <div id="doc-grid" class="doc-grid" aria-live="polite">
+      <p class="muted">Loading the index…</p>
+    </div>
+  </section>
+
+  <!-- Upload panel. Credentials are intentionally NOT printed here: every
+       accepted upload spends real Textract/Comprehend/Bedrock money, so
+       access is handed out by Planetek during demos rather than published. -->
+  <section class="panel" id="upload-section">
+    <h2>Put your own document through the pipeline</h2>
+
+    <div id="login-panel">
+      <p class="muted">Demo access is provided by Planetek — credentials are shared during demos and
+      proposals rather than published (an endpoint that costs money per document should never be
+      anonymous). Uploads behind this gate are still size-capped, page-capped, rate-limited, and
+      budget-capped, and are purged nightly.</p>
+      <form id="login-form" autocomplete="off">
+        <label>Email <input type="email" id="login-email" required placeholder="you@example.org"></label>
+        <label>Password <input type="password" id="login-password" required placeholder="••••••••••••"></label>
+        <button type="submit" id="login-btn">Sign in</button>
+        <p id="login-error" class="error" hidden></p>
+      </form>
+    </div>
+
+    <div id="upload-panel" hidden>
+      <div class="chat-head">
+        <p class="muted" id="quota-line">–</p>
+        <button id="logout-btn" class="quiet-btn">Sign out</button>
+      </div>
+
+      <label id="dropzone" for="file-input">
+        <input type="file" id="file-input" accept=".pdf,.png,.jpg,.jpeg,.tif,.tiff" hidden>
+        <strong>Choose a PDF or image</strong>
+        <span class="muted">PDF · PNG · JPEG · TIFF — up to 4 MB and 6 pages. It will appear in the
+        public index until the nightly reset.</span>
+      </label>
+      <p id="upload-error" class="error" hidden></p>
+
+      <ol id="pipeline-tracker" class="tracker" hidden>
+        <li data-step="received">Received<span class="t"></span></li>
+        <li data-step="ocr-started">OCR started (Textract)<span class="t"></span></li>
+        <li data-step="ocr-complete">Text &amp; form fields extracted<span class="t"></span></li>
+        <li data-step="entities-complete">Entities &amp; PII detected (Comprehend)<span class="t"></span></li>
+        <li data-step="classified">Classified (Bedrock)<span class="t"></span></li>
+        <li data-step="indexed">Indexed &amp; searchable<span class="t"></span></li>
+      </ol>
+      <p id="pipeline-result" class="muted" hidden></p>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>What this plank proves</h2>
+    <ul class="proof">
+      <li><strong>Document automation end to end:</strong> S3 event → EventBridge → Step Functions
+      orchestration with per-stage failure handling — every document carries its own step-by-step
+      timeline as evidence.</li>
+      <li><strong>OCR &amp; form intelligence:</strong> Textract asynchronous FORMS analysis turns
+      scans into text plus labeled key/value pairs with confidence scores.</li>
+      <li><strong>NLP &amp; governance:</strong> Comprehend entity extraction feeds the facet index;
+      a PII detector flags documents that would need handling care in a real records system.</li>
+      <li><strong>AI classification:</strong> Claude Haiku on Bedrock assigns a document type, title,
+      summary, and primary date — the metadata a records clerk would otherwise key in by hand.</li>
+      <li><strong>Cost containment in depth:</strong> Cognito JWT gate (no anonymous uploads, no
+      self-signup), size and page caps enforced before OCR starts, per-user daily caps, and a global
+      daily kill switch that bounds worst-case spend even if a credential leaks.</li>
+    </ul>
+    <p class="muted small">All infrastructure is Terraform in the public
+    <a href="https://github.com/dreamingr0b0ts/aws-boardwalk">aws-boardwalk repo</a>. Back to the
+    <a href="https://demos.planetek.org">Demo Hub</a>.</p>
+  </section>
+
+</main>
+
+<dialog id="doc-dialog">
+  <div class="dialog-head">
+    <div>
+      <h3 id="d-title">–</h3>
+      <div id="d-badges" class="msg-meta"></div>
+    </div>
+    <button id="dialog-close" class="quiet-btn" aria-label="Close">✕</button>
+  </div>
+  <p id="d-summary" class="d-summary"></p>
+  <div id="d-meta" class="d-meta"></div>
+
+  <div class="d-cols">
+    <div>
+      <h4>Extracted form fields</h4>
+      <table id="d-kv" class="kv"></table>
+    </div>
+    <div>
+      <h4>Detected entities</h4>
+      <div id="d-entities" class="entities"></div>
+      <h4>Pipeline timeline</h4>
+      <ol id="d-steps" class="timeline"></ol>
+    </div>
+  </div>
+  <p class="muted small"><a id="d-original" href="#" target="_blank" rel="noopener">View the original file</a>
+  (link valid for 5 minutes) · <span id="d-preview-label">text preview:</span></p>
+  <pre id="d-preview" class="preview"></pre>
+</dialog>
+
+<footer>
+  <div class="wrap">
+    <span>Built by Planetek · Terraform · Textract · Comprehend · Bedrock · Step Functions · Lambda · DynamoDB · Cognito · S3 + CloudFront</span>
+  </div>
+</footer>
+
+<script type="module" src="/app.js"></script>
+</body>
+</html>

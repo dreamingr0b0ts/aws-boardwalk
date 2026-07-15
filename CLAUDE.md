@@ -1,6 +1,6 @@
 # aws-boardwalk — agent notes
 
-Portfolio of live AWS demo environments ("planks") for Planetek. Live: [demos.planetek.org](https://demos.planetek.org) (hub), [permits.demos.planetek.org](https://permits.demos.planetek.org) (plank 1), and [assistant.demos.planetek.org](https://assistant.demos.planetek.org) (plank 6, GenAI RAG).
+Portfolio of live AWS demo environments ("planks") for Planetek. Live: [demos.planetek.org](https://demos.planetek.org) (hub), [permits.demos.planetek.org](https://permits.demos.planetek.org) (plank 1), [assistant.demos.planetek.org](https://assistant.demos.planetek.org) (plank 6, GenAI RAG), [documents.demos.planetek.org](https://documents.demos.planetek.org) (plank 7, IDP), and [ops.demos.planetek.org](https://ops.demos.planetek.org) (plank 10, DevOps/SRE).
 
 ## Conventions (locked — don't re-litigate)
 
@@ -17,15 +17,16 @@ Portfolio of live AWS demo environments ("planks") for Planetek. Live: [demos.pl
 Plank 1 (public by design, printed on its login page): admin@demo.planetek.org / Alpenglow-Admin1! · citizen@demo.planetek.org / Alpenglow-Citizen1!
 Nightly reset Lambda (09:00 UTC) reseeds data and purges stranger sign-ups.
 
-**Plank 6 is different on purpose:** its credential is NEVER printed on the site or committed —
-every message costs Bedrock tokens. It lives in `genai-assistant/.demo-creds` (gitignored, on
-the Mac); `make -C genai-assistant creds-show` prints it. Self-signup is disabled on that pool,
-and per-user (40/day) + global (200/day) DynamoDB counters cap spend even if the credential
-leaks. Keep it that way for any future plank whose requests cost real money.
+**Planks 6 and 7 are different on purpose:** their credentials are NEVER printed on the site or
+committed — plank 6 messages cost Bedrock tokens, plank 7 uploads cost Textract/Comprehend/Bedrock.
+Each lives in `<plank>/.demo-creds` (gitignored, on the Mac); `make -C <plank> creds-show` prints it.
+Self-signup is disabled on those pools, and per-user + global daily DynamoDB counters cap spend even
+if a credential leaks (gai: 40/200 messages; idp: 8/20 documents, plus 4 MB + 6-page caps enforced
+before OCR starts). Keep it that way for any future plank whose requests cost real money.
 
 ## Build order (from Projects/AWS_SHOWCASE_PROJECTS.md)
 
-✅ 1 Web App · ✅ Demo Hub · ✅ 6 GenAI (RAG) · ✅ 10 DevOps/SRE · **next: 7 IDP** · then 3, 5, 2, 4, 8, 9.
+✅ 1 Web App · ✅ Demo Hub · ✅ 6 GenAI (RAG) · ✅ 10 DevOps/SRE · ✅ 7 IDP · **next: 3 Events** · then 5, 2, 4, 8, 9.
 When a plank goes live: update its card in `demo-hub/site/index.html` (status chip + links), the root README table, and republish the hub (`cd demo-hub && make publish`).
 
 ## CI/CD (plank 10 — live)
