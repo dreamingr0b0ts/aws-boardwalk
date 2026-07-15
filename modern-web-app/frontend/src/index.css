@@ -1,0 +1,33 @@
+@import 'tailwindcss';
+
+/* Class-based dark mode: public/theme.js sets .dark on <html> pre-paint. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* Pine — deep evergreen neutrals for structure */
+  --color-pine-50: #f2f7f6;
+  --color-pine-100: #dcebe8;
+  --color-pine-200: #b9d6d1;
+  --color-pine-300: #8db9b3;
+  --color-pine-400: #5d9691;
+  --color-pine-500: #3f7a74;
+  --color-pine-600: #2f615c;
+  --color-pine-700: #284f4b;
+  --color-pine-800: #22403d;
+  --color-pine-900: #16302e;
+  --color-pine-950: #0b1f1e;
+
+  /* Glow — alpenglow accent for actions and warmth */
+  --color-glow-50: #fef4f0;
+  --color-glow-100: #fde5dc;
+  --color-glow-200: #fac5b4;
+  --color-glow-300: #f59e83;
+  --color-glow-400: #ee7351;
+  --color-glow-500: #e4532f;
+  --color-glow-600: #c4401f;
+  --color-glow-700: #a33619;
+}
+
+body {
+  @apply bg-stone-50 text-stone-800 antialiased dark:bg-stone-950 dark:text-stone-200;
+}
