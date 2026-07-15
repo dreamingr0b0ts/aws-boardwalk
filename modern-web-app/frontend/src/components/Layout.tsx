@@ -154,6 +154,14 @@ export default function Layout() {
             <p className="font-semibold text-white">Planetek</p>
             <ul className="mt-2 space-y-1">
               <li>
+                <a
+                  className="text-pine-200 underline-offset-2 hover:text-white hover:underline"
+                  href="https://github.com/dreamingr0b0ts/aws-boardwalk"
+                >
+                  Github
+                </a>
+              </li>
+              <li>
                 <a className="text-pine-200 underline-offset-2 hover:text-white hover:underline" href="https://planetek.org">
                   planetek.org
                 </a>
@@ -164,14 +172,6 @@ export default function Layout() {
                   href="https://demos.planetek.org"
                 >
                   More live environments
-                </a>
-              </li>
-              <li>
-                <a
-                  className="text-pine-200 underline-offset-2 hover:text-white hover:underline"
-                  href="https://github.com/dreamingr0b0ts/aws-boardwalk"
-                >
-                  Github
                 </a>
               </li>
             </ul>
