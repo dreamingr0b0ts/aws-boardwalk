@@ -1,6 +1,6 @@
 # aws-boardwalk — agent notes
 
-Portfolio of live AWS demo environments ("planks") for Planetek. Live: [demos.planetek.org](https://demos.planetek.org) (hub) and [permits.demos.planetek.org](https://permits.demos.planetek.org) (plank 1).
+Portfolio of live AWS demo environments ("planks") for Planetek. Live: [demos.planetek.org](https://demos.planetek.org) (hub), [permits.demos.planetek.org](https://permits.demos.planetek.org) (plank 1), and [assistant.demos.planetek.org](https://assistant.demos.planetek.org) (plank 6, GenAI RAG).
 
 ## Conventions (locked — don't re-litigate)
 
@@ -12,14 +12,20 @@ Portfolio of live AWS demo environments ("planks") for Planetek. Live: [demos.pl
 - Frontends: private S3 + CloudFront OAC, strict security-headers policy (HSTS, CSP), custom domain via the wildcard cert. Same-origin `/api/*` CloudFront behavior when there's an API (no CORS).
 - Naming: short per-plank resource prefix (`mwa-`, `hub-`, …).
 
-## Demo accounts (public by design, printed on plank-1 login page)
+## Demo accounts
 
-admin@demo.planetek.org / Alpenglow-Admin1! · citizen@demo.planetek.org / Alpenglow-Citizen1!
+Plank 1 (public by design, printed on its login page): admin@demo.planetek.org / Alpenglow-Admin1! · citizen@demo.planetek.org / Alpenglow-Citizen1!
 Nightly reset Lambda (09:00 UTC) reseeds data and purges stranger sign-ups.
+
+**Plank 6 is different on purpose:** its credential is NEVER printed on the site or committed —
+every message costs Bedrock tokens. It lives in `genai-assistant/.demo-creds` (gitignored, on
+the Mac); `make -C genai-assistant creds-show` prints it. Self-signup is disabled on that pool,
+and per-user (40/day) + global (200/day) DynamoDB counters cap spend even if the credential
+leaks. Keep it that way for any future plank whose requests cost real money.
 
 ## Build order (from Projects/AWS_SHOWCASE_PROJECTS.md)
 
-✅ 1 Web App · ✅ Demo Hub · **next: 6 GenAI (RAG)** · then 10 DevOps/SRE · then 7, 3, 5, 2, 4, 8, 9.
+✅ 1 Web App · ✅ Demo Hub · ✅ 6 GenAI (RAG) · **next: 10 DevOps/SRE** · then 7, 3, 5, 2, 4, 8, 9.
 When a plank goes live: update its card in `demo-hub/site/index.html` (status chip + links), the root README table, and republish the hub (`cd demo-hub && make publish`).
 
 ## Git

@@ -29,3 +29,7 @@ infra/build/
 Thumbs.db
 .idea/
 .vscode/
+
+# GenAI plank demo credentials (never committed)
+.demo-creds
+genai-assistant/frontend/config.json

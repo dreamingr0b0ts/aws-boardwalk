@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Alpenglow Records Assistant · Planetek AWS Boardwalk</title>
+<meta name="description" content="A retrieval-augmented AI assistant over a swappable document corpus — citations, guardrails, audit logging, and hard cost caps. Plank 6 of the Planetek AWS Boardwalk.">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">Planetek · AWS Boardwalk · Plank 6</p>
+    <h1>Alpenglow Records Assistant</h1>
+    <p class="lede">A retrieval-augmented (RAG) assistant over the fictional City of Alpenglow's permitting
+    and licensing handbook. Every answer is grounded in the corpus, cited by source, logged for audit,
+    and capped by hard per-user and global daily budgets.</p>
+    <div class="hero-meta">
+      <div><strong id="stat-docs">–</strong>documents</div>
+      <div><strong id="stat-chunks">–</strong>indexed passages</div>
+      <div><strong id="stat-model">–</strong>answer model</div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- Sign-in panel. Credentials are intentionally NOT printed here: this
+       plank spends real AI tokens per message, so access is handed out by
+       Planetek during demos rather than published like plank 1. -->
+  <section id="login-panel" class="panel">
+    <h2>Sign in to try it</h2>
+    <p class="muted">Demo access is provided by Planetek — credentials are shared during demos and
+    proposals rather than published (an AI endpoint that costs money per request should never be
+    anonymous). Every request behind this gate is still rate-limited and budget-capped.</p>
+    <form id="login-form" autocomplete="off">
+      <label>Email <input type="email" id="login-email" required placeholder="you@example.org"></label>
+      <label>Password <input type="password" id="login-password" required placeholder="••••••••••••"></label>
+      <button type="submit" id="login-btn">Sign in</button>
+      <p id="login-error" class="error" hidden></p>
+    </form>
+  </section>
+
+  <!-- Chat panel (revealed after auth) -->
+  <section id="chat-panel" class="panel" hidden>
+    <div class="chat-head">
+      <div>
+        <h2>Ask about Alpenglow permits &amp; licensing</h2>
+        <p class="muted" id="quota-line">–</p>
+      </div>
+      <button id="logout-btn" class="quiet-btn">Sign out</button>
+    </div>
+
+    <div id="messages" aria-live="polite"></div>
+
+    <form id="chat-form">
+      <input type="text" id="chat-input" maxlength="1500" required
+             placeholder="e.g. Do I need a permit to replace my water heater?">
+      <button type="submit" id="chat-btn">Ask</button>
+    </form>
+    <p class="muted small">Answers come only from the demo corpus and include citations. Off-corpus
+    questions are declined by design. Conversations are logged (7-day retention) as the audit-trail
+    half of the responsible-AI pattern.</p>
+  </section>
+
+  <section class="panel">
+    <h2>What this plank proves</h2>
+    <ul class="proof">
+      <li><strong>RAG done cheaply:</strong> Titan v2 embeddings + in-Lambda cosine retrieval over an S3
+      vector index — no vector database, $0 idle.</li>
+      <li><strong>Grounded answers:</strong> Claude Haiku 4.5 on Amazon Bedrock, constrained to cited
+      passages with prompt guardrails and a confidence score from retrieval similarity.</li>
+      <li><strong>Cost containment in depth:</strong> Cognito JWT gate (no anonymous access, no
+      self-signup), API-edge throttling, per-user daily caps, and a global daily kill switch that
+      bounds worst-case spend even if a credential leaks.</li>
+      <li><strong>Swappable corpus:</strong> point it at any domain's documents — building codes, HR
+      policy, grant guidelines — with one sync + re-index command.</li>
+      <li><strong>Audit &amp; feedback loop:</strong> every exchange logged with token counts and
+      latency; thumbs up/down feedback captured for review.</li>
+    </ul>
+    <p class="muted small">All infrastructure is Terraform in the public
+    <a href="https://github.com/dreamingr0b0ts/aws-boardwalk">aws-boardwalk repo</a>. Back to the
+    <a href="https://demos.planetek.org">Demo Hub</a>.</p>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Built by Planetek · Terraform · Bedrock · Lambda · API Gateway · DynamoDB · Cognito · S3 + CloudFront</span>
+  </div>
+</footer>
+
+<script type="module" src="/app.js"></script>
+</body>
+</html>

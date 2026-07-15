@@ -18,7 +18,7 @@ Design constraints for every plank:
 | 3 | Event-Driven & Messaging | always-on | planned |
 | 4 | Containers (ECS Fargate, scale-to-zero) | on-demand | planned |
 | 5 | Data Lake & Analytics | always-on | planned |
-| 6 | Generative AI (RAG) | always-on | planned |
+| 6 | [Generative AI (RAG)](./genai-assistant/) — cited RAG assistant with hard cost caps behind a Cognito gate | always-on | ✅ **[live](https://assistant.demos.planetek.org)** (access on request) |
 | 7 | Intelligent Document Processing | always-on | planned |
 | 8 | Security & Governance | deploy-demo-teardown | planned |
 | 9 | Network Architecture | deploy-demo-teardown | planned |

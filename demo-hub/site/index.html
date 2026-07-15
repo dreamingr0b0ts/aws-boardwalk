@@ -114,7 +114,7 @@
     <div class="hero-meta">
       <div><strong>Terraform</strong>every resource</div>
       <div><strong>≈ $1/mo</strong>total idle cost</div>
-      <div><strong>1 of 10</strong>environments live</div>
+      <div><strong>2 of 10</strong>environments live</div>
     </div>
   </div>
   <svg class="ridge" viewBox="0 0 900 120" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
@@ -142,17 +142,21 @@
       </div>
     </article>
 
-    <article class="card">
-      <div class="card-top"><span class="num">06 · GENERATIVE AI</span><span class="chip next">Up next</span></div>
+    <article class="card live">
+      <div class="card-top"><span class="num">06 · GENERATIVE AI</span><span class="chip live">Live</span></div>
       <h3>Generative AI (RAG)</h3>
       <p>A retrieval-augmented assistant over a swappable document corpus: citation-grounded answers, prompt
-      guardrails, conversation audit logs, and a human-feedback loop.</p>
+      guardrails, conversation audit logs, a human-feedback loop — and hard per-user + global daily cost caps
+      behind a Cognito gate (access provided during demos).</p>
       <span class="stack">Bedrock · Lambda · API Gateway · S3 · DynamoDB · Cognito</span>
-      <div class="card-links"><span>In build queue</span></div>
+      <div class="card-links">
+        <a href="https://assistant.demos.planetek.org">Open the assistant</a>
+        <a class="quiet" href="https://github.com/dreamingr0b0ts/aws-boardwalk/tree/main/genai-assistant">Code &amp; architecture</a>
+      </div>
     </article>
 
     <article class="card">
-      <div class="card-top"><span class="num">10 · DEVOPS &amp; SRE</span><span class="chip plan">Planned</span></div>
+      <div class="card-top"><span class="num">10 · DEVOPS &amp; SRE</span><span class="chip next">Up next</span></div>
       <h3>DevOps &amp; SRE</h3>
       <p>The meta-environment that ships the others: GitHub Actions with OIDC (no stored keys), Terraform plan/apply
       gates, tfsec/Checkov/Trivy scanning, observability, and a backup/restore runbook that prints RTO/RPO.</p>
