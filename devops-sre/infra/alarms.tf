@@ -77,3 +77,19 @@ resource "aws_cloudwatch_metric_alarm" "canary_failed" {
   alarm_actions       = local.alarm_actions
   ok_actions          = local.alarm_actions
 }
+
+resource "aws_cloudwatch_metric_alarm" "drill_failed" {
+  alarm_name          = "${local.prefix}-backup-drill-failed"
+  alarm_description   = "The backup/restore drill did not complete cleanly — restores are unproven until it passes again"
+  namespace           = "AWS/States"
+  metric_name         = "ExecutionsFailed"
+  dimensions          = { StateMachineArn = aws_sfn_state_machine.runbook.arn }
+  statistic           = "Sum"
+  period              = 300
+  evaluation_periods  = 1
+  threshold           = 1
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = local.alarm_actions
+  ok_actions          = local.alarm_actions
+}
