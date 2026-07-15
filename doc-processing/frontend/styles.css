@@ -171,5 +171,14 @@ table.kv .conf { color: var(--ink-3); font-size: 11px; white-space: nowrap; }
 
 ul.proof { margin: 12px 0 0; padding-left: 20px; display: grid; gap: 8px; font-size: 14px; color: var(--ink-2); }
 
+/* Boardwalk-standard footer (modeled on the permits site) */
 footer { margin-top: 40px; background: var(--pine-deep); color: #b9d6d1; font-size: 13px; }
-footer .wrap { padding: 26px 20px; }
+.foot-grid { display: grid; gap: 28px; padding: 34px 20px 28px; }
+@media (min-width: 640px) { .foot-grid { grid-template-columns: repeat(3, 1fr); } }
+.foot-brand { font-weight: 800; color: #fff; font-size: 14px; }
+.foot-desc { margin-top: 8px; font-size: 12px; line-height: 1.6; color: #8db9b3; }
+.foot-head { font-weight: 700; color: #fff; }
+.foot-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; }
+.foot-list a { color: #b9d6d1; font-weight: 400; text-decoration: none; }
+.foot-list a:hover { color: #fff; text-decoration: underline; text-underline-offset: 2px; }
+.foot-bar { border-top: 1px solid rgba(185, 214, 209, .18); padding: 14px 20px; text-align: center; font-size: 12px; color: #8db9b3; }

@@ -90,9 +90,17 @@
   .stat .d { font-size: 12px; color: var(--ink-3); }
   @media (max-width: 640px) { .stat + .stat { border-left: none; } }
 
+  /* Boardwalk-standard footer (modeled on the permits site) */
   footer { margin-top: 48px; background: var(--pine-deep); color: #b9d6d1; font-size: 13px; }
-  footer .wrap { padding: 28px 20px; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-  footer a { color: #dcebe8; }
+  .foot-grid { display: grid; gap: 28px; padding: 34px 20px 28px; }
+  @media (min-width: 640px) { .foot-grid { grid-template-columns: repeat(3, 1fr); } }
+  .foot-brand { font-weight: 800; color: #fff; font-size: 14px; margin: 0; }
+  .foot-desc { margin: 8px 0 0; font-size: 12px; line-height: 1.6; color: #8db9b3; }
+  .foot-head { font-weight: 700; color: #fff; margin: 0; }
+  .foot-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; }
+  .foot-list a { color: #b9d6d1; font-weight: 400; text-decoration: none; }
+  .foot-list a:hover { color: #fff; text-decoration: underline; text-underline-offset: 2px; }
+  .foot-bar { border-top: 1px solid rgba(185, 214, 209, .18); padding: 14px 20px; text-align: center; font-size: 12px; color: #8db9b3; }
 </style>
 </head>
 <body>
@@ -178,10 +186,30 @@
 </main>
 
 <footer>
-  <div class="wrap">
-    <span>Plank 10 of the <a href="https://demos.planetek.org">AWS Boardwalk</a> · built with Terraform</span>
-    <span><a href="https://github.com/dreamingr0b0ts/aws-boardwalk/tree/main/devops-sre">source on GitHub</a></span>
+  <div class="wrap foot-grid">
+    <div>
+      <p class="foot-brand">Boardwalk Ops</p>
+      <p class="foot-desc">A demonstration of DevOps and SRE practice: keyless CI/CD, scanned and gated
+      infrastructure changes, observability, and an executable recovery runbook.</p>
+    </div>
+    <div>
+      <p class="foot-head">Environment</p>
+      <ul class="foot-list">
+        <li>AWS: CloudWatch · X-Ray · Synthetics · Step Functions</li>
+        <li>GitHub Actions with OIDC — no stored keys</li>
+        <li>Infrastructure as code: Terraform</li>
+      </ul>
+    </div>
+    <div>
+      <p class="foot-head">Planetek</p>
+      <ul class="foot-list">
+        <li><a href="https://planetek.org">planetek.org</a></li>
+        <li><a href="https://demos.planetek.org">More live environments</a></li>
+        <li><a href="https://github.com/dreamingr0b0ts/aws-boardwalk">Github</a></li>
+      </ul>
+    </div>
   </div>
+  <div class="foot-bar">Fictional demo built by Planetek — not affiliated with any real government agency.</div>
 </footer>
 
 <script>

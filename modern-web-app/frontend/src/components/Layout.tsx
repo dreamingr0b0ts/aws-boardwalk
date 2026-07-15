@@ -166,6 +166,14 @@ export default function Layout() {
                   More live environments
                 </a>
               </li>
+              <li>
+                <a
+                  className="text-pine-200 underline-offset-2 hover:text-white hover:underline"
+                  href="https://github.com/dreamingr0b0ts/aws-boardwalk"
+                >
+                  Github
+                </a>
+              </li>
             </ul>
           </div>
         </div>

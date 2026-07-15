@@ -94,9 +94,17 @@
   .principles li { font-size: 14px; color: var(--ink-2); padding-left: 22px; position: relative; }
   .principles li::before { content: "⛰"; position: absolute; left: 0; }
 
+  /* Boardwalk-standard footer (modeled on the permits site) */
   footer { margin-top: 64px; background: var(--pine-deep); color: #b9d6d1; font-size: 13px; }
-  footer .wrap { padding: 32px 20px; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-  footer a { color: #dcebe8; }
+  .foot-grid { display: grid; gap: 28px; padding: 34px 20px 28px; }
+  @media (min-width: 640px) { .foot-grid { grid-template-columns: repeat(3, 1fr); } }
+  .foot-brand { font-weight: 800; color: #fff; font-size: 14px; margin: 0; }
+  .foot-desc { margin: 8px 0 0; font-size: 12px; line-height: 1.6; color: #8db9b3; }
+  .foot-head { font-weight: 700; color: #fff; margin: 0; }
+  .foot-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; }
+  .foot-list a { color: #b9d6d1; font-weight: 400; text-decoration: none; }
+  .foot-list a:hover { color: #fff; text-decoration: underline; text-underline-offset: 2px; }
+  .foot-bar { border-top: 1px solid rgba(185, 214, 209, .18); padding: 14px 20px; text-align: center; font-size: 12px; color: #8db9b3; }
 </style>
 </head>
 <body>
@@ -249,10 +257,29 @@
 </main>
 
 <footer>
-  <div class="wrap">
-    <span>Built by <a href="https://planetek.org">Planetek</a> · <a href="https://github.com/dreamingr0b0ts/aws-boardwalk">github.com/dreamingr0b0ts/aws-boardwalk</a></span>
-    <span>All environments are demonstrations for fictional entities — not affiliated with any real agency.</span>
+  <div class="wrap foot-grid">
+    <div>
+      <p class="foot-brand">The AWS Boardwalk</p>
+      <p class="foot-desc">A portfolio of working AWS environments — production patterns, free-tier
+      costs, all infrastructure as code.</p>
+    </div>
+    <div>
+      <p class="foot-head">Environment</p>
+      <ul class="foot-list">
+        <li>AWS: S3 · CloudFront · Route53 · ACM — plus each plank's own stack</li>
+        <li>Infrastructure as code: Terraform</li>
+        <li>Always-on planks idle at ~$0</li>
+      </ul>
+    </div>
+    <div>
+      <p class="foot-head">Planetek</p>
+      <ul class="foot-list">
+        <li><a href="https://planetek.org">planetek.org</a></li>
+        <li><a href="https://github.com/dreamingr0b0ts/aws-boardwalk">Github</a></li>
+      </ul>
+    </div>
   </div>
+  <div class="foot-bar">All environments are demonstrations for fictional entities — not affiliated with any real agency.</div>
 </footer>
 
 </body>
