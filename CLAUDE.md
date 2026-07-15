@@ -37,6 +37,8 @@ Every push to `main` plans AND APPLIES all planks via GitHub Actions (OIDC roles
 
 The gai demo password is read from SSM (`/boardwalk/genai-assistant/demo-password`, synced by `make -C genai-assistant creds`) so CI can apply that plank without the gitignored `.demo-creds`.
 
+**New plank checklist:** add its folder to BOTH matrix lists in `.github/workflows/terraform.yml` (plan + apply, apply list is dependency-ordered); deploy locally first so CI's plan starts from live state; any secret it needs goes in SSM under `/boardwalk/<plank>/…` (both CI roles can read that path); if its requests cost real money, copy plank 6's pattern — creds never printed or committed, self-signup off, per-user + global daily caps in DynamoDB.
+
 ## Git
 
 Public repo: https://github.com/dreamingr0b0ts/aws-boardwalk (HTTPS, token in macOS keychain). Never commit secrets, state files, or account-specific values; account ID is always derived at runtime via `aws sts get-caller-identity`.
