@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Alpenglow Batch Works · Planetek AWS Boardwalk</title>
+<meta name="description" content="Launch a real Docker container on ECS Fargate and watch it live: task lifecycle, streaming CloudWatch logs, exit codes, and the report it uploads to S3 — plus the CodeBuild→ECR image pipeline with vulnerability scanning. Plank 4 of the Planetek AWS Boardwalk.">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">Planetek · AWS Boardwalk · Plank 4</p>
+    <h1>Alpenglow Batch Works</h1>
+    <p class="lede">Containers with no idle bill: press the button and a real Docker container is
+    launched on ECS Fargate just for you — watch it provision, pull, run, and exit, log line by log
+    line, then read the report it uploads to S3. Between runs, nothing is running anywhere.</p>
+    <div class="hero-meta">
+      <div><strong id="stat-launches">–</strong>launches today</div>
+      <div><strong id="stat-image">–</strong>image size</div>
+      <div><strong id="stat-scan">–</strong>scan findings</div>
+      <div><strong id="stat-build">–</strong>last image build</div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- Launcher -->
+  <section class="panel">
+    <h2>Launch a container</h2>
+    <p class="muted">Each launch is a genuine <code>ecs:RunTask</code> against a scale-to-zero Fargate
+    cluster — 0.25 vCPU / 512 MiB, the smallest size Fargate sells (~$0.001 per run). One task runs at
+    a time and there's a global daily cap, so if someone else's container is in flight you'll be
+    handed theirs to watch instead.</p>
+
+    <div class="launch-row">
+      <button id="launch-report">▶ Run the nightly report job</button>
+      <button id="launch-fail" class="secondary">Run the failing job</button>
+      <p class="muted small">The failing job hits a deliberate bad-input error and exits 1 — so you
+      can see how a container failure actually surfaces: non-zero exit code, stopped reason, no
+      artifact.</p>
+    </div>
+    <p id="launch-error" class="error" hidden></p>
+  </section>
+
+  <!-- Live run -->
+  <section class="panel">
+    <div class="map-head">
+      <h2>Watch it run</h2>
+      <p class="muted" id="watching">Launch a container above, or click a recent run.</p>
+    </div>
+
+    <div class="lifecycle" id="lifecycle">
+      <span class="node stage" data-stage="0">PROVISIONING<small>Fargate finds capacity, attaches an ENI</small></span>
+      <span class="arr">→</span>
+      <span class="node stage" data-stage="1">PENDING<small>pulling the image from ECR</small></span>
+      <span class="arr">→</span>
+      <span class="node stage" data-stage="2">RUNNING<small>your job, logging to CloudWatch</small></span>
+      <span class="arr">→</span>
+      <span class="node stage" data-stage="3">DEPROVISIONING<small>tearing the ENI down</small></span>
+      <span class="arr">→</span>
+      <span class="node stage" data-stage="4">STOPPED<small>exit code recorded</small></span>
+    </div>
+
+    <div class="term" id="term"><p class="term-empty" id="term-empty">— container stdout will stream here —</p><pre id="term-log"></pre></div>
+
+    <div class="result" id="result" hidden>
+      <span class="badge" id="result-exit"></span>
+      <span class="result-item" id="result-duration"></span>
+      <span class="result-item" id="result-reason"></span>
+      <a id="result-artifact" href="#" target="_blank" rel="noopener" hidden>Open the report this container produced ↗</a>
+    </div>
+  </section>
+
+  <!-- Image pipeline -->
+  <section class="panel">
+    <h2>The image pipeline</h2>
+    <p class="muted">The image those tasks run was itself built in AWS: the app source is zipped to S3,
+    CodeBuild docker-builds it (there is deliberately no Docker on the dev machine), and pushes to
+    ECR, where basic vulnerability scanning runs on every push. This panel reads all of it live.</p>
+
+    <div class="pipe">
+      <span class="node">app/ source<small>Dockerfile + Node job → S3 zip</small></span>
+      <span class="arr">→</span>
+      <span class="node" id="pipe-build">CodeBuild<small id="pipe-build-detail">–</small></span>
+      <span class="arr">→</span>
+      <span class="node" id="pipe-image">ECR image<small id="pipe-image-detail">–</small></span>
+      <span class="arr">→</span>
+      <span class="node" id="pipe-scan">scan-on-push<small id="pipe-scan-detail">–</small></span>
+      <span class="arr">→</span>
+      <span class="node">Fargate run-task<small>the button above</small></span>
+    </div>
+
+    <div id="scan-counts" class="scan-counts"></div>
+  </section>
+
+  <!-- Recent runs -->
+  <section class="panel">
+    <h2>Recent runs</h2>
+    <p class="muted">Yours, other visitors', and the one EventBridge Scheduler launches every morning
+    (the "scheduled batch job" pattern). Records and report artifacts expire after 48 hours. Click a
+    run to load its logs.</p>
+    <div id="feed" class="feed"><p class="muted">Loading…</p></div>
+  </section>
+
+  <section class="panel">
+    <h2>What this plank proves</h2>
+    <ul class="proof">
+      <li><strong>Containers without the idle bill:</strong> no ECS service, no ALB, no EKS control
+      plane ($73/mo) — tasks exist only while they run, so the environment idles at ~$0 yet is live
+      right now. The classic fit for batch jobs, report generation, and queue workers.</li>
+      <li><strong>A real image pipeline:</strong> source → CodeBuild → ECR with scan-on-push
+      vulnerability findings surfaced above, and a lifecycle policy pruning old images.</li>
+      <li><strong>Task IAM roles done right:</strong> the <em>execution role</em> (pull image, write
+      logs) is separate from the <em>task role</em>, which can do exactly one thing — write the
+      finished report under <code>artifacts/</code>. The report's footer is written by that role.</li>
+      <li><strong>Observable by default:</strong> stdout → awslogs → CloudWatch, tailed live above;
+      lifecycle state from <code>DescribeTasks</code>; final state persisted by an EventBridge
+      task-state-change rule even if nobody's watching.</li>
+      <li><strong>No NAT tax:</strong> tasks get a public IP in a public subnet with a no-ingress
+      security group — the documented pattern for internet-reachable AWS APIs without a $32/mo NAT
+      gateway.</li>
+      <li><strong>Failure is part of the demo:</strong> the failing job shows exactly what operators
+      get — exit code, stopped reason, and logs up to the fault.</li>
+    </ul>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap foot-grid">
+    <div>
+      <p class="foot-brand">Alpenglow Batch Works</p>
+      <p class="foot-desc">A demonstration of scale-to-zero container operations: ECS Fargate
+      run-task, a CodeBuild→ECR image pipeline with vulnerability scanning, and task-role
+      least privilege — idling at ~$0.</p>
+    </div>
+    <div>
+      <p class="foot-head">Environment</p>
+      <ul class="foot-list">
+        <li>AWS: ECS Fargate · ECR · CodeBuild · EventBridge Scheduler · Lambda · DynamoDB</li>
+        <li>Infrastructure as code: Terraform</li>
+        <li>Runs and artifacts expire after 48h</li>
+      </ul>
+    </div>
+    <div>
+      <p class="foot-head">Planetek</p>
+      <ul class="foot-list">
+        <li><a href="https://github.com/dreamingr0b0ts/aws-boardwalk">Github</a></li>
+        <li><a href="https://planetek.org">planetek.org</a></li>
+        <li><a href="https://demos.planetek.org">More live environments</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot-bar">Fictional demo built by Planetek — not affiliated with any real government agency.</div>
+</footer>
+
+<script type="module" src="/app.js"></script>
+</body>
+</html>

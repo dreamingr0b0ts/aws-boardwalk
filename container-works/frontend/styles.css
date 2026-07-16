@@ -1,0 +1,147 @@
+/* Shares the boardwalk design language: stone neutrals, pine greens, terracotta glow. */
+:root {
+  --bg: #fafaf9;
+  --surface: #ffffff;
+  --border: #e7e5e4;
+  --ink: #1c1917;
+  --ink-2: #57534e;
+  --ink-3: #78716c;
+  --pine: #16302e;
+  --pine-deep: #0b1f1e;
+  --pine-mid: #2f615c;
+  --pine-soft: #dcebe8;
+  --glow: #e4532f;
+  --glow-soft: #fde5dc;
+  --chip-bg: #f5f5f4;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0c0a09;
+    --surface: #1c1917;
+    --border: #292524;
+    --ink: #f5f5f4;
+    --ink-2: #d6d3d1;
+    --ink-3: #a8a29e;
+    --pine-soft: #16302e;
+    --glow-soft: rgba(228, 83, 47, .16);
+    --chip-bg: #292524;
+  }
+}
+* { box-sizing: border-box; margin: 0; }
+[hidden] { display: none !important; }
+body {
+  background: var(--bg); color: var(--ink);
+  font: 16px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 980px; margin: 0 auto; padding: 0 20px; }
+
+header.hero { background: linear-gradient(180deg, var(--pine-deep), var(--pine)); color: #f2f7f6; padding: 56px 0 40px; }
+.eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: #f59e83; }
+h1 { font-size: clamp(30px, 5.5vw, 44px); line-height: 1.08; margin-top: 12px; font-weight: 800; }
+.hero .lede { margin-top: 14px; max-width: 700px; font-size: 17px; color: #b9d6d1; }
+.hero-meta { margin-top: 26px; display: flex; gap: 26px; flex-wrap: wrap; font-size: 13px; color: #8db9b3; }
+.hero-meta strong { display: block; color: #fff; font-size: 15px; }
+
+main { padding: 36px 0 24px; display: grid; gap: 20px; }
+.panel { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 24px; }
+h2 { font-size: 20px; font-weight: 800; margin-bottom: 8px; }
+.muted { color: var(--ink-3); font-size: 14px; }
+.muted.small { font-size: 12px; }
+.error { color: var(--glow); font-size: 14px; font-weight: 600; margin-top: 10px; }
+a { color: var(--glow); font-weight: 600; }
+code { font-size: .9em; background: var(--chip-bg); padding: 1px 5px; border-radius: 5px; }
+
+/* ---- launcher ---- */
+.launch-row { margin-top: 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.launch-row .muted.small { flex: 1 1 260px; }
+button {
+  font: inherit; font-weight: 700; padding: 10px 18px; border-radius: 10px; border: 0;
+  background: var(--glow); color: #fff; cursor: pointer;
+}
+button.secondary { background: transparent; color: var(--ink-2); border: 1.5px solid var(--border); }
+button:hover { filter: brightness(1.08); }
+button.secondary:hover { border-color: var(--glow); color: var(--glow); filter: none; }
+button:disabled { opacity: .5; cursor: wait; }
+
+/* ---- lifecycle + pipeline lanes ---- */
+.map-head { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; flex-wrap: wrap; }
+.lifecycle, .pipe { margin-top: 18px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.arr { color: var(--ink-3); font-size: 14px; }
+
+.node {
+  display: inline-grid; gap: 1px; padding: 7px 14px; border-radius: 10px; font-size: 13px; font-weight: 700;
+  border: 1.5px solid var(--border); background: var(--chip-bg); color: var(--ink-3);
+  transition: all .25s ease;
+}
+.node small { font-size: 11px; font-weight: 400; color: var(--ink-3); max-width: 170px; }
+.node.lit {
+  border-color: var(--glow); color: var(--ink); background: var(--glow-soft);
+  animation: pulse 1.1s ease-in-out infinite;
+}
+.node.done { border-color: var(--pine-mid); background: var(--pine-soft); color: var(--ink); }
+.node.done small { color: var(--pine-mid); }
+.node.fail { border-color: var(--glow); background: var(--glow-soft); color: var(--glow); }
+@keyframes pulse { 50% { box-shadow: 0 0 0 5px var(--glow-soft); } }
+@media (prefers-color-scheme: dark) { .node.done small { color: #8db9b3; } }
+
+/* ---- the log terminal (always dark, like a terminal should be) ---- */
+.term {
+  margin-top: 18px; background: #0b1210; border: 1px solid #1f2b28; border-radius: 12px;
+  padding: 14px 16px; min-height: 130px; max-height: 320px; overflow-y: auto;
+}
+.term-empty { color: #4a5f5a; font-size: 13px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.term pre {
+  margin: 0; font: 12.5px/1.7 ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: #c9ddd8; white-space: pre-wrap; word-break: break-word;
+}
+.term pre .step { color: #7fd1b9; font-weight: 700; }
+.term pre .fail { color: #ff8a65; font-weight: 700; }
+
+.result { margin-top: 14px; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; font-size: 14px; }
+.result-item { color: var(--ink-2); }
+
+/* ---- badges ---- */
+.badge {
+  display: inline-block; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em;
+  padding: 2px 9px; border-radius: 999px; border: 1px solid var(--border); color: var(--ink-3);
+}
+.badge.ok { color: var(--pine-mid); border-color: var(--pine-soft); background: var(--pine-soft); }
+@media (prefers-color-scheme: dark) { .badge.ok { color: #8db9b3; } }
+.badge.bad { color: var(--glow); border-color: var(--glow-soft); background: var(--glow-soft); }
+.badge.sched { border-style: dashed; }
+
+/* ---- scan severity counts ---- */
+.scan-counts { margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; }
+.sev {
+  font-size: 12px; font-weight: 700; padding: 3px 11px; border-radius: 999px;
+  border: 1px solid var(--border); color: var(--ink-2); background: var(--chip-bg);
+}
+.sev.hot { border-color: var(--glow); color: var(--glow); background: var(--glow-soft); }
+
+/* ---- recent runs feed ---- */
+.feed { margin-top: 14px; display: grid; gap: 8px; }
+.req-row {
+  display: flex; gap: 10px; align-items: center; flex-wrap: wrap; text-align: left; font: inherit;
+  background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px;
+  color: var(--ink); cursor: pointer; justify-self: stretch;
+}
+.req-row:hover { border-color: var(--pine-mid); }
+.req-row.selected { border-color: var(--pine-mid); background: var(--pine-soft); }
+.req-row .id { font-weight: 800; font-size: 13px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.req-row .desc { flex: 1 1 200px; font-size: 13px; color: var(--ink-2); }
+.req-row .age { font-size: 12px; color: var(--ink-3); }
+
+ul.proof { margin: 12px 0 0; padding-left: 20px; display: grid; gap: 8px; font-size: 14px; color: var(--ink-2); }
+
+/* Boardwalk-standard footer (modeled on the permits site) */
+footer { margin-top: 40px; background: var(--pine-deep); color: #b9d6d1; font-size: 13px; }
+.foot-grid { display: grid; gap: 28px; padding: 34px 20px 28px; }
+@media (min-width: 640px) { .foot-grid { grid-template-columns: repeat(3, 1fr); } }
+.foot-brand { font-weight: 800; color: #fff; font-size: 14px; }
+.foot-desc { margin-top: 8px; font-size: 12px; line-height: 1.6; color: #8db9b3; }
+.foot-head { font-weight: 700; color: #fff; }
+.foot-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; }
+.foot-list a { color: #b9d6d1; font-weight: 400; text-decoration: none; }
+.foot-list a:hover { color: #fff; text-decoration: underline; text-underline-offset: 2px; }
+.foot-bar { border-top: 1px solid rgba(185, 214, 209, .18); padding: 14px 20px; text-align: center; font-size: 12px; color: #8db9b3; }

@@ -26,8 +26,10 @@ skip-check:
   - CKV_AWS_26 # SNS topic CMK (alarm + demo fan-out topics; neither CloudWatch nor EventBridge can publish through aws/sns)
   - CKV_AWS_297 # EventBridge Scheduler CMK (payloads: an empty reset event, a fictional heartbeat request)
   - CKV_AWS_158 # CloudWatch log group CMK (workflow error logs for fictional demo events; AWS-managed encryption is on by default)
+  - CKV_AWS_136 # ECR repo CMK (demo job image built from public source; AES256 encryption is on)
 
   # --- logging/eventing surfaces that cost more than the sites they'd watch ---
+  - CKV_AWS_65 # ECS Container Insights: per-metric charges for a cluster that runs ~2 min of tasks a day; awslogs + the run-trace table cover it
   - CKV_AWS_18 # S3 access logging (CloudFront metrics cover the static sites)
   - CKV_AWS_86 # CloudFront access logging (standard logs bucket + storage)
   - CKV_AWS_76 # API Gateway access logging (Lambda logs cover request-level detail)
@@ -47,6 +49,8 @@ skip-check:
   - CKV_AWS_338 # 1-year log retention: demo error logs are deliberately short-lived (14 days); traces TTL at 48h
 
   # --- intentional design ---
+  - CKV_AWS_316 # CodeBuild privileged mode: required for docker build — the entire point of plank 4's image pipeline; the project only builds the fenced S3 source zip and can push only to its own ECR repo
+  - CKV_AWS_51 # ECR mutable tags: the demo task definition tracks ctr-app:latest so image rebuilds need no task-def revision; only CodeBuild's fenced role can push (same acceptance as Trivy AVD-AWS-0031)
   - CKV_AWS_309 # API routes without auth: public-by-design routes (plank 3 entirely, /api/public/* elsewhere); money-spending routes use JWT authorizers
   - CKV2_AWS_71 # wildcard ACM cert: *.demos.planetek.org deliberately covers every plank site
   - CKV_AWS_374 # CloudFront geo restriction: public demos for anyone to view

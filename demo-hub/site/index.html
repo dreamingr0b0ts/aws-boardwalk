@@ -231,16 +231,20 @@
     </article>
 
     <article class="card">
-      <div class="card-top"><span class="num">04 · CONTAINERS</span><span class="chip next">Up next</span></div>
+      <div class="card-top"><span class="num">04 · CONTAINERS</span><span class="chip live">Live</span></div>
       <h3>Containers (scale-to-zero)</h3>
-      <p>Dockerized workloads on ECS Fargate launched on demand, with an image pipeline into ECR including
-      vulnerability scanning — no idle compute, ever.</p>
-      <span class="stack">ECR · ECS Fargate · CloudWatch</span>
-      <div class="card-links"><span>In build queue</span></div>
+      <p>Press a button and a real Docker container launches on ECS Fargate just for you — watch it provision,
+      pull, run, and exit with live logs, then read the report it uploads to S3. Image built in AWS by
+      CodeBuild and vulnerability-scanned in ECR. No idle compute, ever.</p>
+      <span class="stack">ECS Fargate · ECR · CodeBuild · EventBridge Scheduler · Lambda · DynamoDB</span>
+      <div class="card-links">
+        <a href="https://containers.demos.planetek.org">Launch a container</a>
+        <a class="quiet" href="https://github.com/dreamingr0b0ts/aws-boardwalk/tree/main/container-works">Code &amp; architecture</a>
+      </div>
     </article>
 
     <article class="card">
-      <div class="card-top"><span class="num">08 · SECURITY</span><span class="chip plan">Planned</span></div>
+      <div class="card-top"><span class="num">08 · SECURITY</span><span class="chip next">Up next</span></div>
       <h3>Security &amp; Governance</h3>
       <p>An account-hardening reference: KMS patterns, permission boundaries, GuardDuty, Security Hub, and a
       NIST 800-53 conformance pack with findings-to-evidence reporting. Deploys on demand.</p>

@@ -1,0 +1,18 @@
+# CodeBuild pipeline: docker build → tag (latest + build number) → push to ECR,
+# where scan-on-push runs basic vulnerability scanning automatically.
+# ECR_REPO_URI is injected by the CodeBuild project (terraform).
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - ECR_REGISTRY="${ECR_REPO_URI%%/*}"
+      - aws ecr get-login-password | docker login --username AWS --password-stdin "$ECR_REGISTRY"
+  build:
+    commands:
+      - docker build -t "$ECR_REPO_URI:latest" -t "$ECR_REPO_URI:b$CODEBUILD_BUILD_NUMBER" .
+  post_build:
+    commands:
+      - docker push "$ECR_REPO_URI:latest"
+      - docker push "$ECR_REPO_URI:b$CODEBUILD_BUILD_NUMBER"
+      - docker image inspect "$ECR_REPO_URI:latest" --format 'pushed {{.Id}} ({{.Size}} bytes)'

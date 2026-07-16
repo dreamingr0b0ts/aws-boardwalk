@@ -30,3 +30,15 @@ AVD-AWS-0017
 # reach this workgroup; the visitor-facing dla-public workgroup IS enforced
 # with a per-query scan cutoff.
 AVD-AWS-0007
+
+# Plank 4's Fargate task security group allows egress to 0.0.0.0/0:443 — the
+# task must reach ECR/S3/CloudWatch Logs public endpoints (the no-NAT,
+# no-VPC-endpoint cost pattern), and those services publish no stable CIDR
+# narrower than "AWS". Ingress is empty; egress is TCP 443 only.
+AVD-AWS-0104
+
+# Plank 4's ECR repo keeps MUTABLE tags on purpose: the demo task definition
+# tracks ctr-app:latest so an image rebuild never needs a task-definition
+# revision. Only CodeBuild's fenced role can push. Production would pin
+# immutable tags/digests — the plank README says so out loud.
+AVD-AWS-0031
