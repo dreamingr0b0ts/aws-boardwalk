@@ -1,6 +1,6 @@
 # aws-boardwalk — agent notes
 
-Portfolio of live AWS demo environments ("planks") for Planetek. Live: [demos.planetek.org](https://demos.planetek.org) (hub), [permits.demos.planetek.org](https://permits.demos.planetek.org) (plank 1), [assistant.demos.planetek.org](https://assistant.demos.planetek.org) (plank 6, GenAI RAG), [documents.demos.planetek.org](https://documents.demos.planetek.org) (plank 7, IDP), and [ops.demos.planetek.org](https://ops.demos.planetek.org) (plank 10, DevOps/SRE).
+Portfolio of live AWS demo environments ("planks") for Planetek. Live: [demos.planetek.org](https://demos.planetek.org) (hub), [permits.demos.planetek.org](https://permits.demos.planetek.org) (plank 1), [events.demos.planetek.org](https://events.demos.planetek.org) (plank 3, event mesh), [assistant.demos.planetek.org](https://assistant.demos.planetek.org) (plank 6, GenAI RAG), [documents.demos.planetek.org](https://documents.demos.planetek.org) (plank 7, IDP), and [ops.demos.planetek.org](https://ops.demos.planetek.org) (plank 10, DevOps/SRE).
 
 ## Conventions (locked — don't re-litigate)
 
@@ -26,7 +26,7 @@ before OCR starts). Keep it that way for any future plank whose requests cost re
 
 ## Build order (from Projects/AWS_SHOWCASE_PROJECTS.md)
 
-✅ 1 Web App · ✅ Demo Hub · ✅ 6 GenAI (RAG) · ✅ 10 DevOps/SRE · ✅ 7 IDP · **next: 3 Events** · then 5, 2, 4, 8, 9.
+✅ 1 Web App · ✅ Demo Hub · ✅ 6 GenAI (RAG) · ✅ 10 DevOps/SRE · ✅ 7 IDP · ✅ 3 Events · **next: 5 Data** · then 2, 4, 8, 9.
 When a plank goes live: update its card in `demo-hub/site/index.html` (status chip + links), the root README table, and republish the hub (`cd demo-hub && make publish`).
 
 ## CI/CD (plank 10 — live)

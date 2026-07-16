@@ -122,7 +122,7 @@
     <div class="hero-meta">
       <div><strong>Terraform</strong>every resource</div>
       <div><strong>≈ $1/mo</strong>total idle cost</div>
-      <div><strong>3 of 10</strong>environments live</div>
+      <div><strong>5 of 10</strong>environments live</div>
     </div>
   </div>
   <svg class="ridge" viewBox="0 0 900 120" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
@@ -190,17 +190,21 @@
       </div>
     </article>
 
-    <article class="card">
-      <div class="card-top"><span class="num">03 · EVENTS</span><span class="chip next">Up next</span></div>
+    <article class="card live">
+      <div class="card-top"><span class="num">03 · EVENTS</span><span class="chip live">Live</span></div>
       <h3>Event-Driven &amp; Messaging</h3>
-      <p>A visualized event mesh: producers fan out through EventBridge to queues, notifications, and a Step
-      Functions orchestration with retries and dead-letter queues.</p>
-      <span class="stack">EventBridge · SQS · SNS · Step Functions · Lambda</span>
-      <div class="card-links"><span>In build queue</span></div>
+      <p>A live event mesh you can poke: submit a 311-style request and watch it fan out through EventBridge
+      rules to department queues, SNS pub/sub, and a Step Functions escalation — with a poison-message
+      dead-letter drill, operator redrive, and a deliberately-retried transient fault, all traced hop by hop.</p>
+      <span class="stack">EventBridge · SQS · SNS · Step Functions · Lambda · DynamoDB</span>
+      <div class="card-links">
+        <a href="https://events.demos.planetek.org">Watch the mesh</a>
+        <a class="quiet" href="https://github.com/dreamingr0b0ts/aws-boardwalk/tree/main/event-mesh">Code &amp; architecture</a>
+      </div>
     </article>
 
     <article class="card">
-      <div class="card-top"><span class="num">05 · DATA</span><span class="chip plan">Planned</span></div>
+      <div class="card-top"><span class="num">05 · DATA</span><span class="chip next">Up next</span></div>
       <h3>Data Lake &amp; Analytics</h3>
       <p>An S3 data lake with raw and curated zones, partitioned Parquet, a Glue catalog, Athena SQL, and a
       static BI dashboard rendered from query results.</p>

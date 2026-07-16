@@ -15,7 +15,7 @@ Design constraints for every plank:
 |---|-------------|------|--------|
 | 1 | [Modern Web Application](./modern-web-app/) — three-tier serverless app with Cognito RBAC | always-on | ✅ **[live](https://permits.demos.planetek.org)** |
 | 2 | API & Microservices | always-on | planned |
-| 3 | Event-Driven & Messaging | always-on | planned |
+| 3 | [Event-Driven & Messaging](./event-mesh/) — visualized EventBridge mesh with SQS DLQ drills, SNS fan-out, and a retrying Step Functions escalation | always-on | ✅ **[live](https://events.demos.planetek.org)** |
 | 4 | Containers (ECS Fargate, scale-to-zero) | on-demand | planned |
 | 5 | Data Lake & Analytics | always-on | planned |
 | 6 | [Generative AI (RAG)](./genai-assistant/) — cited RAG assistant with hard cost caps behind a Cognito gate | always-on | ✅ **[live](https://assistant.demos.planetek.org)** (access on request) |

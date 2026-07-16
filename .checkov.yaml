@@ -20,8 +20,8 @@ skip-check:
   - CKV_AWS_145 # S3 KMS-by-default (SSE-S3 enabled instead)
   - CKV_AWS_173 # Lambda env-var CMK (no secrets in env vars; AWS-managed key encrypts at rest)
   - CKV_AWS_119 # DynamoDB CMK (AWS-owned key encryption is always on)
-  - CKV_AWS_26 # SNS topic CMK (carries alarm notifications only; CloudWatch can't use aws/sns)
-  - CKV_AWS_297 # EventBridge Scheduler CMK (payload is an empty reset event)
+  - CKV_AWS_26 # SNS topic CMK (alarm + demo fan-out topics; neither CloudWatch nor EventBridge can publish through aws/sns)
+  - CKV_AWS_297 # EventBridge Scheduler CMK (payloads: an empty reset event, a fictional heartbeat request)
 
   # --- logging/eventing surfaces that cost more than the sites they'd watch ---
   - CKV_AWS_18 # S3 access logging (CloudFront metrics cover the static sites)
@@ -41,7 +41,7 @@ skip-check:
   - CKV_AWS_272 # Lambda code signing (terraform-hashed artifacts from a public repo)
 
   # --- intentional design ---
-  - CKV_AWS_309 # API routes without auth: the /api/public/* routes are public by design; the rest use JWT authorizers
+  - CKV_AWS_309 # API routes without auth: public-by-design routes (plank 3 entirely, /api/public/* elsewhere); money-spending routes use JWT authorizers
   - CKV2_AWS_71 # wildcard ACM cert: *.demos.planetek.org deliberately covers every plank site
   - CKV_AWS_374 # CloudFront geo restriction: public demos for anyone to view
   - CKV_AWS_174 # false positive: the default-cert block is the disabled branch of a dynamic block; the active branch pins TLSv1.2_2021

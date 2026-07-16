@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Alpenglow Service Dispatch · Planetek AWS Boardwalk</title>
+<meta name="description" content="A live, visualized event-driven architecture: EventBridge content-based routing, SQS queues with dead-letter handling, SNS pub/sub fan-out, and a Step Functions escalation workflow with visible retries. Plank 3 of the Planetek AWS Boardwalk.">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">Planetek · AWS Boardwalk · Plank 3</p>
+    <h1>Alpenglow Service Dispatch</h1>
+    <p class="lede">A live event mesh you can poke: submit a 311-style service request and watch one
+    event fan out through EventBridge rules to department queues, an SNS notification topic, and a
+    Step Functions escalation — retries, dead-letter queues, and all, traced hop by hop in real time.</p>
+    <div class="hero-meta">
+      <div><strong id="stat-events">–</strong>events published</div>
+      <div><strong id="stat-notifications">–</strong>notifications fanned out</div>
+      <div><strong id="stat-retries">–</strong>faults absorbed by retries</div>
+      <div><strong id="stat-dlq">–</strong>in dead-letter queues now</div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- Producer: put a real event on the bus -->
+  <section class="panel">
+    <h2>Send a request through the mesh</h2>
+    <p class="muted">Everything here is live AWS, not an animation: your submission is published to a
+    custom EventBridge bus and every glowing node below is a hop your event actually made, read back
+    from its trace. All requests are fictional City of Alpenglow business and expire within 48 hours.</p>
+
+    <form id="submit-form" autocomplete="off">
+      <div class="field-row">
+        <fieldset class="seg" id="category-seg">
+          <legend>Department (content-based routing)</legend>
+          <label><input type="radio" name="category" value="roads" checked><span>🛣️ Roads</span></label>
+          <label><input type="radio" name="category" value="utilities"><span>💧 Utilities</span></label>
+          <label><input type="radio" name="category" value="parks"><span>🌲 Parks</span></label>
+        </fieldset>
+      </div>
+
+      <label class="txt">Describe the issue
+        <textarea id="description" rows="2" maxlength="300" required
+          placeholder="e.g. Pothole opening up on Larkspur Ave near the bakery"></textarea>
+      </label>
+
+      <div class="toggles">
+        <label class="toggle">
+          <input type="checkbox" id="urgent">
+          <span><strong>Mark urgent</strong> — also triggers the Step Functions escalation workflow,
+          which deliberately hits a transient fault on its first dispatch attempt so you can watch
+          the retry policy absorb it.</span>
+        </label>
+        <label class="toggle">
+          <input type="checkbox" id="poison">
+          <span><strong>Poison this message</strong> — the department worker will crash on every
+          attempt; after 3 deliveries SQS moves it to the dead-letter queue, where you can redrive
+          it as the operator.</span>
+        </label>
+      </div>
+
+      <button type="submit" id="submit-btn">Publish to the event bus</button>
+      <p id="submit-error" class="error" hidden></p>
+    </form>
+  </section>
+
+  <!-- The live mesh map -->
+  <section class="panel">
+    <div class="map-head">
+      <h2>Watch it move</h2>
+      <p class="muted" id="watching">Submit a request above, or click one in the activity feed.</p>
+    </div>
+
+    <div class="mesh" id="mesh">
+      <div class="lane entry">
+        <span class="node" data-node="api">API<small>POST /api/requests</small></span>
+        <span class="arr">→</span>
+        <span class="node hub" data-node="bus">EventBridge bus<small>evt-bus · 5 rules</small></span>
+      </div>
+
+      <p class="lane-tag">Content-based routing → department work queues</p>
+      <div class="lane" data-dept="roads">
+        <span class="node rule" data-node="rule-roads">rule<small>category = roads</small></span>
+        <span class="arr">→</span>
+        <span class="node" data-node="queue-roads">SQS<small>evt-dispatch-roads</small></span>
+        <span class="arr">→</span>
+        <span class="node" data-node="worker-roads">roads worker<small>Lambda consumer</small></span>
+      </div>
+      <div class="lane" data-dept="utilities">
+        <span class="node rule" data-node="rule-utilities">rule<small>category = utilities</small></span>
+        <span class="arr">→</span>
+        <span class="node" data-node="queue-utilities">SQS<small>evt-dispatch-utilities</small></span>
+        <span class="arr">→</span>
+        <span class="node" data-node="worker-utilities">utilities worker<small>Lambda consumer</small></span>
+      </div>
+      <div class="lane" data-dept="parks">
+        <span class="node rule" data-node="rule-parks">rule<small>category = parks</small></span>
+        <span class="arr">→</span>
+        <span class="node" data-node="queue-parks">SQS<small>evt-dispatch-parks</small></span>
+        <span class="arr">→</span>
+        <span class="node" data-node="worker-parks">parks worker<small>Lambda consumer</small></span>
+      </div>
+
+      <div class="dlq-strip" id="dlq-strip">
+        <span class="node dlq" data-node="dlq">dead-letter queues<small id="dlq-detail">all empty</small></span>
+        <span class="dlq-actions" id="dlq-actions"></span>
+      </div>
+
+      <p class="lane-tag">Pub/sub fan-out — one topic, two subscriber types</p>
+      <div class="lane">
+        <span class="node rule" data-node="rule-all">rule<small>all requests</small></span>
+        <span class="arr">→</span>
+        <span class="node hub" data-node="sns">SNS topic<small>evt-notifications</small></span>
+        <span class="arr">→</span>
+        <span class="stack">
+          <span class="node" data-node="notifier">notifier<small>Lambda subscriber</small></span>
+          <span class="node" data-node="audit">audit log<small>SQS subscriber</small></span>
+        </span>
+      </div>
+
+      <p class="lane-tag">Orchestration — urgent requests only</p>
+      <div class="lane">
+        <span class="node rule" data-node="rule-urgent">rule<small>priority = urgent</small></span>
+        <span class="arr">→</span>
+        <span class="sfn-box">
+          <span class="sfn-title">Step Functions · evt-escalation (Express)</span>
+          <span class="sfn-steps">
+            <span class="node step" data-node="sfn-triage">triage</span>
+            <span class="arr">→</span>
+            <span class="node step" data-node="sfn-dispatch">dispatch<small class="retry-note" id="retry-note" hidden>retried ↻</small></span>
+            <span class="arr">→</span>
+            <span class="node step" data-node="sfn-resolve">resolve</span>
+          </span>
+        </span>
+      </div>
+    </div>
+
+    <h4>Hop-by-hop trace</h4>
+    <ol id="timeline" class="hops"><li class="muted">No request selected yet.</li></ol>
+  </section>
+
+  <!-- Live activity -->
+  <section class="panel">
+    <h2>Live activity</h2>
+    <p class="muted">Recent requests through the mesh — yours, other visitors', and the synthetic
+    heartbeat that EventBridge Scheduler publishes every 30 minutes. Click one to replay its trace.</p>
+    <div id="feed" class="feed"><p class="muted">Loading…</p></div>
+  </section>
+
+  <section class="panel">
+    <h2>What this plank proves</h2>
+    <ul class="proof">
+      <li><strong>Decoupled, event-driven architecture:</strong> the producer knows nothing about the
+      consumers — one published event is matched by up to five EventBridge rules, each fanning out
+      independently to SQS, SNS, and Step Functions.</li>
+      <li><strong>Content-based routing:</strong> rules match on the event payload
+      (<code>detail.category</code>, <code>detail.priority</code>), the pattern behind department
+      inboxes, regional routing, and premium-tier handling.</li>
+      <li><strong>Failure handling that's designed, not hoped for:</strong> per-message retry with
+      visibility-timeout backoff, a dead-letter queue after three attempts, and an operator redrive
+      path — the poison message demo exercises all of it.</li>
+      <li><strong>Orchestration with retries:</strong> an Express Step Functions workflow absorbs a
+      deliberate transient fault via its declarative retry policy — visible in the trace, invisible
+      to the citizen.</li>
+      <li><strong>Durable pub/sub:</strong> one SNS topic feeding both a Lambda (push) and an SQS
+      queue (durable pull) — the two subscriber shapes real integrations need.</li>
+      <li><strong>~$0 idle:</strong> EventBridge, SQS, SNS, Express Step Functions, Lambda, and
+      DynamoDB are all free-tier or fractions of a cent per million at demo volume.</li>
+    </ul>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap foot-grid">
+    <div>
+      <p class="foot-brand">Alpenglow Service Dispatch</p>
+      <p class="foot-desc">A demonstration of event-driven architecture: EventBridge routing, SQS
+      dead-letter handling, SNS fan-out, and Step Functions orchestration — idling at ~$0.</p>
+    </div>
+    <div>
+      <p class="foot-head">Environment</p>
+      <ul class="foot-list">
+        <li>AWS: EventBridge · SQS · SNS · Step Functions · Lambda · DynamoDB</li>
+        <li>Infrastructure as code: Terraform</li>
+        <li>Traces expire after 48h; DLQs purge nightly at 3am MT</li>
+      </ul>
+    </div>
+    <div>
+      <p class="foot-head">Planetek</p>
+      <ul class="foot-list">
+        <li><a href="https://github.com/dreamingr0b0ts/aws-boardwalk">Github</a></li>
+        <li><a href="https://planetek.org">planetek.org</a></li>
+        <li><a href="https://demos.planetek.org">More live environments</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot-bar">Fictional demo built by Planetek — not affiliated with any real government agency.</div>
+</footer>
+
+<script type="module" src="/app.js"></script>
+</body>
+</html>

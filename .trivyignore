@@ -13,7 +13,8 @@ AVD-AWS-0011
 # created outside terraform with encryption + versioning + public-block).
 AVD-AWS-0132
 
-# Unencrypted SNS topic: it carries CloudWatch alarm notifications (no
-# payload secrets). Encrypting it would require a CMK ($1/mo) because
-# CloudWatch can't publish through the AWS-managed aws/sns key.
+# Unencrypted SNS topics: they carry CloudWatch alarm notifications and
+# plank 3's fictional service-request fan-out (no payload secrets).
+# Encrypting would require a CMK ($1/mo) because neither CloudWatch nor
+# EventBridge can publish through the AWS-managed aws/sns key.
 AVD-AWS-0095
