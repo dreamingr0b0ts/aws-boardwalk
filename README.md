@@ -14,7 +14,7 @@ Design constraints for every plank:
 | # | Environment | Mode | Status |
 |---|-------------|------|--------|
 | 1 | [Modern Web Application](./modern-web-app/) — three-tier serverless app with Cognito RBAC | always-on | ✅ **[live](https://permits.demos.planetek.org)** |
-| 2 | API & Microservices | always-on | planned |
+| 2 | [API & Microservices](./api-platform/) — documented public REST API: v1/v2 versioning with real deprecation headers, API keys + usage plans, gateway request validation, per-service Lambdas, OpenAPI-driven docs | always-on | ✅ **[live](https://api.demos.planetek.org)** |
 | 3 | [Event-Driven & Messaging](./event-mesh/) — visualized EventBridge mesh with SQS DLQ drills, SNS fan-out, and a retrying Step Functions escalation | always-on | ✅ **[live](https://events.demos.planetek.org)** |
 | 4 | Containers (ECS Fargate, scale-to-zero) | on-demand | planned |
 | 5 | [Data Lake & Analytics](./data-lake/) — S3 raw/curated zones over 3.1M real Colorado business registrations, Glue catalog, live capped Athena SQL, static BI dashboard | always-on | ✅ **[live](https://data.demos.planetek.org)** |

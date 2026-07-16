@@ -122,7 +122,7 @@
     <div class="hero-meta">
       <div><strong>Terraform</strong>every resource</div>
       <div><strong>≈ $1/mo</strong>total idle cost</div>
-      <div><strong>5 of 10</strong>environments live</div>
+      <div><strong>7 of 10</strong>environments live</div>
     </div>
   </div>
   <svg class="ridge" viewBox="0 0 900 120" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
@@ -216,17 +216,22 @@
       </div>
     </article>
 
-    <article class="card">
-      <div class="card-top"><span class="num">02 · API</span><span class="chip next">Up next</span></div>
+    <article class="card live">
+      <div class="card-top"><span class="num">02 · API</span><span class="chip live">Live</span></div>
       <h3>API &amp; Microservices</h3>
-      <p>A documented public REST API: versioned endpoints, API keys and usage plans, throttling, request
-      validation, and an OpenAPI docs page.</p>
-      <span class="stack">API Gateway · Lambda · DynamoDB</span>
-      <div class="card-links"><span>In build queue</span></div>
+      <p>A documented public REST API with real governance: v1 endpoints that answer with honest
+      Deprecation/Sunset headers, API keys on throttled+quota'd usage plans (try the printed demo key),
+      request bodies schema-validated by the gateway itself, and per-service Lambdas fenced to their own
+      tables — docs rendered live from the same OpenAPI spec that deploys the gateway.</p>
+      <span class="stack">API Gateway (REST) · Lambda · DynamoDB · S3 · CloudFront</span>
+      <div class="card-links">
+        <a href="https://api.demos.planetek.org">Read the docs, call the API</a>
+        <a class="quiet" href="https://github.com/dreamingr0b0ts/aws-boardwalk/tree/main/api-platform">Code &amp; architecture</a>
+      </div>
     </article>
 
     <article class="card">
-      <div class="card-top"><span class="num">04 · CONTAINERS</span><span class="chip plan">Planned</span></div>
+      <div class="card-top"><span class="num">04 · CONTAINERS</span><span class="chip next">Up next</span></div>
       <h3>Containers (scale-to-zero)</h3>
       <p>Dockerized workloads on ECS Fargate launched on demand, with an image pipeline into ECR including
       vulnerability scanning — no idle compute, ever.</p>
