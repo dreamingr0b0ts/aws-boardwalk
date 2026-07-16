@@ -17,7 +17,7 @@ Design constraints for every plank:
 | 2 | API & Microservices | always-on | planned |
 | 3 | [Event-Driven & Messaging](./event-mesh/) — visualized EventBridge mesh with SQS DLQ drills, SNS fan-out, and a retrying Step Functions escalation | always-on | ✅ **[live](https://events.demos.planetek.org)** |
 | 4 | Containers (ECS Fargate, scale-to-zero) | on-demand | planned |
-| 5 | Data Lake & Analytics | always-on | planned |
+| 5 | [Data Lake & Analytics](./data-lake/) — S3 raw/curated zones over 3.1M real Colorado business registrations, Glue catalog, live capped Athena SQL, static BI dashboard | always-on | ✅ **[live](https://data.demos.planetek.org)** |
 | 6 | [Generative AI (RAG)](./genai-assistant/) — cited RAG assistant with hard cost caps behind a Cognito gate | always-on | ✅ **[live](https://assistant.demos.planetek.org)** (access on request) |
 | 7 | [Intelligent Document Processing](./doc-processing/) — Textract/Comprehend/Bedrock pipeline on Step Functions with a faceted search index | always-on | ✅ **[live](https://documents.demos.planetek.org)** (uploads on request) |
 | 8 | Security & Governance | deploy-demo-teardown | planned |

@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Colorado Business Data Lake · Planetek AWS Boardwalk</title>
+<meta name="description" content="A live serverless data lake: 3.1M real Colorado business registrations as raw JSON and curated partitioned Parquet, cataloged in Glue, queried by Athena SQL, rendered as a static BI dashboard. Plank 5 of the Planetek AWS Boardwalk.">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">Planetek · AWS Boardwalk · Plank 5</p>
+    <h1>Colorado Business Data Lake</h1>
+    <p class="lede">Every business ever registered with the Colorado Secretary of State — about 3.1 million,
+    back to 1864 — sitting in an S3 data lake you can query with live SQL. Raw records in one zone, curated
+    partitioned Parquet in another, a Glue catalog describing both, and Athena billing by the byte it scans.
+    No database servers anywhere; the lake costs ~$0 while you're not looking at it.</p>
+    <div class="hero-meta">
+      <div><strong id="stat-rows">–</strong>registrations in the lake</div>
+      <div><strong id="stat-scan">–</strong>scanned for a full-table GROUP BY</div>
+      <div><strong id="stat-partitions">–</strong>decade partitions</div>
+      <div><strong id="stat-snapshot">–</strong>snapshot taken</div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- The pipeline, with real numbers under each stage -->
+  <section class="panel">
+    <h2>From raw to ready</h2>
+    <p class="muted">The classic lake shape, entirely serverless. An ingest job pages the source API into the
+    raw zone; one Athena <code>CREATE TABLE AS SELECT</code> statement then cleans, types, and rewrites it as
+    partitioned Snappy Parquet — and registers the result in the Glue catalog. The dashboard below reads
+    aggregates the ETL precomputed, so rendering this page costs zero Athena.</p>
+    <div class="pipeline" id="pipeline">
+      <div class="stage"><span class="stage-what">data.colorado.gov</span><span class="stage-how">Secretary of State · CC0</span><span class="stage-fact" id="p-source">3.1M rows</span></div>
+      <div class="arrow" aria-hidden="true">→</div>
+      <div class="stage"><span class="stage-what">Raw zone</span><span class="stage-how">S3 · JSONL, gzipped</span><span class="stage-fact" id="p-raw">–</span></div>
+      <div class="arrow" aria-hidden="true">→</div>
+      <div class="stage"><span class="stage-what">Glue catalog + Athena CTAS</span><span class="stage-how">one SQL statement</span><span class="stage-fact" id="p-ctas">–</span></div>
+      <div class="arrow" aria-hidden="true">→</div>
+      <div class="stage"><span class="stage-what">Curated zone</span><span class="stage-how">S3 · Parquet + Snappy</span><span class="stage-fact" id="p-curated">–</span></div>
+      <div class="arrow" aria-hidden="true">→</div>
+      <div class="stage"><span class="stage-what">This dashboard</span><span class="stage-how">static site + cached SQL</span><span class="stage-fact" id="p-dash">$0 to render</span></div>
+    </div>
+  </section>
+
+  <!-- BI dashboard from precomputed aggregates -->
+  <section class="panel">
+    <h2>The state of Colorado business</h2>
+    <p class="muted" id="dash-note">Rendered from aggregates the ETL precomputed into the analytics zone.</p>
+
+    <div class="chart-grid">
+      <figure class="chart wide">
+        <figcaption>New registrations per year since 1990 <span class="cap-note" id="peak-note"></span></figcaption>
+        <div id="chart-years" class="plot"></div>
+      </figure>
+      <figure class="chart">
+        <figcaption>What gets formed — entity types, all time</figcaption>
+        <div id="chart-types" class="plot"></div>
+      </figure>
+      <figure class="chart">
+        <figcaption>Where they stand today — status</figcaption>
+        <div id="chart-status" class="plot"></div>
+      </figure>
+      <figure class="chart">
+        <figcaption>Cities with the most businesses in Good Standing</figcaption>
+        <div id="chart-cities" class="plot"></div>
+      </figure>
+      <figure class="chart">
+        <figcaption>Still standing — share of each year's cohort in Good Standing today</figcaption>
+        <div id="chart-survival" class="plot"></div>
+      </figure>
+    </div>
+  </section>
+
+  <!-- Live SQL -->
+  <section class="panel">
+    <h2>Run live SQL on the lake</h2>
+    <p class="muted">These queries execute in Athena when you click — against the same 3.1M rows, inside a
+    workgroup that enforces a per-query scan cutoff. The stats underneath are Athena's own numbers: what it
+    scanned, how long the engine ran, and what the query cost at $5 per terabyte scanned. Results cache for a
+    few hours, and live executions are capped per day (<span id="usage-note">…</span>).</p>
+
+    <div class="qpick" id="qpick" role="tablist"></div>
+
+    <div class="qbox">
+      <p class="qstory muted" id="qstory"></p>
+      <pre class="sql"><code id="qsql"></code></pre>
+      <div class="qrun">
+        <button id="run-btn" type="button">Run in Athena</button>
+        <div class="qstats" id="qstats" hidden>
+          <span class="chip" id="s-scanned" title="Data scanned"></span>
+          <span class="chip" id="s-time" title="Engine execution time"></span>
+          <span class="chip" id="s-cost" title="Estimated cost at $5/TB (10 MB minimum)"></span>
+          <span class="chip" id="s-cache"></span>
+        </div>
+      </div>
+      <p id="q-error" class="error" hidden></p>
+      <div class="results-scroll"><table id="q-results" hidden></table></div>
+    </div>
+  </section>
+
+  <!-- Raw vs curated -->
+  <section class="panel">
+    <h2>The raw-vs-curated race</h2>
+    <p class="muted">The whole argument for a curated zone in one click: the identical
+    <code>GROUP BY status</code> aggregation runs twice — once over the raw gzipped JSON, once over the
+    partitioned Parquet. Columnar beats row-text on every number Athena reports.</p>
+    <button id="race-btn" type="button">Run both in Athena</button>
+    <p id="race-error" class="error" hidden></p>
+    <div id="race-result" class="race" hidden>
+      <div class="race-row">
+        <span class="race-label">Raw · JSONL.gz</span>
+        <div class="race-track"><div class="race-fill raw" id="race-raw-bar"></div></div>
+        <span class="race-num" id="race-raw-num">–</span>
+      </div>
+      <div class="race-row">
+        <span class="race-label">Curated · Parquet</span>
+        <div class="race-track"><div class="race-fill cur" id="race-cur-bar"></div></div>
+        <span class="race-num" id="race-cur-num">–</span>
+      </div>
+      <p class="race-verdict" id="race-verdict"></p>
+    </div>
+  </section>
+
+  <!-- How it's built -->
+  <section class="panel">
+    <h2>How this is built</h2>
+    <div class="arch">
+      <span class="chip">S3 raw / curated / analytics zones</span>
+      <span class="chip">Glue Data Catalog</span>
+      <span class="chip">Athena SQL + CTAS ETL</span>
+      <span class="chip">enforced workgroup + scan cutoff</span>
+      <span class="chip">Parquet, partitioned by decade</span>
+      <span class="chip">Lambda (Node 22, arm64)</span>
+      <span class="chip">DynamoDB result cache + daily caps</span>
+      <span class="chip">CloudFront + same-origin API</span>
+      <span class="chip">Terraform</span>
+    </div>
+    <p class="muted foot">Dataset: <a href="https://data.colorado.gov/Business/Business-Entities-in-Colorado/4ykn-tg5h" rel="noopener">Business Entities in Colorado</a> (CC0, Colorado Secretary of State), snapshot refreshed with the lake.
+    Part of the <a href="https://demos.planetek.org">Planetek AWS Boardwalk</a> · <a href="https://github.com/dreamingr0b0ts/aws-boardwalk" rel="noopener">source on GitHub</a>.</p>
+  </section>
+
+</main>
+
+<div id="tooltip" class="tooltip" hidden></div>
+<script src="/app.js"></script>
+</body>
+</html>

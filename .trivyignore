@@ -23,3 +23,10 @@ AVD-AWS-0095
 # Functions error logs for fictional demo events. AWS-managed encryption is
 # on by default; a CMK is $1/mo for nothing sensitive.
 AVD-AWS-0017
+
+# Plank 5's dla-etl Athena workgroup deliberately does NOT enforce its
+# configuration: Athena rejects CTAS 'external_location' (how the ETL writes
+# the curated zone) in enforced workgroups. Only the etl Lambda's role can
+# reach this workgroup; the visitor-facing dla-public workgroup IS enforced
+# with a per-query scan cutoff.
+AVD-AWS-0007
