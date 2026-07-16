@@ -18,3 +18,8 @@ AVD-AWS-0132
 # Encrypting would require a CMK ($1/mo) because neither CloudWatch nor
 # EventBridge can publish through the AWS-managed aws/sns key.
 AVD-AWS-0095
+
+# CloudWatch log group without a customer-managed KMS key: it holds Step
+# Functions error logs for fictional demo events. AWS-managed encryption is
+# on by default; a CMK is $1/mo for nothing sensitive.
+AVD-AWS-0017

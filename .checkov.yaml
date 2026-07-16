@@ -22,6 +22,7 @@ skip-check:
   - CKV_AWS_119 # DynamoDB CMK (AWS-owned key encryption is always on)
   - CKV_AWS_26 # SNS topic CMK (alarm + demo fan-out topics; neither CloudWatch nor EventBridge can publish through aws/sns)
   - CKV_AWS_297 # EventBridge Scheduler CMK (payloads: an empty reset event, a fictional heartbeat request)
+  - CKV_AWS_158 # CloudWatch log group CMK (workflow error logs for fictional demo events; AWS-managed encryption is on by default)
 
   # --- logging/eventing surfaces that cost more than the sites they'd watch ---
   - CKV_AWS_18 # S3 access logging (CloudFront metrics cover the static sites)
@@ -39,6 +40,7 @@ skip-check:
   - CKV_AWS_116 # Lambda DLQs (all invocations are synchronous request/response; nothing to dead-letter)
   - CKV_AWS_115 # Lambda reserved concurrency (abuse caps enforced via DynamoDB counters + edge throttle)
   - CKV_AWS_272 # Lambda code signing (terraform-hashed artifacts from a public repo)
+  - CKV_AWS_338 # 1-year log retention: demo error logs are deliberately short-lived (14 days); traces TTL at 48h
 
   # --- intentional design ---
   - CKV_AWS_309 # API routes without auth: public-by-design routes (plank 3 entirely, /api/public/* elsewhere); money-spending routes use JWT authorizers
