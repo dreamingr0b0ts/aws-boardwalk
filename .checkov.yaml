@@ -36,7 +36,7 @@ skip-check:
   - CKV2_AWS_4 # REST stage execution logging: needs an account-level CloudWatch role + log storage; X-Ray tracing is enabled instead
   - CKV_AWS_285 # Step Functions execution logging (X-Ray tracing is enabled instead)
   - CKV2_AWS_39 # Route53 query logging
-  - CKV2_AWS_38 # DNSSEC: GoDaddy-delegated subdomain; enable if/when the domain moves to Route53
+  - CKV2_AWS_38 # DNSSEC: needs a KMS CMK ($1/mo) + a DS record coordinated at the GoDaddy registrar; deliberately deferred even now that planetek.org's zone lives in Route53 (company-site)
   - CKV2_AWS_62 # S3 event notifications (nothing consumes them)
 
   # --- resilience knobs that don't fit ephemeral demo data ---

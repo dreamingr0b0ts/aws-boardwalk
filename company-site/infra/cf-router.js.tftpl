@@ -1,0 +1,28 @@
+// Viewer-request router: canonical host + clean URLs.
+function handler(event) {
+  var request = event.request;
+  var host = request.headers.host && request.headers.host.value;
+
+  // www (or the raw *.cloudfront.net domain once DNS is live) → apex, 301.
+  if (host === "www.${apex}") {
+    return {
+      statusCode: 301,
+      statusDescription: "Moved Permanently",
+      headers: {
+        location: { value: "https://${apex}" + request.uri }
+      }
+    };
+  }
+
+  var uri = request.uri;
+  // /privacy/ → /privacy
+  if (uri.length > 1 && uri.endsWith("/")) {
+    uri = uri.slice(0, -1);
+  }
+  // Extensionless paths map to .html objects in the bucket.
+  if (uri !== "/" && !uri.includes(".")) {
+    uri = uri + ".html";
+  }
+  request.uri = uri;
+  return request;
+}

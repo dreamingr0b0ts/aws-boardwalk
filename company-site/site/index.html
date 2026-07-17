@@ -1,0 +1,717 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Managed AWS Services &amp; Cloud Consulting | Planetek LLC</title>
+<meta name="description" content="Planetek LLC designs, builds, secures, and runs AWS environments for growing businesses and government — proven by ten live demo environments you can walk through. Managed AWS services, federal IT contracting, fractional CTO/CIO leadership, AI training, and web development from Colorado.">
+<link rel="canonical" href="https://planetek.org/">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Planetek LLC">
+<meta property="og:title" content="Managed AWS Services &amp; Cloud Consulting | Planetek LLC">
+<meta property="og:description" content="We design, build, secure, and run AWS for growing businesses and government — proven by ten live AWS environments you can explore right now.">
+<meta property="og:url" content="https://planetek.org/">
+<meta property="og:image" content="https://planetek.org/assets/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Managed AWS Services &amp; Cloud Consulting | Planetek LLC">
+<meta name="twitter:description" content="We design, build, secure, and run AWS for growing businesses and government — proven by ten live AWS environments you can explore right now.">
+<meta name="twitter:image" content="https://planetek.org/assets/og.jpg">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://planetek.org/#org",
+      "name": "Planetek LLC",
+      "url": "https://planetek.org/",
+      "logo": "https://planetek.org/assets/og.jpg",
+      "email": "info@planetek.org",
+      "telephone": "+1-303-356-2782",
+      "address": { "@type": "PostalAddress", "addressRegion": "CO", "addressCountry": "US" },
+      "sameAs": [
+        "https://demos.planetek.org",
+        "https://github.com/dreamingr0b0ts/aws-boardwalk"
+      ],
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "contactType": "sales",
+        "email": "info@planetek.org",
+        "telephone": "+1-303-356-2782"
+      }
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://planetek.org/#website",
+      "url": "https://planetek.org/",
+      "name": "Planetek LLC",
+      "publisher": { "@id": "https://planetek.org/#org" }
+    },
+    {
+      "@type": "ProfessionalService",
+      "@id": "https://planetek.org/#service",
+      "name": "Planetek LLC",
+      "url": "https://planetek.org/",
+      "parentOrganization": { "@id": "https://planetek.org/#org" },
+      "areaServed": "US",
+      "description": "Managed AWS services, federal IT contracting, fractional technology leadership, AI training, and web development.",
+      "makesOffer": [
+        { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Managed AWS Services", "description": "Cloud architecture, migration, security, DevOps, and ongoing AWS operations for small and mid-size businesses." } },
+        { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Federal IT Contracting", "description": "SAM.gov registered contractor: cloud architecture, Zero Trust, DevSecOps, and vulnerability management for federal agencies and primes." } },
+        { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Fractional CTO / CIO / VP Engineering", "description": "Executive technology leadership on a flexible, part-time basis." } },
+        { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "AI Training", "description": "In-person and online AI, generative AI, and Python training from a college CIS professor and Fortune 100 certified trainer." } },
+        { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Web Design & Development", "description": "Custom websites, redesigns, and maintenance from a Cornell-certified web developer." } }
+      ]
+    }
+  ]
+}
+</script>
+<style>
+  :root {
+    --bg: #fafaf9;
+    --surface: #ffffff;
+    --border: #e7e5e4;
+    --ink: #1c1917;
+    --ink-2: #57534e;
+    --ink-3: #78716c;
+    --navy: #0d1b2a;
+    --navy-deep: #081220;
+    --navy-mid: #1b3a5b;
+    --navy-soft: #dde8f0;
+    --glow: #e4532f;
+    --glow-deep: #c4401f;
+    --glow-soft: #fde5dc;
+    --ok-bg: #ecfdf5; --ok-ink: #047857; --ok-ring: #a7f3d0;
+    --hero-ink: #eaf2f9;
+    --hero-sub: #b7cbdc;
+    --hero-dim: #8aa5bd;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0c0a09;
+      --surface: #1c1917;
+      --border: #292524;
+      --ink: #f5f5f4;
+      --ink-2: #d6d3d1;
+      --ink-3: #a8a29e;
+      --navy-soft: #14263a;
+      --glow-soft: rgba(228, 83, 47, .16);
+      --ok-bg: rgba(5,150,105,.15); --ok-ink: #34d399; --ok-ring: rgba(52,211,153,.35);
+    }
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font: 16px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
+  img, svg { max-width: 100%; }
+  a { color: var(--glow); }
+
+  /* --- nav --- */
+  nav.top { position: sticky; top: 0; z-index: 50; background: var(--navy-deep); color: var(--hero-ink); border-bottom: 1px solid rgba(183,203,220,.15); }
+  .nav-inner { display: flex; align-items: center; gap: 18px; padding: 12px 0; flex-wrap: wrap; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 18px; color: #fff; text-decoration: none; }
+  .brand svg { width: 30px; height: 24px; color: var(--hero-ink); }
+  .nav-links { display: flex; gap: 16px; flex-wrap: wrap; margin-left: auto; align-items: center; }
+  .nav-links a { color: var(--hero-sub); text-decoration: none; font-size: 14px; font-weight: 600; }
+  .nav-links a:hover { color: #fff; }
+  .nav-links a.cta { background: var(--glow); color: #fff; padding: 8px 16px; border-radius: 9px; }
+  .nav-links a.cta:hover { background: var(--glow-deep); }
+
+  /* --- hero --- */
+  header.hero { background: linear-gradient(160deg, var(--navy-deep) 0%, var(--navy) 55%, var(--navy-mid) 130%); color: var(--hero-ink); overflow: hidden; }
+  .hero-inner { padding: 76px 0 64px; }
+  .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: #f59e83; }
+  h1 { font-size: clamp(34px, 5.5vw, 54px); line-height: 1.06; margin-top: 14px; font-weight: 800; max-width: 820px; }
+  .hero p.lede { margin-top: 18px; max-width: 680px; font-size: 18px; color: var(--hero-sub); }
+  .hero-actions { margin-top: 30px; display: flex; gap: 12px; flex-wrap: wrap; }
+  .btn { display: inline-block; padding: 12px 20px; border-radius: 10px; font-weight: 700; font-size: 15px; text-decoration: none; }
+  .btn-glow { background: var(--glow); color: #fff; box-shadow: 0 8px 24px rgba(228,83,47,.3); }
+  .btn-glow:hover { background: var(--glow-deep); }
+  .btn-ghost { border: 1px solid rgba(183,203,220,.5); color: var(--hero-ink); }
+  .btn-ghost:hover { border-color: #fff; color: #fff; }
+  .hero-meta { margin-top: 40px; display: flex; gap: 30px; flex-wrap: wrap; font-size: 13px; color: var(--hero-dim); }
+  .hero-meta strong { display: block; color: #fff; font-size: 20px; }
+
+  /* --- sections --- */
+  section { padding: 64px 0 8px; }
+  .kicker { font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--glow); }
+  h2 { font-size: clamp(24px, 3.5vw, 32px); font-weight: 800; margin-top: 8px; }
+  .section-lede { margin-top: 12px; max-width: 760px; color: var(--ink-2); }
+
+  .grid { margin-top: 28px; display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 22px; display: flex; flex-direction: column; gap: 10px; }
+  .card h3 { font-size: 17px; font-weight: 800; }
+  .card p { font-size: 14px; color: var(--ink-2); flex: 1; }
+  .card .stack { font-size: 12.5px; color: var(--ink-3); }
+  .card a.demo { font-size: 14px; font-weight: 700; color: var(--glow); text-decoration: none; padding-top: 8px; border-top: 1px solid var(--border); }
+  .card a.demo:hover { text-decoration: underline; }
+
+  .proof { margin-top: 28px; background: var(--navy); color: var(--hero-ink); border-radius: 16px; padding: 30px 28px; display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
+  .proof h3 { font-size: 20px; font-weight: 800; }
+  .proof p { color: var(--hero-sub); font-size: 15px; max-width: 640px; margin-top: 6px; }
+  .proof .btn { white-space: nowrap; }
+
+  .tiers { margin-top: 28px; display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+  .tier { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 24px; position: relative; }
+  .tier.hot { border-color: var(--glow); box-shadow: 0 6px 24px rgba(228,83,47,.12); }
+  .tier .flag { position: absolute; top: -11px; left: 50%; transform: translateX(-50%); background: var(--glow); color: #fff; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; padding: 3px 12px; border-radius: 999px; white-space: nowrap; }
+  .tier .price { font-size: 26px; font-weight: 800; }
+  .tier h3 { font-size: 16px; font-weight: 700; margin-top: 2px; color: var(--ink-2); }
+  .tier ul { margin: 14px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; font-size: 14px; color: var(--ink-2); }
+  .tier li { padding-left: 20px; position: relative; }
+  .tier li::before { content: "✓"; position: absolute; left: 0; color: var(--ok-ink); font-weight: 700; }
+
+  .checklist { margin: 26px 0 0; padding: 0; list-style: none; display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); }
+  .checklist li { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 16px 16px 44px; position: relative; font-size: 14px; color: var(--ink-2); }
+  .checklist li::before { content: "✓"; position: absolute; left: 18px; top: 15px; color: var(--ok-ink); font-weight: 800; }
+  .checklist strong { display: block; color: var(--ink); font-size: 15px; margin-bottom: 3px; }
+
+  .facts { margin-top: 26px; display: flex; gap: 12px; flex-wrap: wrap; }
+  .fact { background: var(--navy-soft); border-radius: 10px; padding: 10px 16px; font-size: 13px; color: var(--ink-2); }
+  .fact strong { display: block; font-size: 15px; color: var(--ink); }
+  .stats { margin-top: 26px; display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+  .stat { text-align: center; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 10px; }
+  .stat strong { display: block; font-size: 24px; font-weight: 800; color: var(--glow); }
+  .stat span { font-size: 13px; color: var(--ink-3); }
+
+  .cols { margin-top: 28px; display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+
+  /* --- contact --- */
+  #contact { padding-bottom: 64px; }
+  .contact-grid { margin-top: 28px; display: grid; gap: 28px; grid-template-columns: 1fr; }
+  @media (min-width: 860px) { .contact-grid { grid-template-columns: 1fr 1.4fr; } }
+  .contact-info .card + .card { margin-top: 14px; }
+  form { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 26px; display: grid; gap: 14px; }
+  .form-row { display: grid; gap: 14px; grid-template-columns: 1fr; }
+  @media (min-width: 560px) { .form-row { grid-template-columns: 1fr 1fr; } }
+  label { font-size: 13px; font-weight: 700; display: grid; gap: 6px; }
+  input, select, textarea {
+    font: inherit; color: var(--ink); background: var(--bg);
+    border: 1px solid var(--border); border-radius: 9px; padding: 10px 12px; width: 100%;
+  }
+  input:focus, select:focus, textarea:focus { outline: 2px solid var(--glow); outline-offset: 0; border-color: transparent; }
+  .hp { position: absolute; left: -9999px; opacity: 0; height: 0; overflow: hidden; }
+  button.btn { border: 0; cursor: pointer; font: inherit; font-weight: 700; }
+  #form-status { font-size: 14px; font-weight: 600; display: none; padding: 12px 14px; border-radius: 9px; }
+  #form-status.ok { display: block; background: var(--ok-bg); color: var(--ok-ink); border: 1px solid var(--ok-ring); }
+  #form-status.err { display: block; background: var(--glow-soft); color: var(--glow-deep); border: 1px solid var(--glow); }
+
+  /* --- footer --- */
+  footer { margin-top: 64px; background: var(--navy-deep); color: var(--hero-sub); font-size: 13px; }
+  .foot-grid { display: grid; gap: 28px; padding: 38px 20px 30px; max-width: 1100px; margin: 0 auto; }
+  @media (min-width: 640px) { .foot-grid { grid-template-columns: 2fr 1fr 1fr 1fr; } }
+  .foot-brand { font-weight: 800; color: #fff; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+  .foot-brand svg { width: 26px; height: 20px; }
+  .foot-desc { margin-top: 10px; font-size: 12.5px; line-height: 1.6; color: var(--hero-dim); max-width: 300px; }
+  .foot-head { font-weight: 700; color: #fff; }
+  .foot-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 5px; }
+  .foot-list a { color: var(--hero-sub); text-decoration: none; }
+  .foot-list a:hover { color: #fff; text-decoration: underline; text-underline-offset: 2px; }
+  .foot-bar { border-top: 1px solid rgba(183,203,220,.15); padding: 15px 20px; text-align: center; font-size: 12px; color: var(--hero-dim); }
+</style>
+</head>
+<body>
+
+<nav class="top" aria-label="Main">
+  <div class="wrap nav-inner">
+    <a class="brand" href="/">
+      <svg viewBox="0 0 1744 1360" aria-hidden="true"><use href="#pk-mark"/></svg>
+      Planetek
+    </a>
+    <div class="nav-links">
+      <a href="#aws">Managed AWS</a>
+      <a href="#federal">Federal</a>
+      <a href="#fractional">Fractional Leadership</a>
+      <a href="#training">AI Training</a>
+      <a href="#web">Web Development</a>
+      <a class="cta" href="#contact">Get Started</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap hero-inner">
+    <p class="eyebrow">Managed AWS Services · Colorado-based, serving nationwide</p>
+    <h1>Your AWS cloud, expertly run — without the full-time cloud team.</h1>
+    <p class="lede">Planetek designs, builds, secures, and operates AWS environments for growing businesses
+    and government. Everything infrastructure-as-code, security-first, and relentlessly cost-optimized —
+    and instead of slideware, we prove it with <a href="https://demos.planetek.org" style="color:#f59e83">ten live AWS environments</a> you can walk through right now.</p>
+    <div class="hero-actions">
+      <a class="btn btn-glow" href="#contact">Book a free consultation</a>
+      <a class="btn btn-ghost" href="https://demos.planetek.org">Explore the live demos</a>
+    </div>
+    <div class="hero-meta">
+      <div><strong>10</strong> live AWS environments</div>
+      <div><strong>15+ yrs</strong> startups to Fortune 100</div>
+      <div><strong>$1M+</strong> cloud savings delivered</div>
+      <div><strong>SAM.gov</strong> registered contractor</div>
+    </div>
+  </div>
+</header>
+
+<main>
+
+<!-- ================= Managed AWS ================= -->
+<section id="aws">
+  <div class="wrap">
+    <p class="kicker">Managed AWS Services</p>
+    <h2>We run AWS so you can run your business</h2>
+    <p class="section-lede">Most companies don't need a six-figure cloud department — they need an experienced
+    partner who architects it right, locks it down, and keeps the bill honest. Planetek delivers exactly that:
+    senior AWS engineering on a flexible monthly engagement, with every environment defined in Terraform,
+    gated by automated security scanning, and deployed through keyless CI/CD.</p>
+
+    <div class="grid">
+      <div class="card">
+        <h3>Architecture, Migration &amp; IaC</h3>
+        <p>Well-Architected reviews, landing zones, and lift-and-modernize migrations. Every resource is
+        Terraform — reproducible, reviewable, and never trapped in a console click-path.</p>
+        <p class="stack">Terraform · CloudFront · multi-account IAM · GitHub Actions OIDC</p>
+        <a class="demo" href="https://ops.demos.planetek.org">See our CI/CD &amp; SRE practice live →</a>
+      </div>
+      <div class="card">
+        <h3>Serverless Applications &amp; APIs</h3>
+        <p>Scale-to-zero web applications and API platforms that idle at pennies: S3 + CloudFront frontends,
+        Lambda backends, Cognito auth, DynamoDB data — plus versioned, key-metered public APIs.</p>
+        <p class="stack">Lambda · API Gateway · Cognito · DynamoDB · ECS Fargate</p>
+        <a class="demo" href="https://permits.demos.planetek.org">Try a live serverless app →</a>
+      </div>
+      <div class="card">
+        <h3>AI on AWS</h3>
+        <p>Production GenAI without runaway bills: retrieval-augmented assistants on Amazon Bedrock and
+        document-intelligence pipelines that classify, extract, and index paperwork automatically —
+        all with hard per-day cost caps.</p>
+        <p class="stack">Bedrock (Claude) · Textract · Comprehend · Step Functions</p>
+        <a class="demo" href="https://assistant.demos.planetek.org">Chat with a live RAG assistant →</a>
+      </div>
+      <div class="card">
+        <h3>Data Lakes &amp; Analytics</h3>
+        <p>Turn raw data into queryable answers: S3 data lakes, Glue catalogs, and Athena SQL over
+        millions of records — engineered so a query scans megabytes, not gigabytes.</p>
+        <p class="stack">S3 · Glue · Athena · Parquet · EventBridge</p>
+        <a class="demo" href="https://data.demos.planetek.org">Query 3M records live →</a>
+      </div>
+      <div class="card">
+        <h3>Security, Compliance &amp; Networking</h3>
+        <p>Zero Trust network design, continuous compliance against NIST 800-53, GuardDuty threat detection,
+        CloudTrail evidence trails, and vulnerability management — with auditable proof, not promises.</p>
+        <p class="stack">GuardDuty · Security Hub · Config · CloudTrail · VPC design</p>
+        <a class="demo" href="https://security.demos.planetek.org">Review a live compliance report →</a>
+      </div>
+      <div class="card">
+        <h3>Managed Operations &amp; Cost Control</h3>
+        <p>Ongoing care for the cloud you already have: monitoring and alerting, backup/restore drills with
+        measured recovery times, patching cadence, budget tripwires, and a monthly cost-optimization pass.</p>
+        <p class="stack">CloudWatch · X-Ray · AWS Budgets · backup drills · FinOps</p>
+        <a class="demo" href="https://ops.demos.planetek.org">See live ops metrics →</a>
+      </div>
+    </div>
+
+    <div class="proof">
+      <div style="flex:1">
+        <h3>Proof, not promises: the AWS Boardwalk</h3>
+        <p>Ten production-grade AWS environments — web apps, APIs, GenAI, document processing, data lakes,
+        containers, event-driven systems, security, networking, and DevOps — all live, all open-source,
+        all running for pennies a day. Walk through what we'd build for you.</p>
+      </div>
+      <a class="btn btn-glow" href="https://demos.planetek.org">Visit demos.planetek.org</a>
+    </div>
+
+    <div class="cols">
+      <div class="card">
+        <h3>Assess</h3>
+        <p>Fixed-fee cloud assessment: architecture, security posture, and spend review of your current AWS
+        account, delivered as a prioritized roadmap you keep either way.</p>
+      </div>
+      <div class="card">
+        <h3>Build &amp; Migrate</h3>
+        <p>Project-based delivery of new workloads or migrations — infrastructure-as-code from day one,
+        with CI/CD and security gates included, then handed over documented.</p>
+      </div>
+      <div class="card">
+        <h3>Run</h3>
+        <p>Monthly managed services: we own uptime, security, backups, patching, and the AWS bill, with
+        a named senior engineer and no long-term lock-in.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= Federal ================= -->
+<section id="federal">
+  <div class="wrap">
+    <p class="kicker">Federal Contractor</p>
+    <h2>Federal IT Contracting &amp; Consulting</h2>
+    <p class="section-lede">Planetek LLC is an active SAM.gov registered contractor delivering enterprise-scale
+    cloud architecture, Zero Trust implementation, DevSecOps, and IT consulting to federal agencies and prime
+    contractors. Colorado-based with geographic alignment to NORAD/USNORTHCOM, Space Force, VA Eastern
+    Colorado, and Denver-area civilian agencies.</p>
+
+    <div class="facts">
+      <div class="fact"><strong>1ZZA0</strong> CAGE</div>
+      <div class="fact"><strong>PHN7PHMZBKS4</strong> UEI</div>
+      <div class="fact"><strong>Active</strong> SAM.gov</div>
+      <div class="fact"><strong>Pending</strong> 8(a) Status</div>
+    </div>
+
+    <ul class="checklist">
+      <li><strong>Cloud Architecture (AWS) — Lead</strong> Multi-account design, GovCloud-ready IaC (Terraform/CloudFormation), cost optimization; $1M+ in documented savings at Fortune 100 scale</li>
+      <li><strong>Zero Trust Implementation</strong> NIST SP 800-207 aligned; full lifecycle from assessment through enforcement across 10,000+ system environments</li>
+      <li><strong>CVE &amp; Vulnerability Management</strong> Enterprise-scale remediation across heterogeneous infrastructure; policy-aligned prioritization and SIEM integration</li>
+      <li><strong>DevSecOps &amp; CI/CD</strong> Kubernetes, Docker, automated pipeline design; security-embedded SDLC for DoD and civilian workloads</li>
+      <li><strong>IT Infrastructure Engineering</strong> 15,000+ VM environments; capacity modeling, cost optimization, lifecycle management at enterprise scale</li>
+      <li><strong>Security Architecture Review</strong> End-to-end system assessment, ATO documentation support, risk posture analysis</li>
+      <li><strong>Fractional CTO / VP Engineering</strong> Interim engineering leadership for 8(a) prime partners and government-adjacent technology firms</li>
+      <li><strong>Workforce Development</strong> Part-time faculty, Community College of Aurora: CompTIA A+ and Operating Systems for underserved students</li>
+    </ul>
+
+    <div class="stats">
+      <div class="stat"><strong>$1M+</strong><span>Cost Savings Delivered</span></div>
+      <div class="stat"><strong>15,000+</strong><span>VMs Managed</span></div>
+      <div class="stat"><strong>10,000+</strong><span>Systems Secured</span></div>
+      <div class="stat"><strong>4</strong><span>NAICS Codes Registered</span></div>
+    </div>
+
+    <div class="facts" aria-label="NAICS codes">
+      <div class="fact"><strong>541519</strong> Other Computer Related</div>
+      <div class="fact"><strong>541511</strong> Custom Programming</div>
+      <div class="fact"><strong>541512</strong> Computer Systems Design</div>
+      <div class="fact"><strong>541611</strong> Mgmt Consulting</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= Fractional ================= -->
+<section id="fractional">
+  <div class="wrap">
+    <p class="kicker">Executive Leadership</p>
+    <h2>Fractional Leadership Services</h2>
+    <p class="section-lede">Flexible, expert technology leadership that scales with your business.</p>
+
+    <div class="cols">
+      <div class="card">
+        <h3>Fractional VP</h3>
+        <p>Executive-level strategic oversight for technology initiatives. We bridge the gap between business
+        objectives and technical execution, ensuring your technology investments drive measurable business outcomes.</p>
+        <ul class="tier" style="border:0;padding:14px 0 0;list-style:none;display:grid;gap:8px;font-size:14px;color:var(--ink-2)">
+          <li>Technology strategy &amp; roadmap</li>
+          <li>Team leadership &amp; mentoring</li>
+          <li>Vendor management</li>
+          <li>Budget planning &amp; optimization</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Fractional CTO</h3>
+        <p>World-class technical architecture and engineering leadership. We design and build scalable, secure
+        systems using industry best practices, ensuring your infrastructure supports long-term growth.</p>
+        <ul class="tier" style="border:0;padding:14px 0 0;list-style:none;display:grid;gap:8px;font-size:14px;color:var(--ink-2)">
+          <li>Technical architecture design</li>
+          <li>Engineering team building</li>
+          <li>Code review &amp; quality assurance</li>
+          <li>DevOps &amp; infrastructure</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Fractional CIO</h3>
+        <p>Comprehensive information systems strategy and cybersecurity leadership. We protect your critical
+        assets while enabling digital transformation, ensuring compliance with industry standards and
+        regulatory requirements.</p>
+        <ul class="tier" style="border:0;padding:14px 0 0;list-style:none;display:grid;gap:8px;font-size:14px;color:var(--ink-2)">
+          <li>IT governance &amp; compliance</li>
+          <li>Security &amp; risk management</li>
+          <li>Digital transformation</li>
+          <li>Data strategy &amp; analytics</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= AI Training ================= -->
+<section id="training">
+  <div class="wrap">
+    <p class="kicker">Professional Development</p>
+    <h2>AI Training Services — In-Person &amp; Online</h2>
+    <p class="section-lede">Expert AI and technology training from a college CIS professor and certified
+    Fortune 100 trainer. Upskill your team with practical, hands-on instruction in artificial intelligence,
+    machine learning, and modern development practices.</p>
+
+    <div class="cols">
+      <div class="card">
+        <h3>Academic Excellence</h3>
+        <p>Instruction from an experienced college CIS professor with proven teaching methodologies and
+        curriculum design expertise.</p>
+      </div>
+      <div class="card">
+        <h3>Fortune 100 Certified</h3>
+        <p>Certified corporate trainer with experience delivering enterprise-level training programs for
+        Fortune 100 companies.</p>
+      </div>
+      <div class="card">
+        <h3>Flexible Delivery</h3>
+        <p>Choose in-person workshops for hands-on collaboration or online sessions for distributed teams.
+        Custom curriculum tailored to your needs.</p>
+      </div>
+    </div>
+
+    <ul class="checklist">
+      <li><strong>AI &amp; Machine Learning Fundamentals</strong> Neural networks, deep learning, model training</li>
+      <li><strong>Generative AI &amp; LLMs</strong> ChatGPT, Claude, Amazon Q, prompt engineering</li>
+      <li><strong>AI Security &amp; Ethics</strong> Responsible AI, bias detection, compliance</li>
+      <li><strong>Python for AI Development</strong> TensorFlow, PyTorch, scikit-learn</li>
+    </ul>
+
+    <div class="tiers">
+      <div class="tier">
+        <p class="price">Half-Day</p>
+        <h3>Workshop</h3>
+        <ul>
+          <li>4-hour session</li>
+          <li>Up to 20 participants</li>
+          <li>Custom curriculum</li>
+          <li>Materials included</li>
+          <li>In-person or online</li>
+        </ul>
+      </div>
+      <div class="tier hot">
+        <span class="flag">Most Popular</span>
+        <p class="price">Full-Day</p>
+        <h3>Intensive</h3>
+        <ul>
+          <li>8-hour deep dive</li>
+          <li>Up to 25 participants</li>
+          <li>Hands-on labs</li>
+          <li>Certificate of completion</li>
+          <li>Follow-up Q&amp;A session</li>
+        </ul>
+      </div>
+      <div class="tier">
+        <p class="price">Multi-Day</p>
+        <h3>Program</h3>
+        <ul>
+          <li>2–5 day program</li>
+          <li>Enterprise teams</li>
+          <li>Comprehensive curriculum</li>
+          <li>Capstone project</li>
+          <li>Ongoing support</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= Web Development ================= -->
+<section id="web">
+  <div class="wrap">
+    <p class="kicker">Professional Web Services</p>
+    <h2>Web Design &amp; Development</h2>
+    <p class="section-lede">Professional web design and development services from a Cornell University
+    certified web developer. Modern, responsive websites built with the latest technologies — including
+    zero-maintenance static sites on AWS that cost almost nothing to run, like this one.</p>
+
+    <div class="cols">
+      <div class="card">
+        <h3>Cornell Certified</h3>
+        <p>Certificate in Web Development and Design from Cornell University. Professional training in modern
+        web technologies, UX/UI design, and responsive development.</p>
+      </div>
+      <div class="card">
+        <h3>Modern Tech Stack</h3>
+        <p>Next.js, React, TypeScript, and Tailwind CSS for applications — or lean, dependency-free sites on
+        AWS CloudFront that load instantly and score 100 on Core Web Vitals.</p>
+      </div>
+      <div class="card">
+        <h3>Full-Service Solutions</h3>
+        <p>From initial design to deployment and ongoing maintenance. New sites, redesigns, updates, and
+        continuous improvements.</p>
+      </div>
+    </div>
+
+    <div class="tiers">
+      <div class="tier">
+        <p class="price">$3,500</p>
+        <h3>Landing Page</h3>
+        <ul>
+          <li>Single page design</li>
+          <li>Responsive layout</li>
+          <li>Contact form</li>
+          <li>SEO optimization</li>
+          <li>2-week delivery</li>
+        </ul>
+      </div>
+      <div class="tier hot">
+        <span class="flag">Most Popular</span>
+        <p class="price">$8,500</p>
+        <h3>Business Website</h3>
+        <ul>
+          <li>Up to 5 pages</li>
+          <li>Custom design</li>
+          <li>CMS integration</li>
+          <li>Analytics setup</li>
+          <li>4-week delivery</li>
+        </ul>
+      </div>
+      <div class="tier">
+        <p class="price">Custom</p>
+        <h3>Enterprise Solution</h3>
+        <ul>
+          <li>Unlimited pages</li>
+          <li>Advanced features</li>
+          <li>API integrations</li>
+          <li>Ongoing support</li>
+          <li>Custom timeline</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= Why ================= -->
+<section id="why">
+  <div class="wrap">
+    <p class="kicker">Why Planetek</p>
+    <h2>Proven expertise, flexible engagement</h2>
+    <div class="cols">
+      <div class="card"><h3>Cost Effective</h3><p>Senior cloud and C-level expertise without full-time salary and benefits.</p></div>
+      <div class="card"><h3>Immediate Impact</h3><p>Hit the ground running with leadership that has operated at Fortune 100 scale.</p></div>
+      <div class="card"><h3>Flexible Engagement</h3><p>Scale up or down based on your business needs — no long-term lock-in.</p></div>
+      <div class="card"><h3>Verifiable Work</h3><p>Ten live AWS environments and a public codebase. See exactly how we build before you hire us.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= Contact ================= -->
+<section id="contact">
+  <div class="wrap">
+    <p class="kicker">Get In Touch</p>
+    <h2>Let's talk about your cloud</h2>
+    <p class="section-lede">Whether it's managed AWS services, a federal opportunity, fractional leadership,
+    training, or a new website — tell us what you need and we'll respond within 24 hours.</p>
+
+    <div class="contact-grid">
+      <div class="contact-info">
+        <div class="card">
+          <h3>Email</h3>
+          <p><a href="mailto:info@planetek.org">info@planetek.org</a></p>
+        </div>
+        <div class="card">
+          <h3>Phone</h3>
+          <p><a href="tel:+13033562782">303-356-2782</a></p>
+        </div>
+        <div class="card">
+          <h3>What happens next?</h3>
+          <p>1. We review your inquiry within 24 hours<br>
+             2. Schedule a free 30-minute consultation<br>
+             3. Receive a customized proposal</p>
+        </div>
+      </div>
+
+      <form id="contact-form" novalidate>
+        <div class="form-row">
+          <label>Name *
+            <input name="name" type="text" required autocomplete="name" maxlength="200">
+          </label>
+          <label>Email *
+            <input name="email" type="email" required autocomplete="email" maxlength="200">
+          </label>
+        </div>
+        <div class="form-row">
+          <label>Agency / Company
+            <input name="company" type="text" autocomplete="organization" maxlength="200">
+          </label>
+          <label>Phone
+            <input name="phone" type="tel" autocomplete="tel" maxlength="50">
+          </label>
+        </div>
+        <label>Service Interest
+          <select name="service">
+            <option value="">Select a service</option>
+            <option>Managed AWS Services</option>
+            <option>Cloud Architecture &amp; Migration</option>
+            <option>AI / GenAI on AWS</option>
+            <option>Federal IT Contracting / Subcontracting</option>
+            <option>Zero Trust / Security &amp; Compliance</option>
+            <option>Fractional CTO / CIO / VP</option>
+            <option>AI Training</option>
+            <option>Web Design &amp; Development</option>
+            <option>Other</option>
+          </select>
+        </label>
+        <label class="hp" aria-hidden="true">Website
+          <input name="website" type="text" tabindex="-1" autocomplete="off">
+        </label>
+        <label>Message *
+          <textarea name="message" rows="5" required minlength="10" maxlength="5000"></textarea>
+        </label>
+        <p id="form-status" role="status"></p>
+        <button class="btn btn-glow" type="submit">Send Message</button>
+        <noscript><p style="font-size:13px;color:var(--ink-3)">This form needs JavaScript — or just email
+        <a href="mailto:info@planetek.org">info@planetek.org</a>.</p></noscript>
+      </form>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="foot-grid">
+    <div>
+      <p class="foot-brand">
+        <svg viewBox="0 0 1744 1360" aria-hidden="true" style="color:var(--hero-sub)"><use href="#pk-mark"/></svg>
+        Planetek LLC
+      </p>
+      <p class="foot-desc">Managed AWS services, federal IT contracting, and fractional technology leadership
+      — Colorado-based, serving clients nationwide.</p>
+    </div>
+    <div>
+      <p class="foot-head">Services</p>
+      <ul class="foot-list">
+        <li><a href="#aws">Managed AWS Services</a></li>
+        <li><a href="#federal">Federal Contracting</a></li>
+        <li><a href="#fractional">Fractional CTO / CIO / VP</a></li>
+        <li><a href="#training">AI Training</a></li>
+        <li><a href="#web">Web Development</a></li>
+      </ul>
+    </div>
+    <div>
+      <p class="foot-head">Proof of Work</p>
+      <ul class="foot-list">
+        <li><a href="https://demos.planetek.org">Live AWS demos</a></li>
+        <li><a href="https://github.com/dreamingr0b0ts/aws-boardwalk">Open-source code</a></li>
+      </ul>
+    </div>
+    <div>
+      <p class="foot-head">Contact &amp; Legal</p>
+      <ul class="foot-list">
+        <li><a href="mailto:info@planetek.org">info@planetek.org</a></li>
+        <li><a href="tel:+13033562782">303-356-2782</a></li>
+        <li><a href="/privacy">Privacy Policy</a></li>
+        <li><a href="/terms">Terms of Service</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot-bar">© 2026 Planetek LLC. All rights reserved. · CAGE 1ZZA0 · UEI PHN7PHMZBKS4</div>
+</footer>
+
+<!-- Logo mark, referenced by <use> above -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <g id="pk-mark" fill="currentColor">
+      <path d="M1009.037,240.557c26.729-14.643,53.207-27.326,81.325-38.091l43.732-14.35c17.172-4.632,34.105-8.025,51.843-9.616l22.554-.23c9.68-.098,18.961,2.503,27.842,6.324,63.353,27.257,15.355,132.161-10.875,179.344-17.954,32.295-37.592,62.725-59.671,92.22l-15.553,20.777-46.929,58.015-51.26,57.721-71.934,74.045-28.115,27.107-32.116,29.994c-33.625,31.403-68.306,60.608-104.11,89.692l-79.255,60.915-82.415,56.618c-25.967,17.839-52.827,32.608-80.538,47.59-25.393,13.729-50.846,25.229-77.981,35.041-58.45,21.136-130.298,32.545-185.898.715-18.25-10.592-33.28-25.053-43.96-43.218l-1.685-2.115-7.743,38.957-.796,8.235.136,28.396c2.732,28.26,15.144,52.423,41.514,64.093,10.933,4.838,22.331,7.738,34.345,7.763h15.625s28.247-3.148,42.588-6.223c29.942-6.42,58.305-15.475,86.682-27.043,56.582-23.065,107.862-50.804,159.447-83.547,40.429-25.662,79.166-52.673,117.627-81.221l98.05-76.882,70.67-60.38,52.941-48.119,68.944-67.084c34.304-34.632,67.2-69.864,99.38-106.571,53.545-61.08,105.322-127.974,147.557-197.245l27.566-49.476c21.483-42.887,46.866-106.217,31.816-152.208-5.579-17.05-16.77-30.83-32.538-39.278-35.332-18.931-87.826-11.443-126.742-1.712-57.625,14.409-118.793,42.79-170.994,71.676-35.429,19.604-69.347,40.262-102.474,63.306-1.946,1.565-4.043,2.727-6.845,3.006h-284.295v227.391c.366,1.252-2.23,3.79-3.374,4.546-44.473,40.198-86.597,82.088-127.643,125.976l-57.793,65.168c16.861-1.297,33.159-1.67,50.539.512,34.3-41.361,70.424-80.351,108.744-117.942l30.527-28.16.066,214.641c33.643,35.922,55.456,80.184,61.632,128.893-.017.079,1.215.353,1.672.354l78.528-58.11c41.657-32.721,81.966-66.21,120.46-101.27l-37.358-.114-.01-228.886,181.516.055c24.1.007,46.693,2.284,70.2,7.301l48.54-62.734,29.155-42.868c12.607-20.062,24.228-39.812,34.698-61.065l16.501-38.8c-40.046-18.221-96.395-28.978-139.839-31.842l-31.059-2.047-47.158-1-34.004-.255,27.996-16.688Z"/>
+      <path d="M626.5,1242.5h224.205s1.666-1.198.795-1.346l1-35.348v-237.83s0-19.476,0-19.476l175.904.057,23.874-.533,18.598-1.16c47.999-2.993,99.887-11.964,144.455-30.233,19.018-7.796,36.051-17.336,52.809-29.139,59.64-42.004,106.433-102.984,126.321-173.35l4.416-15.624,6.987-35.89c4.387-30.643,6.254-60.991,2.829-91.771l-2.982-26.793-9.185-44.678c-11.498-43.716-30.086-84.499-56.49-121.064l-16.413-20.812-1.505-1.735c-.219-.253-1.052.754-1.266,1.111l-11.307,18.798-48.868,73.213c-26.71,37.284-54.769,72.59-84.446,107.446-1.105,1.298-1.444,3.443-1.024,5.042,3.168,12.07,5.371,23.761,5.292,36.124l-.086,13.439c-.094,14.755-3.48,29.026-8.684,42.849-11.073,29.412-31.856,46.692-61.628,55.872-18.179,5.605-36.46,8.888-55.552,9.266l-32.439.642-24.95,24.034c-41.611,40.084-84.643,77.707-129.4,114.242l-29.958,24.455-78.6,60.242-96.89,67.052-15.276,9.817-20.536,12.683v210.397Z"/>
+      <path d="M486.91,714.244c52.491,6.259,100.495,31.454,134.318,71.985,18.023,21.598,31.494,46.054,38.674,73.238l3.922,19.079.827,6.054.753,6.563.903,7.037c-.204.351.43-.75.947-1.636l-.59-10.034-.796-5.994-1.198-7.939-3.245-13.645c-8.705-36.601-30.74-73.057-57.966-98.978-35.804-34.087-78.915-52.973-128.325-56.474l-28.284.05c-59.842,4.246-112.243,32.475-148.842,79.87-17.132,22.186-28.564,47.241-35.553,74.251l-1.908,7.372-1.907,9.17-.893,6.107-1.072,11.081-.294,7.165c1.343-3.121,1.458-5.175,1.819-8.203l1.053-8.856,2.253-12.687,2.776-12.084c3.589-15.621,10.26-29.679,18.41-43.629,41.617-71.235,122.558-108.6,204.219-98.863Z"/>
+    </g>
+  </defs>
+</svg>
+
+<script src="/assets/site.js" defer></script>
+</body>
+</html>

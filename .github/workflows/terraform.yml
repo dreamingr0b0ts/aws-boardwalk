@@ -60,7 +60,7 @@ jobs:
         # infra/ roots; their demo/ roots (daily/hourly-billing stacks) are
         # deliberately NOT in this matrix — deploy-demo-teardown is local-only
         # via make.
-        dir: [platform, modern-web-app, genai-assistant, doc-processing, event-mesh, data-lake, api-platform, container-works, security-posture, network-blueprint, demo-hub, devops-sre]
+        dir: [platform, modern-web-app, genai-assistant, doc-processing, event-mesh, data-lake, api-platform, container-works, security-posture, network-blueprint, demo-hub, company-site, devops-sre]
     steps:
       - uses: actions/checkout@v4
 
@@ -101,7 +101,7 @@ jobs:
       matrix:
         # security-posture + network-blueprint: always-on infra/ roots only
         # (see plan matrix note)
-        dir: [platform, modern-web-app, genai-assistant, doc-processing, event-mesh, data-lake, api-platform, container-works, security-posture, network-blueprint, demo-hub, devops-sre]
+        dir: [platform, modern-web-app, genai-assistant, doc-processing, event-mesh, data-lake, api-platform, container-works, security-posture, network-blueprint, demo-hub, company-site, devops-sre]
     steps:
       - uses: actions/checkout@v4
 

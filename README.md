@@ -24,7 +24,7 @@ Design constraints for every plank:
 | 9 | [Network Architecture](./network-blueprint/) — multi-AZ VPC with tiered subnets, SG layering, NACLs, gateway endpoints (no-NAT), PrivateLink-managed instances, flow logs; segmentation proven by Reachability Analyzer + live probes, evidence persists between windows | deploy-demo-teardown | ✅ **[live](https://network.demos.planetek.org)** (evidence always up; stack deploys on demand) |
 | 10 | [DevOps & SRE](./devops-sre/) — keyless OIDC CI/CD, scanned + gated Terraform, one CloudWatch pane, executable backup/restore runbook with measured RTO/RPO | always-on | ✅ **[live](https://ops.demos.planetek.org)** |
 
-Plus the **[Demo Hub](./demo-hub/)** at **[demos.planetek.org](https://demos.planetek.org)** — one card per environment with live links.
+Plus the **[Demo Hub](./demo-hub/)** at **[demos.planetek.org](https://demos.planetek.org)** — one card per environment with live links — and the **[company site](./company-site/)** at **[planetek.org](https://planetek.org)**, built on the same patterns (S3 + CloudFront, same-origin contact API via Lambda + SES, and the apex Route53 zone including the domain's mail records).
 
 ## Repository layout
 
