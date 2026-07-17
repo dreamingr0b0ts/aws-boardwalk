@@ -21,7 +21,7 @@ Design constraints for every plank:
 | 6 | [Generative AI (RAG)](./genai-assistant/) — cited RAG assistant with hard cost caps behind a Cognito gate | always-on | ✅ **[live](https://assistant.demos.planetek.org)** (access on request) |
 | 7 | [Intelligent Document Processing](./doc-processing/) — Textract/Comprehend/Bedrock pipeline on Step Functions with a faceted search index | always-on | ✅ **[live](https://documents.demos.planetek.org)** (uploads on request) |
 | 8 | [Security & Governance](./security-posture/) — CloudTrail + KMS, GuardDuty, Security Hub, Config NIST 800-53 rev 5 conformance pack, permission-boundary proof; auto-generated findings-to-evidence report persists between windows | deploy-demo-teardown | ✅ **[live](https://security.demos.planetek.org)** (evidence always up; stack deploys on demand) |
-| 9 | Network Architecture | deploy-demo-teardown | planned |
+| 9 | [Network Architecture](./network-blueprint/) — multi-AZ VPC with tiered subnets, SG layering, NACLs, gateway endpoints (no-NAT), PrivateLink-managed instances, flow logs; segmentation proven by Reachability Analyzer + live probes, evidence persists between windows | deploy-demo-teardown | ✅ **[live](https://network.demos.planetek.org)** (evidence always up; stack deploys on demand) |
 | 10 | [DevOps & SRE](./devops-sre/) — keyless OIDC CI/CD, scanned + gated Terraform, one CloudWatch pane, executable backup/restore runbook with measured RTO/RPO | always-on | ✅ **[live](https://ops.demos.planetek.org)** |
 
 Plus the **[Demo Hub](./demo-hub/)** at **[demos.planetek.org](https://demos.planetek.org)** — one card per environment with live links.

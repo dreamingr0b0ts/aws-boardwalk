@@ -53,6 +53,12 @@ skip-check:
   - CKV2_AWS_10 # CloudTrail → CloudWatch Logs: ingestion + storage + an extra role for a trail that lives hours at a time; logs land in the KMS-encrypted, integrity-validated S3 bucket
   - CKV2_AWS_3 # GuardDuty org/all-region enablement: single-account demo detector, deployed for demo windows only by design
 
+  # --- plank 9's teardown stack (exists only during demo windows) ---
+  - CKV_AWS_88 # EC2 public IP: net-public-web IS the public-path exhibit (IGW → web tier :443, proven by Reachability Analyzer); granted per-instance, never as a subnet default
+  - CKV_AWS_126 # EC2 detailed monitoring: $2.10/mo/instance for probes that live a few hours per demo window
+  - CKV2_AWS_5 # net-data-sg attaches to nothing: the data tier is deliberately vacant (a third instance adds cost, not proof); the 5432 rule chain is still exercised by analyzer + probes
+  - CKV2_AWS_1 # false positive: both NACLs attach to all six subnets via aws_network_acl_association, but the graph check can't trace references into count-instantiated subnets (verified minimal repro)
+
   # --- intentional design ---
   - CKV_AWS_316 # CodeBuild privileged mode: required for docker build — the entire point of plank 4's image pipeline; the project only builds the fenced S3 source zip and can push only to its own ECR repo
   - CKV_AWS_51 # ECR mutable tags: the demo task definition tracks ctr-app:latest so image rebuilds need no task-def revision; only CodeBuild's fenced role can push (same acceptance as Trivy AVD-AWS-0031)

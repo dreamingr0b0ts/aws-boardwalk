@@ -257,12 +257,17 @@
     </article>
 
     <article class="card">
-      <div class="card-top"><span class="num">09 · NETWORK</span><span class="chip plan">Planned</span></div>
+      <div class="card-top"><span class="num">09 · NETWORK</span><span class="chip live">Live</span></div>
       <h3>Network Architecture</h3>
-      <p>A textbook multi-AZ VPC: public/private subnet tiers, security-group layering, NACLs, VPC endpoints
-      (the no-NAT cost pattern), and flow logs — fully diagrammed. Deploys on demand.</p>
-      <span class="stack">VPC · Subnets · Endpoints · Flow Logs</span>
-      <div class="card-links"><span>Deploy-on-demand</span></div>
+      <p>A textbook multi-AZ VPC, proven live: tiered subnets, security-group layering, NACLs, gateway
+      endpoints (the no-NAT cost pattern), and flow logs — every reachable <em>and</em> unreachable path
+      verified by Reachability Analyzer and probes run on the instances. Deploys on demand; the evidence
+      report stays up in between.</p>
+      <span class="stack">VPC · Reachability Analyzer · PrivateLink · SSM · Flow Logs</span>
+      <div class="card-links">
+        <a href="https://network.demos.planetek.org">See the evidence report</a>
+        <a class="quiet" href="https://github.com/dreamingr0b0ts/aws-boardwalk/tree/main/network-blueprint">Code &amp; architecture</a>
+      </div>
     </article>
   </div>
 

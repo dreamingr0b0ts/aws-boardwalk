@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Alpenglow Network Blueprint · Planetek AWS Boardwalk</title>
+<meta name="description" content="A textbook multi-AZ VPC, deployed on demand and proven live: public/private subnet tiers, security-group layering, stateless NACLs, S3/DynamoDB gateway endpoints (the no-NAT cost pattern), PrivateLink-managed instances, flow logs — with every reachable AND unreachable path verified by Reachability Analyzer and real probes. Plank 9 of the Planetek AWS Boardwalk.">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">Planetek · AWS Boardwalk · Plank 9</p>
+    <h1>Alpenglow Network Blueprint</h1>
+    <p class="lede">The classic infrastructure interview, live: a multi-AZ VPC with tiered subnets,
+    layered security groups, stateless NACLs, and <strong>no NAT gateway anywhere</strong> — private
+    workloads reach S3 and DynamoDB through free gateway endpoints instead. Every segmentation claim
+    is <em>proven</em>, twice: by AWS's own Reachability Analyzer and by probe commands run on the
+    instances themselves. The stack deploys for demo windows and tears down after; the evidence
+    below survives it.</p>
+    <div class="hero-meta">
+      <div><strong id="stat-status">–</strong>stack status</div>
+      <div><strong id="stat-evidence">–</strong>latest evidence</div>
+      <div><strong id="stat-reach">–</strong>reachability verdicts as designed</div>
+      <div><strong id="stat-probes">–</strong>live probes as designed</div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- Status banner -->
+  <section class="panel" id="status-panel">
+    <div class="status-row">
+      <span class="badge" id="status-badge">checking…</span>
+      <p class="muted" id="status-text">Reading <code>/evidence/status.json</code>…</p>
+    </div>
+    <p class="muted small">One command each way: <code>make demo</code> builds the whole network,
+    runs the Reachability Analyzer paths, executes the probe suite, and generates fresh evidence in
+    about 15 minutes; <code>make teardown</code> destroys everything that bills (two instances,
+    three interface endpoints, flow logs) and leaves this page serving the final report. Idle
+    between windows: ~$0.</p>
+  </section>
+
+  <!-- Architecture diagram -->
+  <section class="panel">
+    <h2>The blueprint</h2>
+    <p class="muted">Three subnet tiers across two availability zones. Traffic is admitted one hop
+    at a time — 443 from the internet to the web tier, 8080 from web to app, 5432 from app to data —
+    and the private tiers have <strong>no route to the internet at all</strong>.</p>
+
+    <div class="diagram-scroll">
+    <svg viewBox="0 0 920 578" role="img" aria-label="VPC architecture diagram: internet gateway to public subnets; app and data private subnets reach S3 and DynamoDB via gateway endpoints; no NAT gateway" xmlns="http://www.w3.org/2000/svg">
+      <!-- internet -->
+      <rect x="20" y="14" width="200" height="44" rx="10" class="d-node d-world"/>
+      <text x="120" y="36" class="d-label" text-anchor="middle">Internet</text>
+      <text x="120" y="50" class="d-sub" text-anchor="middle">(and its port scanners)</text>
+
+      <!-- IGW -->
+      <rect x="300" y="14" width="150" height="44" rx="10" class="d-node d-gw"/>
+      <text x="375" y="36" class="d-label" text-anchor="middle">Internet gateway</text>
+      <text x="375" y="50" class="d-sub" text-anchor="middle">net-igw</text>
+      <line x1="220" y1="36" x2="300" y2="36" class="d-line d-ok"/>
+
+      <!-- ghost NAT -->
+      <rect x="500" y="14" width="180" height="44" rx="10" class="d-node d-ghost"/>
+      <text x="590" y="32" class="d-label d-ghost-text" text-anchor="middle">NAT gateway</text>
+      <text x="590" y="48" class="d-sub" text-anchor="middle">not deployed — $0 by design</text>
+      <line x1="530" y1="20" x2="650" y2="52" class="d-line d-no"/>
+
+      <!-- VPC box -->
+      <rect x="20" y="92" width="660" height="470" rx="14" class="d-vpc"/>
+      <text x="36" y="116" class="d-title">VPC 10.42.0.0/16 · us-east-1</text>
+      <text x="664" y="116" class="d-sub" text-anchor="end">flow logs: ALL traffic → CloudWatch</text>
+
+      <!-- AZ columns -->
+      <rect x="36" y="130" width="304" height="416" rx="10" class="d-az"/>
+      <text x="52" y="150" class="d-sub">AZ us-east-1a</text>
+      <rect x="356" y="130" width="304" height="416" rx="10" class="d-az"/>
+      <text x="372" y="150" class="d-sub">AZ us-east-1b</text>
+
+      <!-- public tier -->
+      <rect x="52" y="162" width="272" height="120" rx="8" class="d-subnet d-public"/>
+      <text x="66" y="182" class="d-tier">public · 10.42.0.0/24</text>
+      <rect x="66" y="194" width="244" height="72" rx="8" class="d-node d-inst"/>
+      <text x="188" y="216" class="d-label" text-anchor="middle">net-public-web · t4g.nano</text>
+      <text x="188" y="232" class="d-sub" text-anchor="middle">public IP · net-web-sg (443 ← world)</text>
+      <text x="188" y="248" class="d-sub" text-anchor="middle">IMDSv2 only · SSM-managed, no SSH</text>
+
+      <rect x="372" y="162" width="272" height="120" rx="8" class="d-subnet d-public"/>
+      <text x="386" y="182" class="d-tier">public · 10.42.1.0/24</text>
+      <text x="508" y="228" class="d-sub" text-anchor="middle">standing room for the web tier</text>
+
+      <!-- IGW to public -->
+      <line x1="375" y1="58" x2="188" y2="162" class="d-line d-ok"/>
+      <text x="240" y="128" class="d-edge d-edge-ok">:443 ✓</text>
+
+      <!-- app tier -->
+      <rect x="52" y="298" width="272" height="130" rx="8" class="d-subnet d-private"/>
+      <text x="66" y="318" class="d-tier">app · 10.42.10.0/24 · private</text>
+      <rect x="66" y="330" width="244" height="56" rx="8" class="d-node d-inst"/>
+      <text x="188" y="352" class="d-label" text-anchor="middle">net-private-app · t4g.nano</text>
+      <text x="188" y="368" class="d-sub" text-anchor="middle">:8080 ← web SG only · no internet path</text>
+      <rect x="66" y="394" width="244" height="26" rx="8" class="d-node d-vpce"/>
+      <text x="188" y="411" class="d-sub" text-anchor="middle">PrivateLink: ssm · ssmmessages · ec2messages</text>
+
+      <rect x="372" y="298" width="272" height="130" rx="8" class="d-subnet d-private"/>
+      <text x="386" y="318" class="d-tier">app · 10.42.11.0/24 · private</text>
+      <text x="508" y="368" class="d-sub" text-anchor="middle">multi-AZ capacity, same tier rules</text>
+
+      <!-- web → app edges -->
+      <line x1="188" y1="266" x2="188" y2="330" class="d-line d-ok"/>
+      <text x="196" y="296" class="d-edge d-edge-ok">:8080 ✓</text>
+      <line x1="252" y1="266" x2="252" y2="330" class="d-line d-no"/>
+      <text x="260" y="296" class="d-edge d-edge-no">:5432 ✗</text>
+
+      <!-- data tier -->
+      <rect x="52" y="444" width="272" height="86" rx="8" class="d-subnet d-private"/>
+      <text x="66" y="464" class="d-tier">data · 10.42.20.0/24 · private</text>
+      <rect x="66" y="476" width="244" height="40" rx="8" class="d-node d-ghost"/>
+      <text x="188" y="494" class="d-sub" text-anchor="middle">net-data-sg: 5432 ← app SG only</text>
+      <text x="188" y="508" class="d-sub" text-anchor="middle">tier defined · deliberately vacant</text>
+
+      <rect x="372" y="444" width="272" height="86" rx="8" class="d-subnet d-private"/>
+      <text x="386" y="464" class="d-tier">data · 10.42.21.0/24 · private</text>
+
+      <!-- gateway endpoints + AWS services -->
+      <rect x="712" y="180" width="188" height="54" rx="10" class="d-node d-aws"/>
+      <text x="806" y="202" class="d-label" text-anchor="middle">Amazon S3</text>
+      <text x="806" y="218" class="d-sub" text-anchor="middle">public service, no internet used</text>
+      <rect x="712" y="252" width="188" height="54" rx="10" class="d-node d-aws"/>
+      <text x="806" y="274" class="d-label" text-anchor="middle">DynamoDB</text>
+      <text x="806" y="290" class="d-sub" text-anchor="middle">public service, no internet used</text>
+
+      <rect x="712" y="342" width="188" height="58" rx="10" class="d-node d-vpce"/>
+      <text x="806" y="364" class="d-label" text-anchor="middle">Gateway endpoints</text>
+      <text x="806" y="380" class="d-sub" text-anchor="middle">prefix-list routes · FREE</text>
+
+      <line x1="806" y1="342" x2="806" y2="306" class="d-line d-ok"/>
+      <line x1="806" y1="252" x2="806" y2="234" class="d-line d-ok"/>
+      <line x1="310" y1="358" x2="712" y2="371" class="d-line d-ok"/>
+      <text x="480" y="352" class="d-edge d-edge-ok">app + data route tables ✓</text>
+
+      <!-- igw to app blocked -->
+      <line x1="430" y1="58" x2="330" y2="330" class="d-line d-no"/>
+      <text x="392" y="210" class="d-edge d-edge-no">no route ✗</text>
+    </svg>
+    </div>
+
+    <p class="muted small" style="margin-top:14px">Both instances are managed exclusively through
+    SSM — no SSH port exists anywhere in the VPC. The public one registers over the internet; the
+    private one registers through the three PrivateLink interface endpoints ($0.01/hr each — the
+    plank's main running cost, and the reason it tears down between windows).</p>
+  </section>
+
+  <!-- Evidence report -->
+  <section class="panel">
+    <div class="map-head">
+      <h2>Latest evidence report</h2>
+      <p class="muted" id="evidence-when">–</p>
+    </div>
+    <p id="evidence-empty" class="muted" hidden>No evidence has been generated yet — the first
+    <code>make demo</code> cycle will populate this section.</p>
+
+    <div id="evidence-body" hidden>
+      <div class="ev-grid">
+        <div class="ev-card wide">
+          <h3>Reachability Analyzer verdicts <span class="tag">AWS-proven</span></h3>
+          <p class="muted small">Four paths analyzed by AWS's configuration-analysis engine on every
+          deploy. Two are designed to be reachable, two are designed <em>not</em> to be — the ✗ rows
+          passing is the point.</p>
+          <table class="sim" id="ev-reach"><thead><tr><th>Path</th><th>Verdict</th><th></th></tr></thead><tbody></tbody></table>
+        </div>
+        <div class="ev-card wide">
+          <h3>Live connectivity probes <span class="tag">run on the instances</span></h3>
+          <p class="muted small">Commands executed on both instances via SSM Run Command during
+          report generation — the data plane agreeing with the control plane.</p>
+          <table class="sim" id="ev-probes"><thead><tr><th>Probe</th><th>Result</th><th></th></tr></thead><tbody></tbody></table>
+        </div>
+        <div class="ev-card">
+          <h3>Routing — the no-NAT pattern</h3>
+          <ul class="fact" id="ev-routing"></ul>
+        </div>
+        <div class="ev-card">
+          <h3>VPC endpoints</h3>
+          <ul class="fact" id="ev-endpoints"></ul>
+        </div>
+        <div class="ev-card">
+          <h3>Segmentation layers</h3>
+          <ul class="fact" id="ev-segmentation"></ul>
+        </div>
+        <div class="ev-card">
+          <h3>Flow logs <span class="tag">real internet noise</span></h3>
+          <div class="scan-counts" id="ev-flow"></div>
+          <p class="muted small" id="ev-flow-note"></p>
+        </div>
+      </div>
+
+      <div class="launch-row" style="margin-top:18px">
+        <a class="btn-link" href="/evidence/evidence.html" target="_blank" rel="noopener">Open the standalone evidence report ↗</a>
+        <a class="btn-link secondary" href="/evidence/evidence.json" target="_blank" rel="noopener">Raw evidence.json ↗</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Proof -->
+  <section class="panel">
+    <h2>What this plank proves</h2>
+    <ul class="proof">
+      <li><strong>Segmentation you can verify, not just draw:</strong> every tier boundary is tested
+      from both directions — Reachability Analyzer analyzes the configuration, and probe commands on
+      the instances confirm the data plane, including the paths that are supposed to fail.</li>
+      <li><strong>The no-NAT cost pattern:</strong> private subnets have no internet route at all,
+      yet reach S3 and DynamoDB through free gateway endpoints. A NAT gateway idles at ~$33/month
+      before data charges — knowing when you don't need one is real architecture.</li>
+      <li><strong>Zero SSH:</strong> both instances are administered through SSM Session
+      Manager/Run Command — the private one over PrivateLink interface endpoints — so no bastion,
+      no port 22, no key pairs exist anywhere in the design.</li>
+      <li><strong>Defense in layers:</strong> stateful security groups referencing groups (not
+      CIDRs), stateless NACLs underneath with an explicit RDP deny, a locked default security
+      group, IMDSv2 enforced, encrypted volumes — each layer visible in the evidence.</li>
+      <li><strong>Cost-honest architecture:</strong> instances, interface endpoints, and flow logs
+      bill hourly, so the plank is deploy-demo-teardown by design — one command up, one command
+      down, evidence persisted between windows.</li>
+    </ul>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap foot-grid">
+    <div>
+      <p class="foot-brand">Alpenglow Network Blueprint</p>
+      <p class="foot-desc">A demonstration of core AWS networking: multi-AZ VPC design, subnet
+      tiering, security-group layering, NACLs, VPC endpoints, flow logs — deployed on demand,
+      proven by analysis and live probes, torn down after.</p>
+    </div>
+    <div>
+      <p class="foot-head">Environment</p>
+      <ul class="foot-list">
+        <li>AWS: VPC · EC2 · Reachability Analyzer · SSM · PrivateLink · CloudWatch · Lambda · S3 · CloudFront</li>
+        <li>Infrastructure as code: Terraform (two roots: always-on + teardown)</li>
+        <li>Idle cost between demo windows: ~$0</li>
+      </ul>
+    </div>
+    <div>
+      <p class="foot-head">Planetek</p>
+      <ul class="foot-list">
+        <li><a href="https://github.com/dreamingr0b0ts/aws-boardwalk">Github</a></li>
+        <li><a href="https://planetek.org">planetek.org</a></li>
+        <li><a href="https://demos.planetek.org">More live environments</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot-bar">Fictional demo built by Planetek — not affiliated with any real government agency.</div>
+</footer>
+
+<script type="module" src="/app.js"></script>
+</body>
+</html>

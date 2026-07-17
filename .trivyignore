@@ -42,3 +42,24 @@ AVD-AWS-0104
 # revision. Only CodeBuild's fenced role can push. Production would pin
 # immutable tags/digests — the plank README says so out loud.
 AVD-AWS-0031
+
+# Plank 9's web-tier security group admits 443 from 0.0.0.0/0 — it is the
+# public tier, and "internet → web :443 reachable" is one of the Reachability
+# Analyzer exhibits. Every other tier admits exactly one port from exactly
+# one upstream security group.
+AVD-AWS-0107
+
+# Plank 9's net-public-web instance carries a public IP on purpose: the
+# public-path exhibit. Subnet-level auto-assign stays off; exposure is
+# granted per-instance. (Also covers plank 9's SG egress-to-0.0.0.0/0:443 —
+# SSM registration + AWS APIs, same acceptance as plank 4's task SG.)
+AVD-AWS-0164
+
+# Plank 9's NACLs allow 0.0.0.0/0 on 443 (public tier ingress) and on the
+# ephemeral range 1024-65535. The ephemeral allows are NOT open ingress:
+# NACLs are stateless, so return traffic for outbound connections (S3 and
+# DynamoDB via gateway endpoints, SSM, the internet-egress probe) must be
+# allowed explicitly. Unsolicited SYNs to those ports still die at the
+# security groups. All rules are TCP-scoped; RDP is explicitly denied.
+AVD-AWS-0105
+AVD-AWS-0102
