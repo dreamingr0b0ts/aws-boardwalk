@@ -77,6 +77,7 @@ resource "aws_route53_record" "demos_delegation" {
 # Kept so drift.planetek.org keeps working until the droplet is retired.
 
 resource "aws_route53_record" "drift" {
+  # checkov:skip=CKV2_AWS_23: points at the legacy DigitalOcean droplet (outside Terraform) on purpose; delete this record when the droplet is retired
   zone_id = aws_route53_zone.apex.zone_id
   name    = "drift.${var.domain}"
   type    = "A"
