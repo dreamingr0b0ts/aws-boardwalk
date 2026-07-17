@@ -73,18 +73,6 @@ resource "aws_route53_record" "demos_delegation" {
   records = data.aws_route53_zone.demos.name_servers
 }
 
-# --- legacy DigitalOcean droplet (Drift/OpenVAS app + old site) -------------
-# Kept so drift.planetek.org keeps working until the droplet is retired.
-
-resource "aws_route53_record" "drift" {
-  # checkov:skip=CKV2_AWS_23: points at the legacy DigitalOcean droplet (outside Terraform) on purpose; delete this record when the droplet is retired
-  zone_id = aws_route53_zone.apex.zone_id
-  name    = "drift.${var.domain}"
-  type    = "A"
-  ttl     = 3600
-  records = ["164.92.95.230"]
-}
-
 # --- the new site -----------------------------------------------------------
 # Harmless before the NS cutover (this zone isn't authoritative yet), and by
 # cutover time the distribution has the aliases attached.

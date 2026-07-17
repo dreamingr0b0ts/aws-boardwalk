@@ -76,7 +76,6 @@ echo "$RRS" | grep -q "v=spf1 include:icloud.com" ; check "SPF record replicated
 echo "$RRS" | grep -q "sig1.dkim.planetek.org.at.icloudmailadmin.com" ; check "iCloud DKIM CNAME replicated" $?
 echo "$RRS" | grep -q "v=DMARC1" ; check "DMARC record present" $?
 echo "$RRS" | grep -q "awsdns" ; check "demos.planetek.org NS delegation present" $?
-echo "$RRS" | grep -q "164.92.95.230" ; check "drift.planetek.org legacy record present" $?
 echo "$RRS" | grep -q "dkim.amazonses.com" ; check "SES DKIM CNAMEs present" $?
 APEX_ALIAS=$(echo "$RRS" | python3 -c "import json,sys; rrs=json.load(sys.stdin)['ResourceRecordSets']; print(sum(1 for r in rrs if r['Name']=='planetek.org.' and r['Type'] in ('A','AAAA') and 'AliasTarget' in r))")
 [ "$APEX_ALIAS" = "2" ] ; check "apex A/AAAA alias → CloudFront" $?
