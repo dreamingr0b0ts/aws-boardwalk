@@ -50,7 +50,7 @@ variable "contact_email" {
 variable "custom_domain_enabled" {
   description = "Attach planetek.org + www to CloudFront. Requires the ACM cert to be ISSUED first (validation CNAME added at GoDaddy pre-cutover). Default MUST match live state — CI applies defaults."
   type        = bool
-  default     = false
+  default     = true # cert ISSUED + aliases attached 2026-07-17
 }
 
 locals {

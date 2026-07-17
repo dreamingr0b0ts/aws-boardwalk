@@ -17,9 +17,20 @@ ZONE_ID=$($TF output -raw zone_id)
 CERT_ARN=$($TF output -raw cert_arn)
 echo "Verifying $URL"
 
+# Test the real CloudFront stack under its own hostname regardless of public
+# DNS. Before the GoDaddy nameserver cutover, planetek.org still resolves to
+# the old droplet, so force the apex + www hosts to the distribution. This is
+# a no-op once DNS points here. (bash word-splits $CURL, which curl needs.)
+HOST=${URL#https://}
+if [ "$HOST" = "planetek.org" ]; then
+  CURL="--connect-to planetek.org:443:$DIST_DOMAIN:443 --connect-to www.planetek.org:443:$DIST_DOMAIN:443"
+else
+  CURL=""
+fi
+
 # --- static site --------------------------------------------------------------
-BODY=$(curl -sS "$URL/")
-HDRS=$(curl -sSI "$URL/")
+BODY=$(curl -sS $CURL "$URL/")
+HDRS=$(curl -sSI $CURL "$URL/")
 
 echo "$BODY" | grep -q "Managed AWS Services" ; check "homepage serves and leads with Managed AWS" $?
 echo "$BODY" | grep -q "Federal IT Contracting &amp; Consulting" ; check "federal section present" $?
@@ -34,26 +45,26 @@ echo "$BODY" | grep -q 'name="description"' ; check "meta description" $?
 echo "$BODY" | grep -q 'rel="canonical" href="https://planetek.org/"' ; check "canonical URL" $?
 echo "$BODY" | grep -q 'property="og:image"' ; check "OpenGraph tags" $?
 echo "$BODY" | grep -q 'application/ld+json' ; check "JSON-LD structured data" $?
-curl -sS "$URL/robots.txt" | grep -q "Sitemap:" ; check "robots.txt with sitemap" $?
-curl -sS "$URL/sitemap.xml" | grep -q "<urlset" ; check "sitemap.xml" $?
-curl -sS "$URL/assets/og.jpg" -o /dev/null -w "%{http_code}" | grep -q 200 ; check "og image serves" $?
+curl -sS $CURL "$URL/robots.txt" | grep -q "Sitemap:" ; check "robots.txt with sitemap" $?
+curl -sS $CURL "$URL/sitemap.xml" | grep -q "<urlset" ; check "sitemap.xml" $?
+curl -sS $CURL "$URL/assets/og.jpg" -o /dev/null -w "%{http_code}" | grep -q 200 ; check "og image serves" $?
 
 # --- routing ------------------------------------------------------------------
-curl -sS "$URL/privacy" | grep -q "Privacy Policy" ; check "clean URL /privacy" $?
-curl -sS "$URL/terms" | grep -q "Terms of Service" ; check "clean URL /terms" $?
-[ "$(curl -sS -o /dev/null -w '%{http_code}' "$URL/no-such-page")" = "404" ] ; check "unknown path returns 404" $?
+curl -sS $CURL "$URL/privacy" | grep -q "Privacy Policy" ; check "clean URL /privacy" $?
+curl -sS $CURL "$URL/terms" | grep -q "Terms of Service" ; check "clean URL /terms" $?
+[ "$(curl -sS $CURL -o /dev/null -w '%{http_code}' "$URL/no-such-page")" = "404" ] ; check "unknown path returns 404" $?
 
 # --- contact API --------------------------------------------------------------
-HP=$(curl -sS -X POST "$URL/api/contact" -H 'content-type: application/json' \
+HP=$(curl -sS $CURL -X POST "$URL/api/contact" -H 'content-type: application/json' \
   -d '{"name":"Bot","email":"bot@example.com","message":"spam spam spam","website":"http://spam"}')
 echo "$HP" | grep -q '"ok":true' ; check "honeypot swallowed silently" $?
 
-BAD=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$URL/api/contact" \
+BAD=$(curl -sS $CURL -o /dev/null -w '%{http_code}' -X POST "$URL/api/contact" \
   -H 'content-type: application/json' -d '{"name":"","email":"nope","message":"hi"}')
 [ "$BAD" = "400" ] ; check "invalid submission rejected (400)" $?
 
 if [ "${SEND:-0}" = "1" ]; then
-  OK=$(curl -sS -X POST "$URL/api/contact" -H 'content-type: application/json' \
+  OK=$(curl -sS $CURL -X POST "$URL/api/contact" -H 'content-type: application/json' \
     -d '{"name":"Verify Script","email":"info@planetek.org","service":"Other","message":"Test submission from scripts/verify.sh — safe to ignore."}')
   echo "$OK" | grep -q '"ok":true' ; check "real submission accepted (check the info@ inbox)" $?
 fi
