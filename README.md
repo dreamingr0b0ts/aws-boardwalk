@@ -20,7 +20,7 @@ Design constraints for every plank:
 | 5 | [Data Lake & Analytics](./data-lake/) — S3 raw/curated zones over 3.1M real Colorado business registrations, Glue catalog, live capped Athena SQL, static BI dashboard | always-on | ✅ **[live](https://data.demos.planetek.org)** |
 | 6 | [Generative AI (RAG)](./genai-assistant/) — cited RAG assistant with hard cost caps behind a Cognito gate | always-on | ✅ **[live](https://assistant.demos.planetek.org)** (access on request) |
 | 7 | [Intelligent Document Processing](./doc-processing/) — Textract/Comprehend/Bedrock pipeline on Step Functions with a faceted search index | always-on | ✅ **[live](https://documents.demos.planetek.org)** (uploads on request) |
-| 8 | Security & Governance | deploy-demo-teardown | planned |
+| 8 | [Security & Governance](./security-posture/) — CloudTrail + KMS, GuardDuty, Security Hub, Config NIST 800-53 rev 5 conformance pack, permission-boundary proof; auto-generated findings-to-evidence report persists between windows | deploy-demo-teardown | ✅ **[live](https://security.demos.planetek.org)** (evidence always up; stack deploys on demand) |
 | 9 | Network Architecture | deploy-demo-teardown | planned |
 | 10 | [DevOps & SRE](./devops-sre/) — keyless OIDC CI/CD, scanned + gated Terraform, one CloudWatch pane, executable backup/restore runbook with measured RTO/RPO | always-on | ✅ **[live](https://ops.demos.planetek.org)** |
 

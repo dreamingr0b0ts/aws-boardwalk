@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Alpenglow Security Posture · Planetek AWS Boardwalk</title>
+<meta name="description" content="A deploy-demo-teardown security and governance environment: CloudTrail with KMS-encrypted logs, GuardDuty, Security Hub, an AWS Config NIST 800-53 conformance pack, IAM permission boundaries — and an auto-generated findings-to-evidence report that outlives the stack. Plank 8 of the Planetek AWS Boardwalk.">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">Planetek · AWS Boardwalk · Plank 8</p>
+    <h1>Alpenglow Security Posture</h1>
+    <p class="lede">The plank that is deliberately <em>not</em> always on: GuardDuty, Security Hub,
+    AWS Config, and CloudTrail bill by the day, so this stack deploys for demo windows and tears
+    down after. What persists is the part that matters — an auto-generated
+    <strong>findings-to-evidence report</strong>, rebuilt from live AWS APIs on every cycle and
+    served below even while the stack itself is gone.</p>
+    <div class="hero-meta">
+      <div><strong id="stat-status">–</strong>stack status</div>
+      <div><strong id="stat-evidence">–</strong>latest evidence</div>
+      <div><strong id="stat-gd">–</strong>GuardDuty findings</div>
+      <div><strong id="stat-nist">–</strong>NIST rules compliant</div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- Status banner -->
+  <section class="panel" id="status-panel">
+    <div class="status-row">
+      <span class="badge" id="status-badge">checking…</span>
+      <p class="muted" id="status-text">Reading <code>/evidence/status.json</code>…</p>
+    </div>
+    <p class="muted small">One command each way: <code>make demo</code> deploys the full stack and
+    generates fresh evidence in about 15 minutes; <code>make teardown</code> destroys every
+    daily-billing resource and leaves this page serving the final report. Between windows the
+    environment idles at ~$0 — the same discipline the rest of the boardwalk runs on.</p>
+  </section>
+
+  <!-- Architecture -->
+  <section class="panel">
+    <h2>What deploys during a demo window</h2>
+    <p class="muted">Terraform stands up the whole account-hardening reference in one apply:</p>
+
+    <div class="pipe">
+      <span class="node">CloudTrail<small>multi-region · log-file validation · KMS-encrypted S3</small></span>
+      <span class="node">GuardDuty<small>threat detection, seeded with AWS sample findings</small></span>
+      <span class="node">AWS Config<small>records every resource · NIST 800-53 rev 5 pack, 130 rules</small></span>
+      <span class="arr">→</span>
+      <span class="node hub">Security Hub<small>one pane: FSBP checks + GuardDuty findings</small></span>
+      <span class="arr">→</span>
+      <span class="node lit-when-live" id="node-report">Evidence Lambda<small>findings → evidence.json + evidence.html</small></span>
+      <span class="arr">→</span>
+      <span class="node done">This page<small>report survives teardown</small></span>
+    </div>
+
+    <p class="muted small" style="margin-top:14px">Alongside the pipeline: a customer-managed KMS key
+    with automatic rotation encrypting the audit trail, and an IAM <strong>permissions boundary</strong>
+    exhibit — a role whose policy grants more than its boundary allows, proven neutered via
+    <code>iam:SimulatePrincipalPolicy</code> in the report below.</p>
+  </section>
+
+  <!-- Evidence report -->
+  <section class="panel">
+    <div class="map-head">
+      <h2>Latest evidence report</h2>
+      <p class="muted" id="evidence-when">–</p>
+    </div>
+    <p id="evidence-empty" class="muted" hidden>No evidence has been generated yet — the first
+    <code>make demo</code> cycle will populate this section.</p>
+
+    <div id="evidence-body" hidden>
+      <div class="ev-grid">
+        <div class="ev-card">
+          <h3>Audit trail</h3>
+          <ul class="fact" id="ev-cloudtrail"></ul>
+        </div>
+        <div class="ev-card">
+          <h3>Encryption</h3>
+          <ul class="fact" id="ev-kms"></ul>
+        </div>
+        <div class="ev-card">
+          <h3>Threat detection <span class="tag">sample findings</span></h3>
+          <div class="scan-counts" id="ev-gd"></div>
+        </div>
+        <div class="ev-card">
+          <h3>Security Hub · FSBP</h3>
+          <div class="scan-counts" id="ev-sh"></div>
+          <p class="muted small" id="ev-sh-note"></p>
+        </div>
+        <div class="ev-card wide">
+          <h3>NIST 800-53 rev 5 conformance pack</h3>
+          <div class="nist-bar" id="ev-nist-bar" role="img" aria-label="conformance pack compliance"></div>
+          <div class="scan-counts" id="ev-nist"></div>
+        </div>
+        <div class="ev-card wide">
+          <h3>Permissions boundary — simulated proof</h3>
+          <table class="sim" id="ev-boundary"><thead><tr><th>Action</th><th>Decision</th><th></th></tr></thead><tbody></tbody></table>
+        </div>
+      </div>
+
+      <div class="launch-row" style="margin-top:18px">
+        <a class="btn-link" href="/evidence/evidence.html" target="_blank" rel="noopener">Open the standalone evidence report ↗</a>
+        <a class="btn-link secondary" href="/evidence/evidence.json" target="_blank" rel="noopener">Raw evidence.json ↗</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Proof -->
+  <section class="panel">
+    <h2>What this plank proves</h2>
+    <ul class="proof">
+      <li><strong>Compliance automation, not compliance paperwork:</strong> the NIST 800-53 rev 5
+      conformance pack evaluates 130 managed Config rules against the live account, and the evidence
+      report is generated from API results — the same findings-to-evidence motion an ATO package
+      needs, automated end to end.</li>
+      <li><strong>The full native security stack, wired together:</strong> CloudTrail → KMS-encrypted,
+      integrity-validated audit logs; GuardDuty detections and Config evaluations aggregating into
+      Security Hub as the single pane.</li>
+      <li><strong>Least privilege beyond policies:</strong> a permissions boundary exhibit proves the
+      ceiling holds even when an attached policy over-grants — verified by IAM's own policy
+      simulator, not by assertion.</li>
+      <li><strong>Cost-honest architecture:</strong> these services bill daily, so the plank is
+      deploy-demo-teardown by design — one command up, one command down, evidence persisted between
+      windows. Knowing <em>when not to leave something running</em> is part of the skillset.</li>
+      <li><strong>Real checks against a real estate:</strong> Security Hub and Config evaluate the
+      whole demo account — including the nine always-on planks — so passes and failures above are
+      genuine posture, not a staged fixture.</li>
+    </ul>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap foot-grid">
+    <div>
+      <p class="foot-brand">Alpenglow Security Posture</p>
+      <p class="foot-desc">A demonstration of security &amp; governance automation: CloudTrail, KMS,
+      GuardDuty, Security Hub, a NIST 800-53 conformance pack, and permission boundaries — deployed
+      on demand, torn down after, evidence persisted.</p>
+    </div>
+    <div>
+      <p class="foot-head">Environment</p>
+      <ul class="foot-list">
+        <li>AWS: CloudTrail · KMS · GuardDuty · Security Hub · Config · Lambda · S3 · CloudFront</li>
+        <li>Infrastructure as code: Terraform (two roots: always-on + teardown)</li>
+        <li>Idle cost between demo windows: ~$0</li>
+      </ul>
+    </div>
+    <div>
+      <p class="foot-head">Planetek</p>
+      <ul class="foot-list">
+        <li><a href="https://github.com/dreamingr0b0ts/aws-boardwalk">Github</a></li>
+        <li><a href="https://planetek.org">planetek.org</a></li>
+        <li><a href="https://demos.planetek.org">More live environments</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot-bar">Fictional demo built by Planetek — not affiliated with any real government agency.</div>
+</footer>
+
+<script type="module" src="/app.js"></script>
+</body>
+</html>

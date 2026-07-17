@@ -41,3 +41,6 @@ doc-processing/corpus/pdfs/
 # API plank: demo key + rendered spec are written at publish time
 api-platform/frontend/config.json
 api-platform/frontend/openapi.json
+
+# Plank 8 report Lambda archive (built by terraform archive provider)
+security-posture/demo/lambda/report.zip

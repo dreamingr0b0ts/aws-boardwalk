@@ -56,7 +56,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        dir: [platform, modern-web-app, genai-assistant, doc-processing, event-mesh, data-lake, api-platform, container-works, demo-hub, devops-sre]
+        # security-posture covers only its always-on infra/ root; its demo/
+        # root (GuardDuty/Security Hub/Config, bills daily) is deliberately
+        # NOT in this matrix — deploy-demo-teardown is local-only via make.
+        dir: [platform, modern-web-app, genai-assistant, doc-processing, event-mesh, data-lake, api-platform, container-works, security-posture, demo-hub, devops-sre]
     steps:
       - uses: actions/checkout@v4
 
@@ -95,7 +98,8 @@ jobs:
       fail-fast: false
       max-parallel: 1 # platform first, then planks in dependency order
       matrix:
-        dir: [platform, modern-web-app, genai-assistant, doc-processing, event-mesh, data-lake, api-platform, container-works, demo-hub, devops-sre]
+        # security-posture: always-on infra/ root only (see plan matrix note)
+        dir: [platform, modern-web-app, genai-assistant, doc-processing, event-mesh, data-lake, api-platform, container-works, security-posture, demo-hub, devops-sre]
     steps:
       - uses: actions/checkout@v4
 

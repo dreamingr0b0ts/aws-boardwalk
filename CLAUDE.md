@@ -1,6 +1,6 @@
 # aws-boardwalk — agent notes
 
-Portfolio of live AWS demo environments ("planks") for Planetek. Live: [demos.planetek.org](https://demos.planetek.org) (hub), [permits.demos.planetek.org](https://permits.demos.planetek.org) (plank 1), [api.demos.planetek.org](https://api.demos.planetek.org) (plank 2, API & microservices), [events.demos.planetek.org](https://events.demos.planetek.org) (plank 3, event mesh), [containers.demos.planetek.org](https://containers.demos.planetek.org) (plank 4, containers), [data.demos.planetek.org](https://data.demos.planetek.org) (plank 5, data lake), [assistant.demos.planetek.org](https://assistant.demos.planetek.org) (plank 6, GenAI RAG), [documents.demos.planetek.org](https://documents.demos.planetek.org) (plank 7, IDP), and [ops.demos.planetek.org](https://ops.demos.planetek.org) (plank 10, DevOps/SRE).
+Portfolio of live AWS demo environments ("planks") for Planetek. Live: [demos.planetek.org](https://demos.planetek.org) (hub), [permits.demos.planetek.org](https://permits.demos.planetek.org) (plank 1), [api.demos.planetek.org](https://api.demos.planetek.org) (plank 2, API & microservices), [events.demos.planetek.org](https://events.demos.planetek.org) (plank 3, event mesh), [containers.demos.planetek.org](https://containers.demos.planetek.org) (plank 4, containers), [data.demos.planetek.org](https://data.demos.planetek.org) (plank 5, data lake), [assistant.demos.planetek.org](https://assistant.demos.planetek.org) (plank 6, GenAI RAG), [documents.demos.planetek.org](https://documents.demos.planetek.org) (plank 7, IDP), [security.demos.planetek.org](https://security.demos.planetek.org) (plank 8, security & governance — evidence page always on, stack deploy-demo-teardown), and [ops.demos.planetek.org](https://ops.demos.planetek.org) (plank 10, DevOps/SRE).
 
 ## Conventions (locked — don't re-litigate)
 
@@ -26,7 +26,7 @@ before OCR starts). Keep it that way for any future plank whose requests cost re
 
 ## Build order (from Projects/AWS_SHOWCASE_PROJECTS.md)
 
-✅ 1 Web App · ✅ Demo Hub · ✅ 6 GenAI (RAG) · ✅ 10 DevOps/SRE · ✅ 7 IDP · ✅ 3 Events · ✅ 5 Data · ✅ 2 API · ✅ 4 Containers · **next: 8 Security** · then 9.
+✅ 1 Web App · ✅ Demo Hub · ✅ 6 GenAI (RAG) · ✅ 10 DevOps/SRE · ✅ 7 IDP · ✅ 3 Events · ✅ 5 Data · ✅ 2 API · ✅ 4 Containers · ✅ 8 Security · **next: 9 Network** (the last one).
 When a plank goes live: update its card in `demo-hub/site/index.html` (status chip + links), the root README table, and republish the hub (`cd demo-hub && make publish`).
 
 ## CI/CD (plank 10 — live)
@@ -39,6 +39,8 @@ Every push to `main` plans AND APPLIES all planks via GitHub Actions (OIDC roles
 The gai demo password is read from SSM (`/boardwalk/genai-assistant/demo-password`, synced by `make -C genai-assistant creds`) so CI can apply that plank without the gitignored `.demo-creds`.
 
 **New plank checklist:** add its folder to BOTH matrix lists in `.github/workflows/terraform.yml` (plan + apply, apply list is dependency-ordered); deploy locally first so CI's plan starts from live state; any secret it needs goes in SSM under `/boardwalk/<plank>/…` (both CI roles can read that path); if its requests cost real money, copy plank 6's pattern — creds never printed or committed, self-signup off, per-user + global daily caps in DynamoDB.
+
+**Deploy-demo-teardown planks (8 Security, 9 Network) use TWO Terraform roots:** an always-on `infra/` root (static site + persisted artifacts, in the CI matrix like any plank) and a `demo/` root holding every daily-billing resource, driven ONLY by local `make demo` / `make teardown` and **never added to the CI matrix** — CI applying it would silently re-enable daily billing on the next push. The CI scan job still lints the whole repo, so the demo root's Terraform must pass Checkov/Trivy too. Plank 8 (`security-posture/`) is the reference implementation: evidence report outlives the stack in the site bucket's `evidence/` prefix (excluded from `make publish` sync), status.json flips the page's live/torn-down banner.
 
 ## Git
 

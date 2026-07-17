@@ -48,6 +48,11 @@ skip-check:
   - CKV_AWS_272 # Lambda code signing (terraform-hashed artifacts from a public repo)
   - CKV_AWS_338 # 1-year log retention: demo error logs are deliberately short-lived (14 days); traces TTL at 48h
 
+  # --- plank 8's teardown stack (exists only during demo windows) ---
+  - CKV_AWS_252 # CloudTrail SNS topic per log delivery: nothing would consume it; the evidence Lambda reads trail status via API
+  - CKV2_AWS_10 # CloudTrail → CloudWatch Logs: ingestion + storage + an extra role for a trail that lives hours at a time; logs land in the KMS-encrypted, integrity-validated S3 bucket
+  - CKV2_AWS_3 # GuardDuty org/all-region enablement: single-account demo detector, deployed for demo windows only by design
+
   # --- intentional design ---
   - CKV_AWS_316 # CodeBuild privileged mode: required for docker build — the entire point of plank 4's image pipeline; the project only builds the fenced S3 source zip and can push only to its own ECR repo
   - CKV_AWS_51 # ECR mutable tags: the demo task definition tracks ctr-app:latest so image rebuilds need no task-def revision; only CodeBuild's fenced role can push (same acceptance as Trivy AVD-AWS-0031)
