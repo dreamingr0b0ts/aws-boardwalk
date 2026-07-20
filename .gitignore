@@ -47,3 +47,11 @@ security-posture/demo/lambda/report.zip
 
 # Plank 9 report Lambda archive (built by terraform archive provider)
 network-blueprint/demo/lambda/report.zip
+
+# Plank 11 Lambda archives (built by terraform archive provider)
+relational-registry/infra/lambda/query.zip
+relational-registry/demo/lambda/seed.zip
+relational-registry/demo/lambda/report.zip
+
+# Plank 12: runtime config is written at publish time; handler zip is built
+model-workbench/frontend/config.json

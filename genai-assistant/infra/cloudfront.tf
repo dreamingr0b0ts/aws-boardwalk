@@ -54,7 +54,17 @@ resource "aws_cloudfront_response_headers_policy" "security" {
   }
 }
 
+# The shared boardwalk edge ACL (rate limit + AWS managed rules) lives in
+# ../platform and is attached to every distribution — one ~$8/mo ACL for the
+# whole portfolio. Deploy platform first; this lookup fails without it.
+data "aws_wafv2_web_acl" "edge" {
+  name  = "platform-edge-acl"
+  scope = "CLOUDFRONT"
+}
+
 resource "aws_cloudfront_distribution" "site" {
+  web_acl_id = data.aws_wafv2_web_acl.edge.arn
+
   enabled             = true
   is_ipv6_enabled     = true
   comment             = "Alpenglow Records Assistant (aws-boardwalk / genai-assistant)"

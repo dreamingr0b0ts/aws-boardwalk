@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Alpenglow Model Workbench · Planetek AWS Boardwalk</title>
+<meta name="description" content="A foundation-model evaluation workbench on Amazon Bedrock: one prompt, four models from four vendors through the single Converse API, side by side with measured latency, tokens, and cost — plus an audit ledger of every run. Plank 12 of the Planetek AWS Boardwalk.">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">Planetek · AWS Boardwalk · Plank 12</p>
+    <h1>Alpenglow Model Workbench</h1>
+    <p class="lede">"Which model should we use?" is a procurement question, not a matter of taste.
+    This workbench sends <strong>one prompt to four foundation models from four vendors</strong> —
+    through the single Bedrock Converse API — and shows the answers side by side with measured
+    latency, token counts, and computed cost. Every run lands in an
+    <strong>audit ledger</strong>: who ran what, against which models, with which parameters.</p>
+    <div class="hero-meta">
+      <div><strong>4 vendors</strong>one API</div>
+      <div><strong id="stat-scenarios">–</strong>scenarios</div>
+      <div><strong id="stat-runs">–</strong>runs today</div>
+      <div><strong>$0</strong>idle cost</div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- Roster -->
+  <section class="panel">
+    <h2>The roster</h2>
+    <p class="muted">Four models, four vendors, one <code>Converse</code> call — swapping models on
+    Bedrock is a parameter, not a re-integration. Prices are published on-demand rates per million
+    tokens, embedded so every response can carry its real cost.</p>
+    <div class="roster" id="roster"></div>
+  </section>
+
+  <!-- Login -->
+  <section class="panel" id="login-panel">
+    <h2>Sign in to run comparisons</h2>
+    <p class="muted">Every run fans out to real models and costs real tokens, so this demo requires
+    a credential — it isn't printed here, and there is no self-signup; Planetek hands it out with
+    proposals and demos. Runs are capped per user and demo-wide per day.</p>
+    <form class="auth" id="login-form">
+      <input id="login-email" type="email" autocomplete="username" placeholder="email" required>
+      <input id="login-password" type="password" autocomplete="current-password" placeholder="password" required>
+      <button class="btn" id="login-btn" type="submit">Sign in</button>
+      <p class="err-line" id="login-error" hidden></p>
+    </form>
+  </section>
+
+  <!-- Workbench -->
+  <section class="panel" id="bench-panel" hidden>
+    <div class="map-head">
+      <h2>Run a comparison</h2>
+      <button class="btn ghost" id="logout-btn" type="button">Sign out</button>
+    </div>
+
+    <div class="controls">
+      <div class="ctl-row">
+        <label for="scenario">Scenario
+          <select id="scenario"></select>
+        </label>
+      </div>
+      <p class="muted small" id="scenario-blurb"></p>
+      <textarea id="custom-prompt" placeholder="…or write your own prompt (picking one above ignores this box)" maxlength="2000" hidden></textarea>
+      <div class="model-pick" id="model-pick"></div>
+      <div class="ctl-row">
+        <label>temperature <input type="range" id="temperature" min="0" max="1" step="0.1" value="0.2"> <span id="temperature-out">0.2</span></label>
+        <label>max tokens <input type="number" id="max-tokens" min="50" max="500" step="50" value="300" style="width:90px"></label>
+        <button class="btn" id="run-btn" type="button">Run on selected models</button>
+      </div>
+      <p class="err-line" id="run-error" hidden></p>
+    </div>
+
+    <div class="res-grid" id="results"></div>
+    <div class="compare-strip" id="compare"></div>
+    <p class="quota-line" id="quota-line"></p>
+
+    <div class="ledger">
+      <h3 style="margin-top:20px">Audit ledger — today's runs</h3>
+      <p class="muted small">Model, parameters, tokens, cost, and latency for every run — the
+      accountability trail an agency's AI policy (think SB24-205) actually asks for. Rows expire
+      after 30 days.</p>
+      <div id="ledger-list"></div>
+    </div>
+  </section>
+
+  <!-- Scenarios (anonymous view) -->
+  <section class="panel" id="scenario-panel">
+    <h2>The scenario library</h2>
+    <p class="muted">Prompts shaped like the public-sector GenAI work this portfolio exists to win —
+    plan-review triage, grounded code Q&amp;A with a refusal test, determination letters, structured
+    extraction, plain-language rewrites. All fictional, all self-contained.</p>
+    <ul class="proof" id="scenario-list"></ul>
+  </section>
+
+  <!-- Proof -->
+  <section class="panel">
+    <h2>What this plank proves</h2>
+    <ul class="proof">
+      <li><strong>Model selection as an engineering discipline:</strong> the same prompt, the same
+      parameters, four vendors side by side — with latency, tokens, and cost measured, not
+      estimated. The "cheapest capable model" conversation becomes evidence-based.</li>
+      <li><strong>One API, any model:</strong> Bedrock's Converse API means the fan-out is a loop,
+      not four integrations — swapping or adding a model is IAM + a config entry, which is exactly
+      the exit-ramp a government buyer should demand from a GenAI vendor.</li>
+      <li><strong>Auditable by construction:</strong> every run is logged with its parameters,
+      token usage, and computed cost — the explainable audit trail responsible-AI policies require,
+      demonstrated rather than promised.</li>
+      <li><strong>Spend that cannot run away:</strong> Cognito gate with no self-signup and an
+      unpublished credential, per-user and demo-wide daily run caps in DynamoDB, a hard
+      output-token ceiling, and a 5 rps edge throttle. Idle cost is $0; worst-case leaked-credential
+      day is a few dollars.</li>
+      <li><strong>Grounding differences made visible:</strong> the refusal-test scenario shows which
+      models admit "the excerpt doesn't say" and which ones confidently invent — the single most
+      important behavior for civic AI.</li>
+    </ul>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap foot-grid">
+    <div>
+      <p class="foot-brand">Alpenglow Model Workbench</p>
+      <p class="foot-desc">A demonstration of foundation-model evaluation on Amazon Bedrock:
+      multi-vendor side-by-side comparison, measured cost and latency, and a full audit ledger —
+      behind a credential gate with hard daily spend caps.</p>
+    </div>
+    <div>
+      <p class="foot-head">Environment</p>
+      <ul class="foot-list">
+        <li>AWS: Bedrock (Converse API) · Lambda · API Gateway · Cognito · DynamoDB · S3 · CloudFront</li>
+        <li>Models: Anthropic · Amazon · Meta · Mistral (cross-region inference profiles)</li>
+        <li>Infrastructure as code: Terraform · Idle cost: $0</li>
+      </ul>
+    </div>
+    <div>
+      <p class="foot-head">Planetek</p>
+      <ul class="foot-list">
+        <li><a href="https://github.com/dreamingr0b0ts/aws-boardwalk">Github</a></li>
+        <li><a href="https://planetek.org">planetek.org</a></li>
+        <li><a href="https://demos.planetek.org">More live environments</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot-bar">Fictional demo built by Planetek — not affiliated with any real government agency. Model outputs are unreviewed AI text.</div>
+</footer>
+
+<script type="module" src="/app.js"></script>
+</body>
+</html>

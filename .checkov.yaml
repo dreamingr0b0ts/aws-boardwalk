@@ -10,9 +10,11 @@ compact: true
 
 skip-check:
   # --- would require always-on paid infrastructure ---
-  - CKV_AWS_68 # WAF on CloudFront: ~$5+/mo per distribution; auth + rate caps live at the app layer
-  - CKV2_AWS_47 # WAFv2 Log4j managed rules: same WAF cost; no Java anywhere in the stack
-  - CKV2_AWS_29 # WAF on REST API Gateway: same WAF cost; plank 2 is metered by usage plans + stage throttle instead
+  # (CKV_AWS_68 retired 2026-07-20: every CloudFront distribution now carries the
+  #  shared platform-edge-acl — one ~$8/mo web ACL for the whole portfolio.)
+  - CKV2_AWS_47 # Log4j protection IS attached (Known Bad Inputs rule group on platform-edge-acl), but the ACL lives in the platform root — the per-directory graph scan can't cross Terraform roots to see it
+  - CKV2_AWS_29 # WAF on the REST API stage itself: the public path is covered by the edge ACL via CloudFront; a second REGIONAL ACL for the direct execute-api endpoint would be another ~$8/mo (app-layer keys/plans still meter that path)
+  - CKV2_AWS_31 # WAF logging: log delivery (Firehose/CloudWatch) is where WAF costs hide; free sampled requests + CloudWatch metrics are enough for a demo portfolio
   - CKV_AWS_120 # API Gateway cache cluster: $14+/mo always-on; the API is free-tier Lambda+DynamoDB reads
   - CKV_AWS_225 # method-settings caching: same cache cluster cost as CKV_AWS_120
   - CKV_AWS_117 # Lambda in VPC: would force NAT gateways (banned always-on cost); no VPC resources exist
@@ -27,6 +29,8 @@ skip-check:
   - CKV_AWS_297 # EventBridge Scheduler CMK (payloads: an empty reset event, a fictional heartbeat request)
   - CKV_AWS_158 # CloudWatch log group CMK (workflow error logs for fictional demo events; AWS-managed encryption is on by default)
   - CKV_AWS_136 # ECR repo CMK (demo job image built from public source; AES256 encryption is on)
+  - CKV_AWS_337 # SSM SecureString CMK (plank 11's discovery params — ARNs and a database name — encrypted with the aws/ssm managed key)
+  - CKV_AWS_149 # Secrets Manager CMK (plank 11's app-user secret is AWS-managed-key encrypted, regenerated every demo cycle, destroyed at teardown)
 
   # --- logging/eventing surfaces that cost more than the sites they'd watch ---
   - CKV_AWS_65 # ECS Container Insights: per-metric charges for a cluster that runs ~2 min of tasks a day; awslogs + the run-trace table cover it
@@ -58,6 +62,15 @@ skip-check:
   - CKV_AWS_126 # EC2 detailed monitoring: $2.10/mo/instance for probes that live a few hours per demo window
   - CKV2_AWS_5 # net-data-sg attaches to nothing: the data tier is deliberately vacant (a third instance adds cost, not proof); the 5432 rule chain is still exercised by analyzer + probes
   - CKV2_AWS_1 # false positive: both NACLs attach to all six subnets via aws_network_acl_association, but the graph check can't trace references into count-instantiated subnets (verified minimal repro)
+
+  # --- plank 11's teardown stack (Aurora exists only during demo windows) ---
+  - CKV_AWS_327 # RDS cluster CMK: same $1/mo-CMK acceptance as everything else; storage IS encrypted (aws/rds managed key) and the cluster lives hours at a time
+  - CKV_AWS_354 # Performance Insights CMK: same CMK acceptance; PI is on (free 7-day tier), encrypted with the AWS-managed key
+  - CKV_AWS_139 # RDS deletion protection: this is THE teardown root — `make teardown` must destroy the cluster in one clean command
+  - CKV_AWS_118 # enhanced monitoring: per-instance monitoring fees for a cluster that exists hours per demo window; Performance Insights + CloudWatch cover it
+  - CKV2_AWS_27 # query logging (log_statement/log_min_duration): needs a custom cluster parameter group for a demo-window database of fictional data; the postgresql log export IS enabled
+  - CKV2_AWS_57 # Secrets Manager rotation on the app-user secret: the secret is destroyed at teardown and regenerated (new random password) every demo cycle — that IS its rotation
+  - CKV2_AWS_8 # AWS Backup plan for RDS: 7-day automated backups are on; the cluster is disposable by design and plank 10's drill demonstrates the backup/restore motion for the portfolio
 
   # --- intentional design ---
   - CKV_AWS_316 # CodeBuild privileged mode: required for docker build — the entire point of plank 4's image pipeline; the project only builds the fenced S3 source zip and can push only to its own ECR repo

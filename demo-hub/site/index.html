@@ -122,7 +122,7 @@
     <div class="hero-meta">
       <div><strong>Terraform</strong>every resource</div>
       <div><strong>≈ $1/mo</strong>total idle cost</div>
-      <div><strong>9 of 10</strong>environments live</div>
+      <div><strong>12 of 12</strong>environments live</div>
     </div>
   </div>
   <svg class="ridge" viewBox="0 0 900 120" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
@@ -269,6 +269,34 @@
         <a class="quiet" href="https://github.com/dreamingr0b0ts/aws-boardwalk/tree/main/network-blueprint">Code &amp; architecture</a>
       </div>
     </article>
+
+    <article class="card">
+      <div class="card-top"><span class="num">11 · DATABASE</span><span class="chip live">Live</span></div>
+      <h3>Relational Registry</h3>
+      <p>Aurora Serverless v2 PostgreSQL that genuinely scales to zero, reached only through the RDS
+      Data API — no NAT, no open database port. Live exhibits: watch it wake from 0 ACU, engine-enforced
+      foreign keys and CHECK constraints, an atomic rollback, EXPLAIN plans, and checksummed migrations.
+      Deploys on demand; the database evidence report stays up in between.</p>
+      <span class="stack">Aurora Serverless v2 · RDS Data API · Secrets Manager · Lambda</span>
+      <div class="card-links">
+        <a href="https://registry.demos.planetek.org">Run the exhibits</a>
+        <a class="quiet" href="https://github.com/dreamingr0b0ts/aws-boardwalk/tree/main/relational-registry">Code &amp; architecture</a>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="card-top"><span class="num">12 · FOUNDATION MODELS</span><span class="chip live">Live</span></div>
+      <h3>Model Workbench</h3>
+      <p>One prompt, four foundation models from four vendors — Anthropic, Amazon, Meta, Mistral —
+      side by side through the single Bedrock Converse API, with measured latency, tokens, and cost per
+      answer and an audit ledger of every run. Scenario library built for public-sector GenAI:
+      plan-review triage, grounded Q&amp;A with a refusal test, determinations, extraction.</p>
+      <span class="stack">Bedrock Converse · Lambda · Cognito · DynamoDB</span>
+      <div class="card-links">
+        <a href="https://models.demos.planetek.org">Compare the models</a>
+        <a class="quiet" href="https://github.com/dreamingr0b0ts/aws-boardwalk/tree/main/model-workbench">Code &amp; architecture</a>
+      </div>
+    </article>
   </div>
 
   <section class="principles">
@@ -276,7 +304,7 @@
     <ul>
       <li>Every environment is Terraform end-to-end — one command up, one command down.</li>
       <li>Free-tier-first: the always-on set idles at roughly a dollar a month, with hard budget tripwires.</li>
-      <li>Security by default: private buckets behind CloudFront, least-privilege IAM per function, strict headers.</li>
+      <li>Security by default: private buckets behind CloudFront, a shared WAF edge ACL (rate limiting + AWS managed rules), least-privilege IAM per function, strict headers.</li>
       <li>Live demos self-heal: seeded data resets nightly, so the door is always open.</li>
     </ul>
   </section>

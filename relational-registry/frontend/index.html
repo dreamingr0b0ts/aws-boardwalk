@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Alpenglow Land &amp; Records Registry · Planetek AWS Boardwalk</title>
+<meta name="description" content="A deploy-demo-teardown relational core: Aurora Serverless v2 PostgreSQL that scales to zero, reached only through the RDS Data API. Live exhibits for constraints, transactions, query plans, and checksummed migrations — with an evidence report that outlives the cluster. Plank 11 of the Planetek AWS Boardwalk.">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">Planetek · AWS Boardwalk · Plank 11</p>
+    <h1>Alpenglow Land &amp; Records Registry</h1>
+    <p class="lede">Every submit→review→decide system a government buys rests on a relational core.
+    This one is <strong>Aurora Serverless v2 PostgreSQL that genuinely scales to zero</strong>: 0 ACU
+    floor, five-minute auto-pause, reached only through the RDS Data API — no NAT, no ALB, no open
+    database port anywhere. When the demo window ends the whole cluster is torn down, and the
+    <strong>evidence report</strong> below is what remains.</p>
+    <div class="hero-meta">
+      <div><strong id="stat-status">–</strong>cluster</div>
+      <div><strong id="stat-acu">–</strong>capacity now</div>
+      <div><strong id="stat-rows">–</strong>seeded rows</div>
+      <div><strong id="stat-evidence">–</strong>latest evidence</div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- Status banner -->
+  <section class="panel" id="status-panel">
+    <div class="status-row">
+      <span class="badge" id="status-badge">checking…</span>
+      <p class="muted" id="status-text">Reading <code>/api/status</code>…</p>
+    </div>
+    <p class="muted small">One command each way: <code>make demo</code> stands up the cluster, runs
+    the checksummed migrations, generates ~20,000 rows in-engine, and writes fresh evidence;
+    <code>make teardown</code> destroys every billing resource. While deployed, five idle minutes
+    drop compute to 0 ACU — the first exhibit you run wakes it, and the page times the wake.</p>
+  </section>
+
+  <!-- Architecture -->
+  <section class="panel">
+    <h2>How a query gets here</h2>
+    <div class="pipe">
+      <span class="node">Browser<small>same-origin /api/* — no CORS anywhere</small></span>
+      <span class="arr">→</span>
+      <span class="node">CloudFront + Lambda<small>canned exhibits only — no user SQL exists</small></span>
+      <span class="arr">→</span>
+      <span class="node hub">RDS Data API<small>HTTPS + IAM + Secrets Manager — no database socket</small></span>
+      <span class="arr">→</span>
+      <span class="node" id="node-aurora">Aurora Serverless v2<small>PostgreSQL 17 · 0→1 ACU · auto-pause 5 min</small></span>
+      <span class="arr">→</span>
+      <span class="node done">Evidence report<small>survives teardown</small></span>
+    </div>
+    <p class="muted small" style="margin-top:14px">The cluster's security group has <strong>zero
+    ingress rules</strong> — nothing can open a connection to it. The API connects as
+    <code>app_user</code>, a Postgres role that can read the registry and write only the rollback
+    sandbox; its DELETE and DROP attempts are one of the exhibits.</p>
+  </section>
+
+  <!-- Exhibits -->
+  <section class="panel" id="exhibit-panel">
+    <h2>Run the exhibits</h2>
+    <p class="muted">Each button executes fixed SQL over the Data API and shows you exactly what the
+    engine said — result rows, planner output, or the constraint violation, verbatim.</p>
+    <div id="exhibit-groups" class="ex-groups"></div>
+
+    <div id="result" hidden>
+      <div class="result-head">
+        <h3 id="result-title">–</h3>
+        <span class="result-meta" id="result-meta"></span>
+      </div>
+      <p class="muted result-blurb" id="result-blurb"></p>
+      <pre class="sql" id="result-sql"></pre>
+      <div id="result-body"></div>
+    </div>
+    <div id="wake" class="wake-note" hidden>
+      <span class="spin"></span>
+      <span id="wake-text">Aurora is resuming from 0 ACU…</span>
+    </div>
+    <p class="usage-line" id="usage-line"></p>
+  </section>
+
+  <!-- Evidence report -->
+  <section class="panel">
+    <div class="map-head">
+      <h2>Latest evidence report</h2>
+      <p class="muted" id="evidence-when">–</p>
+    </div>
+    <p id="evidence-empty" class="muted" hidden>No evidence has been generated yet — the first
+    <code>make demo</code> cycle will populate this section.</p>
+
+    <div id="evidence-body" hidden>
+      <div class="ev-grid">
+        <div class="ev-card">
+          <h3>Cluster</h3>
+          <ul class="fact" id="ev-cluster"></ul>
+        </div>
+        <div class="ev-card">
+          <h3>Integrity proofs <span class="tag">engine responses</span></h3>
+          <ul class="fact" id="ev-integrity"></ul>
+        </div>
+        <div class="ev-card">
+          <h3>System of record</h3>
+          <div class="scan-counts" id="ev-counts"></div>
+          <p class="muted small">Generated in-engine by the migration Lambda — no fixture files.</p>
+        </div>
+        <div class="ev-card">
+          <h3>Query planner</h3>
+          <ul class="fact" id="ev-plans"></ul>
+        </div>
+        <div class="ev-card wide">
+          <h3>Migration ledger</h3>
+          <table class="sim" id="ev-migrations"><thead><tr><th>Migration</th><th>Checksum</th><th>Applied</th></tr></thead><tbody></tbody></table>
+        </div>
+      </div>
+
+      <div class="launch-row" style="margin-top:18px">
+        <a class="btn-link" href="/evidence/evidence.html" target="_blank" rel="noopener">Open the standalone evidence report ↗</a>
+        <a class="btn-link secondary" href="/evidence/evidence.json" target="_blank" rel="noopener">Raw evidence.json ↗</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Proof -->
+  <section class="panel">
+    <h2>What this plank proves</h2>
+    <ul class="proof">
+      <li><strong>The relational fundamentals, live:</strong> foreign keys, CHECK constraints, and
+      atomic transactions demonstrated by the engine's own error messages — not slideware claims.
+      Every integrity exhibit runs inside a transaction that is always rolled back.</li>
+      <li><strong>Scale-to-zero is real:</strong> min capacity 0 ACU with auto-pause. A quiet
+      cluster bills no compute; the visible ~15-second wake when you run the first exhibit is the
+      trade-off, measured honestly on this page.</li>
+      <li><strong>No-socket access pattern:</strong> the RDS Data API means HTTPS + IAM +
+      Secrets Manager instead of connection strings — a security group with zero ingress rules,
+      no VPC-attached Lambdas, no NAT to pay for.</li>
+      <li><strong>Least privilege below the IAM layer too:</strong> the public API's Postgres role
+      can read the registry and write only the sandbox; the exhibit shows its DELETE and DROP dying
+      in the engine.</li>
+      <li><strong>Schema as code:</strong> ordered, checksummed migrations recorded in the database
+      they shaped, rerunnable idempotently — and cost-honest architecture: RDS is banned always-on
+      in this portfolio, so the whole cluster is deploy-demo-teardown with evidence persisted
+      between windows.</li>
+    </ul>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap foot-grid">
+    <div>
+      <p class="foot-brand">Alpenglow Land &amp; Records Registry</p>
+      <p class="foot-desc">A demonstration of a governed relational core: Aurora Serverless v2
+      PostgreSQL with scale-to-zero, RDS Data API access, engine-enforced integrity, and
+      checksummed migrations — deployed on demand, torn down after, evidence persisted.</p>
+    </div>
+    <div>
+      <p class="foot-head">Environment</p>
+      <ul class="foot-list">
+        <li>AWS: Aurora Serverless v2 · RDS Data API · Secrets Manager · Lambda · API Gateway · S3 · CloudFront · DynamoDB</li>
+        <li>Infrastructure as code: Terraform (two roots: always-on + teardown)</li>
+        <li>Idle cost between demo windows: ~$0</li>
+      </ul>
+    </div>
+    <div>
+      <p class="foot-head">Planetek</p>
+      <ul class="foot-list">
+        <li><a href="https://github.com/dreamingr0b0ts/aws-boardwalk">Github</a></li>
+        <li><a href="https://planetek.org">planetek.org</a></li>
+        <li><a href="https://demos.planetek.org">More live environments</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot-bar">Fictional demo built by Planetek — not affiliated with any real government agency.</div>
+</footer>
+
+<script type="module" src="/app.js"></script>
+</body>
+</html>

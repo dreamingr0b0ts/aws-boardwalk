@@ -43,7 +43,17 @@ resource "aws_cloudfront_function" "router" {
   code    = templatefile("${path.module}/cf-router.js.tftpl", { apex = var.domain })
 }
 
+# The shared boardwalk edge ACL (rate limit + AWS managed rules) lives in
+# ../platform and is attached to every distribution — one ~$8/mo ACL for the
+# whole portfolio. Deploy platform first; this lookup fails without it.
+data "aws_wafv2_web_acl" "edge" {
+  name  = "platform-edge-acl"
+  scope = "CLOUDFRONT"
+}
+
 resource "aws_cloudfront_distribution" "site" {
+  web_acl_id = data.aws_wafv2_web_acl.edge.arn
+
   # checkov:skip=CKV_AWS_174: the default-cert block is the disabled branch of a dynamic block; the active branch pins TLSv1.2_2021
   # checkov:skip=CKV2_AWS_42: default cert only until the owner adds the ACM validation CNAMEs at GoDaddy; custom_domain_enabled then flips to true
   enabled             = true

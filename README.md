@@ -7,6 +7,7 @@ Design constraints for every plank:
 - **Always-free-tier first.** Always-on environments idle at ~$0. Stacks with daily-billing services are deploy-demo-teardown only.
 - **No banned services always-on:** NAT Gateway, ALB, RDS/OpenSearch instances, EKS, SageMaker endpoints, 24/7 Fargate.
 - **IaC everywhere.** Terraform, remote state in S3, `env:<name>` tags on every resource.
+- **One shared WAF web ACL** (per-IP rate limiting + AWS managed rules) fronts every distribution — and because each plank's API is same-origin behind CloudFront, the APIs too.
 - **One command up, one command down.** Every environment has `make deploy` / `make destroy`.
 
 ## The planks
@@ -23,6 +24,8 @@ Design constraints for every plank:
 | 8 | [Security & Governance](./security-posture/) — CloudTrail + KMS, GuardDuty, Security Hub, Config NIST 800-53 rev 5 conformance pack, permission-boundary proof; auto-generated findings-to-evidence report persists between windows | deploy-demo-teardown | ✅ **[live](https://security.demos.planetek.org)** (evidence always up; stack deploys on demand) |
 | 9 | [Network Architecture](./network-blueprint/) — multi-AZ VPC with tiered subnets, SG layering, NACLs, gateway endpoints (no-NAT), PrivateLink-managed instances, flow logs; segmentation proven by Reachability Analyzer + live probes, evidence persists between windows | deploy-demo-teardown | ✅ **[live](https://network.demos.planetek.org)** (evidence always up; stack deploys on demand) |
 | 10 | [DevOps & SRE](./devops-sre/) — keyless OIDC CI/CD, scanned + gated Terraform, one CloudWatch pane, executable backup/restore runbook with measured RTO/RPO | always-on | ✅ **[live](https://ops.demos.planetek.org)** |
+| 11 | [Relational Registry](./relational-registry/) — Aurora Serverless v2 PostgreSQL with genuine scale-to-zero (0 ACU + auto-pause), RDS Data API access only (no NAT, no DB sockets), live exhibits for constraints/transactions/EXPLAIN/migrations; database evidence report persists between windows | deploy-demo-teardown | ✅ **[live](https://registry.demos.planetek.org)** (evidence always up; cluster deploys on demand) |
+| 12 | [Model Workbench](./model-workbench/) — one prompt → four foundation models from four vendors via the Bedrock Converse API, side by side with measured latency/tokens/cost and an audit ledger; public-sector scenario library with a grounding refusal test | always-on | ✅ **[live](https://models.demos.planetek.org)** (runs on request) |
 
 Plus the **[Demo Hub](./demo-hub/)** at **[demos.planetek.org](https://demos.planetek.org)** — one card per environment with live links — and the **[company site](./company-site/)** at **[planetek.org](https://planetek.org)**, built on the same patterns (S3 + CloudFront, same-origin contact API via Lambda + SES, and the apex Route53 zone including the domain's mail records).
 

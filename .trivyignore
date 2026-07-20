@@ -2,10 +2,8 @@
 # demo portfolio with a hard "idle ≈ $0" budget rule (see CLAUDE.md).
 # Revisit if any plank starts handling real (non-demo) data.
 
-# CloudFront without WAF: a web ACL costs ~$5+/mo per distribution. The sites
-# are static pages behind OAC with strict security headers; the APIs enforce
-# auth + per-user/global rate caps at the application layer.
-AVD-AWS-0011
+# (AVD-AWS-0011 retired 2026-07-20: every distribution now carries the shared
+# platform-edge-acl web ACL — per-IP rate limiting + AWS managed rules.)
 
 # S3 with SSE-S3 (AES256) instead of a customer-managed KMS key: CMKs cost
 # $1/mo each + per-request. Nothing in these buckets is sensitive: public
@@ -54,6 +52,12 @@ AVD-AWS-0107
 # granted per-instance. (Also covers plank 9's SG egress-to-0.0.0.0/0:443 —
 # SSM registration + AWS APIs, same acceptance as plank 4's task SG.)
 AVD-AWS-0164
+
+# Plank 11's Aurora cluster is encrypted with the AWS-managed aws/rds key
+# rather than a customer-managed KMS key: same $1/mo-CMK acceptance as the
+# rest of the portfolio (see AVD-AWS-0132), for a scale-to-zero demo cluster
+# of fictional data that is destroyed at the end of every demo window.
+AVD-AWS-0079
 
 # Plank 9's NACLs allow 0.0.0.0/0 on 443 (public tier ingress) and on the
 # ephemeral range 1024-65535. The ephemeral allows are NOT open ingress:
