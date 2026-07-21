@@ -179,16 +179,17 @@
     </article>
 
     <article class="card">
-      <!-- plank 10 -->
-      <div class="card-top"><span class="num">DEVOPS &amp; SRE</span><span class="chip live">always-on</span></div>
-      <h3>DevOps &amp; SRE</h3>
-      <p>The meta-environment that ships the others: GitHub Actions with OIDC (no stored keys), Terraform plan/apply
-      gates, Checkov + Trivy scanning on every PR, one CloudWatch pane over every plank, and an executable
-      backup/restore runbook that publishes measured RTO/RPO.</p>
-      <span class="stack">GitHub Actions · Terraform · CloudWatch · X-Ray · Synthetics · Step Functions</span>
+      <!-- plank 12 -->
+      <div class="card-top"><span class="num">FOUNDATION MODELS</span><span class="chip live">always-on</span></div>
+      <h3>Model Workbench</h3>
+      <p>One prompt, four foundation models from four vendors (Anthropic, Amazon, Meta, Mistral)
+      side by side through the single Bedrock Converse API, with measured latency, tokens, and cost per
+      answer and an audit ledger of every run. Scenario library built for public-sector GenAI:
+      plan-review triage, grounded Q&amp;A with a refusal test, determinations, extraction.</p>
+      <span class="stack">Bedrock Converse · Lambda · Cognito · DynamoDB</span>
       <div class="card-links">
-        <a href="https://ops.demos.planetek.org">Ops status page</a>
-        <a class="quiet" href="https://github.com/dreamingr0b0ts/aws-boardwalk/tree/main/devops-sre">Code &amp; architecture</a>
+        <a href="https://models.demos.planetek.org">Compare the models</a>
+        <a class="quiet" href="https://github.com/dreamingr0b0ts/aws-boardwalk/tree/main/model-workbench">Code &amp; architecture</a>
       </div>
     </article>
 
@@ -204,20 +205,6 @@
       <div class="card-links">
         <a href="https://documents.demos.planetek.org">Browse the index</a>
         <a class="quiet" href="https://github.com/dreamingr0b0ts/aws-boardwalk/tree/main/doc-processing">Code &amp; architecture</a>
-      </div>
-    </article>
-
-    <article class="card">
-      <!-- plank 3 -->
-      <div class="card-top"><span class="num">EVENTS</span><span class="chip live">always-on</span></div>
-      <h3>Event-Driven &amp; Messaging</h3>
-      <p>A live event mesh you can poke: submit a 311-style request and watch it fan out through EventBridge
-      rules to department queues, SNS pub/sub, and a Step Functions escalation, with a poison-message
-      dead-letter drill, operator redrive, and a deliberately-retried transient fault, all traced hop by hop.</p>
-      <span class="stack">EventBridge · SQS · SNS · Step Functions · Lambda · DynamoDB</span>
-      <div class="card-links">
-        <a href="https://events.demos.planetek.org">Watch the mesh</a>
-        <a class="quiet" href="https://github.com/dreamingr0b0ts/aws-boardwalk/tree/main/event-mesh">Code &amp; architecture</a>
       </div>
     </article>
 
@@ -251,6 +238,20 @@
     </article>
 
     <article class="card">
+      <!-- plank 3 -->
+      <div class="card-top"><span class="num">EVENTS</span><span class="chip live">always-on</span></div>
+      <h3>Event-Driven &amp; Messaging</h3>
+      <p>A live event mesh you can poke: submit a 311-style request and watch it fan out through EventBridge
+      rules to department queues, SNS pub/sub, and a Step Functions escalation, with a poison-message
+      dead-letter drill, operator redrive, and a deliberately-retried transient fault, all traced hop by hop.</p>
+      <span class="stack">EventBridge · SQS · SNS · Step Functions · Lambda · DynamoDB</span>
+      <div class="card-links">
+        <a href="https://events.demos.planetek.org">Watch the mesh</a>
+        <a class="quiet" href="https://github.com/dreamingr0b0ts/aws-boardwalk/tree/main/event-mesh">Code &amp; architecture</a>
+      </div>
+    </article>
+
+    <article class="card">
       <!-- plank 4 -->
       <div class="card-top"><span class="num">CONTAINERS</span><span class="chip live">always-on</span></div>
       <h3>Containers (scale-to-zero)</h3>
@@ -265,6 +266,20 @@
     </article>
 
     <article class="card">
+      <!-- plank 10 -->
+      <div class="card-top"><span class="num">DEVOPS &amp; SRE</span><span class="chip live">always-on</span></div>
+      <h3>DevOps &amp; SRE</h3>
+      <p>The meta-environment that ships the others: GitHub Actions with OIDC (no stored keys), Terraform plan/apply
+      gates, Checkov + Trivy scanning on every PR, one CloudWatch pane over every plank, and an executable
+      backup/restore runbook that publishes measured RTO/RPO.</p>
+      <span class="stack">GitHub Actions · Terraform · CloudWatch · X-Ray · Synthetics · Step Functions</span>
+      <div class="card-links">
+        <a href="https://ops.demos.planetek.org">Ops status page</a>
+        <a class="quiet" href="https://github.com/dreamingr0b0ts/aws-boardwalk/tree/main/devops-sre">Code &amp; architecture</a>
+      </div>
+    </article>
+
+    <article class="card">
       <!-- plank 8 -->
       <div class="card-top"><span class="num">SECURITY</span><span class="chip ondemand">on-demand</span></div>
       <h3>Security &amp; Governance</h3>
@@ -275,21 +290,6 @@
       <div class="card-links">
         <a href="https://security.demos.planetek.org">See the evidence report</a>
         <a class="quiet" href="https://github.com/dreamingr0b0ts/aws-boardwalk/tree/main/security-posture">Code &amp; architecture</a>
-      </div>
-    </article>
-
-    <article class="card">
-      <!-- plank 9 -->
-      <div class="card-top"><span class="num">NETWORK</span><span class="chip ondemand">on-demand</span></div>
-      <h3>Network Architecture</h3>
-      <p>A textbook multi-AZ VPC, proven live: tiered subnets, security-group layering, NACLs, gateway
-      endpoints (the no-NAT cost pattern), and flow logs, every reachable <em>and</em> unreachable path
-      verified by Reachability Analyzer and probes run on the instances. Deploys on demand; the evidence
-      report stays up in between.</p>
-      <span class="stack">VPC · Reachability Analyzer · PrivateLink · SSM · Flow Logs</span>
-      <div class="card-links">
-        <a href="https://network.demos.planetek.org">See the evidence report</a>
-        <a class="quiet" href="https://github.com/dreamingr0b0ts/aws-boardwalk/tree/main/network-blueprint">Code &amp; architecture</a>
       </div>
     </article>
 
@@ -309,17 +309,17 @@
     </article>
 
     <article class="card">
-      <!-- plank 12 -->
-      <div class="card-top"><span class="num">FOUNDATION MODELS</span><span class="chip live">always-on</span></div>
-      <h3>Model Workbench</h3>
-      <p>One prompt, four foundation models from four vendors (Anthropic, Amazon, Meta, Mistral)
-      side by side through the single Bedrock Converse API, with measured latency, tokens, and cost per
-      answer and an audit ledger of every run. Scenario library built for public-sector GenAI:
-      plan-review triage, grounded Q&amp;A with a refusal test, determinations, extraction.</p>
-      <span class="stack">Bedrock Converse · Lambda · Cognito · DynamoDB</span>
+      <!-- plank 9 -->
+      <div class="card-top"><span class="num">NETWORK</span><span class="chip ondemand">on-demand</span></div>
+      <h3>Network Architecture</h3>
+      <p>A textbook multi-AZ VPC, proven live: tiered subnets, security-group layering, NACLs, gateway
+      endpoints (the no-NAT cost pattern), and flow logs, every reachable <em>and</em> unreachable path
+      verified by Reachability Analyzer and probes run on the instances. Deploys on demand; the evidence
+      report stays up in between.</p>
+      <span class="stack">VPC · Reachability Analyzer · PrivateLink · SSM · Flow Logs</span>
       <div class="card-links">
-        <a href="https://models.demos.planetek.org">Compare the models</a>
-        <a class="quiet" href="https://github.com/dreamingr0b0ts/aws-boardwalk/tree/main/model-workbench">Code &amp; architecture</a>
+        <a href="https://network.demos.planetek.org">See the evidence report</a>
+        <a class="quiet" href="https://github.com/dreamingr0b0ts/aws-boardwalk/tree/main/network-blueprint">Code &amp; architecture</a>
       </div>
     </article>
   </div>
