@@ -36,3 +36,12 @@ the NS cutover, giving DMARC-aligned signatures.
 
 `make verify` runs the end-to-end suite; `SEND=1 make verify` also sends one
 real test email.
+
+## Hero photo provenance
+
+`site/assets/hero-city.webp` — night cityscape by Chi Hung Wong, via Unsplash
+(https://unsplash.com/photos/jODJ4np77W8), downloaded 2026-07-20 through the
+official download endpoint. Unsplash License: free for commercial use, no
+attribution required (credited anyway). Cropped to the upper tower band
+(street-level signage removed), 1920px, WebP q62 ≈ 114 KB, self-hosted to
+satisfy the site's `img-src 'self'` CSP.
