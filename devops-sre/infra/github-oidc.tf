@@ -101,7 +101,7 @@ resource "aws_iam_role_policy" "gh_plan_state" {
   })
 }
 
-# --- apply role (prod environment only) --------------------------------------
+# --- apply role (main branch, released by the prod gate job) ------------------
 
 resource "aws_iam_role" "gh_apply" {
   name = "${local.prefix}-gh-apply"
@@ -115,10 +115,13 @@ resource "aws_iam_role" "gh_apply" {
       Condition = {
         StringEquals = {
           "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-          # Only workflow jobs that passed the repo's "prod" environment
-          # protection rules present this subject.
+          # Main-branch jobs of this repo only. Human approval lives on the
+          # workflow's "gate" job (prod environment, required reviewer); the
+          # apply matrix needs it, so one approval releases every leg. The
+          # legs themselves no longer target the environment because a
+          # max-parallel-1 matrix inside an environment prompts per leg.
           "token.actions.githubusercontent.com:sub" = [
-            for p in local.github_sub_prefixes : "${p}:environment:prod"
+            for p in local.github_sub_prefixes : "${p}:ref:refs/heads/main"
           ]
         }
       }
