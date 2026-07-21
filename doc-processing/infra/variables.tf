@@ -34,9 +34,9 @@ variable "demo_password" {
 }
 
 variable "model_id" {
-  description = "Bedrock model for document classification (one small call per document)"
+  description = "Bedrock model for document classification (one small call per document); global cross-region profile, priced at source-Region rates"
   type        = string
-  default     = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+  default     = "global.anthropic.claude-haiku-4-5-20251001-v1:0"
 }
 
 # ---- AI/OCR cost guardrails (defense in depth behind the Cognito gate) ----

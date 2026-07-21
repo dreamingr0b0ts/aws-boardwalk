@@ -66,4 +66,6 @@ AVD-AWS-0079
 # allowed explicitly. Unsolicited SYNs to those ports still die at the
 # security groups. All rules are TCP-scoped; RDP is explicitly denied.
 AVD-AWS-0105
+# AVD-AWS-0102 flags the same NACL rules for their wide port range
+# (1024-65535); the stateless return-traffic rationale above covers it.
 AVD-AWS-0102

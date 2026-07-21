@@ -36,8 +36,8 @@ echo "verifying $SITE"
 # ---- 1. static site + security headers ----
 HDRS=$(curl -sS -D - -o /tmp/evt-index.html "$SITE/" | tr -d '\r')
 grep -q "Alpenglow Service Dispatch" /tmp/evt-index.html; check $? "site serves the service dispatch page"
-echo "$HDRS" | grep -qi "strict-transport-security"; check $? "HSTS header present"
-echo "$HDRS" | grep -qi "content-security-policy"; check $? "CSP header present"
+echo "$HDRS" | grep -qi "strict-transport-security" || [ $? -eq 141 ]; check $? "HSTS header present"
+echo "$HDRS" | grep -qi "content-security-policy" || [ $? -eq 141 ]; check $? "CSP header present"
 
 # ---- 2. API surface ----
 STATS=$(curl -sS "$SITE/api/stats")

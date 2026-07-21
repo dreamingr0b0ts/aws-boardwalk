@@ -44,13 +44,14 @@ locals {
   # The whole roster in one place: it feeds the Lambdas (env var), the IAM
   # fence (exactly these profiles + their underlying foundation models), and
   # the cost math shown per response. Prices are published us-east-1
-  # on-demand rates per 1M tokens, embedded for illustration.
+  # on-demand rates per 1M tokens, embedded for illustration (cross-region
+  # profiles, including global., bill at source-Region rates).
   models = [
     {
       key     = "haiku"
       label   = "Claude Haiku 4.5"
       vendor  = "Anthropic"
-      id      = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+      id      = "global.anthropic.claude-haiku-4-5-20251001-v1:0"
       inPerM  = 1.00
       outPerM = 5.00
     },
@@ -85,7 +86,7 @@ locals {
   model_invoke_arns = flatten([
     for m in local.models : [
       "arn:aws:bedrock:${local.region}:${local.account_id}:inference-profile/${m.id}",
-      "arn:aws:bedrock:*::foundation-model/${replace(m.id, "us.", "")}",
+      "arn:aws:bedrock:*::foundation-model/${replace(m.id, "/^(us|global)\\./", "")}",
     ]
   ])
 }

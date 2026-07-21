@@ -32,8 +32,8 @@ echo "verifying $SITE"
 # ---- 1. static site + security headers ----
 HDRS=$(curl -sS -D - -o /tmp/dla-index.html "$SITE/" | tr -d '\r')
 grep -q "Colorado Business Data Lake" /tmp/dla-index.html; check $? "site serves the data lake dashboard"
-echo "$HDRS" | grep -qi "strict-transport-security"; check $? "HSTS header present"
-echo "$HDRS" | grep -qi "content-security-policy"; check $? "CSP header present"
+echo "$HDRS" | grep -qi "strict-transport-security" || [ $? -eq 141 ]; check $? "HSTS header present"
+echo "$HDRS" | grep -qi "content-security-policy" || [ $? -eq 141 ]; check $? "CSP header present"
 
 # ---- 2. the lake itself (catalog, zones, format) ----
 WG=$(aws athena get-work-group --work-group "$WORKGROUP" --output json)
@@ -56,7 +56,7 @@ NPART=$(aws glue get-partitions --database-name "$GLUE_DB" --table-name "$CURATE
 
 NRAW=$(aws s3api list-objects-v2 --bucket "$LAKE" --prefix "$RAW_PREFIX/" --query 'length(Contents)' --output text)
 [ "${NRAW:-0}" -ge 10 ]; check $? "raw zone holds the ingested snapshot ($NRAW objects)"
-aws s3api list-objects-v2 --bucket "$LAKE" --prefix "$CURATED_PREFIX/" --query 'Contents[0].Key' --output text | grep -q "decade="
+aws s3api list-objects-v2 --bucket "$LAKE" --prefix "$CURATED_PREFIX/" --query 'Contents[0].Key' --output text | grep -q "decade=" || [ $? -eq 141 ]
 check $? "curated zone is laid out as decade= partition folders"
 
 # ---- 3. summary API (precomputed analytics) ----

@@ -17,7 +17,7 @@ locals {
   # AND the underlying foundation model in every region the profile can route to.
   haiku_arns = [
     "arn:aws:bedrock:${local.region}:${local.account_id}:inference-profile/${var.model_id}",
-    "arn:aws:bedrock:*::foundation-model/${replace(var.model_id, "us.", "")}",
+    "arn:aws:bedrock:*::foundation-model/${replace(var.model_id, "/^(us|global)\\./", "")}",
   ]
   titan_arn = "arn:aws:bedrock:${local.region}::foundation-model/${var.embed_model_id}"
 

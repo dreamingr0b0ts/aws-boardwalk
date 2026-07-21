@@ -33,10 +33,10 @@ token() {
 echo "Verifying $BASE"
 
 echo "— static delivery —"
-curl -fsS "$BASE/" | grep -q 'Alpenglow' && ok "index.html served" || bad "index.html served"
-curl -fsS "$BASE/dashboard" | grep -q 'Alpenglow' && ok "SPA deep link rewrites to index.html" || bad "SPA deep link"
+curl -fsS "$BASE/" | grep -q 'Alpenglow' || [ $? -eq 141 ] && ok "index.html served" || bad "index.html served"
+curl -fsS "$BASE/dashboard" | grep -q 'Alpenglow' || [ $? -eq 141 ] && ok "SPA deep link rewrites to index.html" || bad "SPA deep link"
 curl -fsS "$BASE/config.json" | jq -e '.userPoolId' > /dev/null && ok "runtime config.json present" || bad "config.json"
-curl -fsSI "$BASE/" | grep -qi 'strict-transport-security' && ok "security headers (HSTS)" || bad "security headers"
+curl -fsSI "$BASE/" | grep -qi 'strict-transport-security' || [ $? -eq 141 ] && ok "security headers (HSTS)" || bad "security headers"
 
 echo "— public API (guest) —"
 curl -fsS "$BASE/api/public/permit-types" | jq -e '.types | length >= 6' > /dev/null \

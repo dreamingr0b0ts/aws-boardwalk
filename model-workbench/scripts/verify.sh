@@ -25,10 +25,10 @@ echo "verifying $SITE"
 # ---- 1. static site + security headers ----
 HDRS=$(curl -sS -D - -o /tmp/fmw-index.html "$SITE/" | tr -d '\r')
 grep -q "Alpenglow Model Workbench" /tmp/fmw-index.html; check $? "site serves the workbench page"
-echo "$HDRS" | grep -qi "strict-transport-security"; check $? "HSTS header present"
-echo "$HDRS" | grep -qi "content-security-policy"; check $? "CSP header present"
-echo "$HDRS" | grep -qi "x-robots-tag: noindex"; check $? "X-Robots-Tag: noindex (search engines told to stay out)"
-curl -sS "$SITE/robots.txt" | grep -q "Disallow: /"; check $? "robots.txt disallows crawling"
+echo "$HDRS" | grep -qi "strict-transport-security" || [ $? -eq 141 ]; check $? "HSTS header present"
+echo "$HDRS" | grep -qi "content-security-policy" || [ $? -eq 141 ]; check $? "CSP header present"
+echo "$HDRS" | grep -qi "x-robots-tag: noindex" || [ $? -eq 141 ]; check $? "X-Robots-Tag: noindex (search engines told to stay out)"
+curl -sS "$SITE/robots.txt" | grep -q "Disallow: /" || [ $? -eq 141 ]; check $? "robots.txt disallows crawling"
 
 # ---- 2. public metadata route (no auth, no AI) ----
 INFO=$(curl -sS "$SITE/api/public/info")
@@ -44,7 +44,7 @@ CODE=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$SITE/api/run" \
 
 SIGNUP_ERR=$(aws cognito-idp sign-up --client-id "$CLIENT" \
   --username "stranger-$RANDOM@example.com" --password 'Str4nger-Pass!xyz' 2>&1)
-echo "$SIGNUP_ERR" | grep -q "NotAuthorizedException"; check $? "public self-signup is disabled (admin-created users only)"
+echo "$SIGNUP_ERR" | grep -q "NotAuthorizedException" || [ $? -eq 141 ]; check $? "public self-signup is disabled (admin-created users only)"
 
 # ---- 4. authenticated comparison round trip ----
 AUTH=$(aws cognito-idp admin-initiate-auth --user-pool-id "$POOL" --client-id "$CLIENT" \

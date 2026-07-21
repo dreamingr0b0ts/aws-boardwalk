@@ -24,22 +24,22 @@ echo "verifying $SITE"
 # ---- 1. status page + security headers ----
 HDRS=$(curl -sS -D - -o /tmp/ops-index.html "$SITE/" | tr -d '\r')
 grep -q "The environment that builds the others" /tmp/ops-index.html; check $? "status page serves"
-echo "$HDRS" | grep -qi "strict-transport-security"; check $? "HSTS header present"
-echo "$HDRS" | grep -qi "content-security-policy"; check $? "CSP header present"
+echo "$HDRS" | grep -qi "strict-transport-security" || [ $? -eq 141 ]; check $? "HSTS header present"
+echo "$HDRS" | grep -qi "content-security-policy" || [ $? -eq 141 ]; check $? "CSP header present"
 
 # ---- 2. keyless CI: OIDC provider + role trust shape ----
 aws iam list-open-id-connect-providers --output text \
-  | grep -q "token.actions.githubusercontent.com"; check $? "GitHub OIDC identity provider exists"
+  | grep -q "token.actions.githubusercontent.com" || [ $? -eq 141 ]; check $? "GitHub OIDC identity provider exists"
 
 PLAN_TRUST=$(aws iam get-role --role-name "${PLAN_ROLE##*/}" --query 'Role.AssumeRolePolicyDocument' --output json)
-echo "$PLAN_TRUST" | grep -q "repo:$REPO:pull_request"; check $? "plan role trusts this repo's pull requests"
+echo "$PLAN_TRUST" | grep -q "repo:$REPO:pull_request" || [ $? -eq 141 ]; check $? "plan role trusts this repo's pull requests"
 aws iam list-attached-role-policies --role-name "${PLAN_ROLE##*/}" --output text \
-  | grep -q "ReadOnlyAccess"; check $? "plan role is read-only"
+  | grep -q "ReadOnlyAccess" || [ $? -eq 141 ]; check $? "plan role is read-only"
 
 APPLY_TRUST=$(aws iam get-role --role-name "${APPLY_ROLE##*/}" --query 'Role.AssumeRolePolicyDocument' --output json)
-echo "$APPLY_TRUST" | grep -q "repo:$REPO:environment:prod"; check $? "apply role only assumable via the prod environment"
+echo "$APPLY_TRUST" | grep -q "repo:$REPO:environment:prod" || [ $? -eq 141 ]; check $? "apply role only assumable via the prod environment"
 aws iam get-role-policy --role-name "${APPLY_ROLE##*/}" --policy-name plank-iam --output json \
-  | grep -q "NeverSelfModify"; check $? "apply role cannot modify its own IAM"
+  | grep -q "NeverSelfModify" || [ $? -eq 141 ]; check $? "apply role cannot modify its own IAM"
 
 # No long-lived AWS keys anywhere in the repo or workflows.
 ! grep -rE "AKIA[0-9A-Z]{16}" ../.github ../*/infra --include='*.yml' --include='*.tf' -q 2>/dev/null

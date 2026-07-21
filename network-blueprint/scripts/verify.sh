@@ -22,8 +22,8 @@ echo "verifying $SITE"
 # ---- 1. always-on: static site + security headers ----
 HDRS=$(curl -sS -D - -o /tmp/net-index.html "$SITE/" | tr -d '\r')
 grep -q "Alpenglow Network Blueprint" /tmp/net-index.html; check $? "site serves the Network Blueprint page"
-echo "$HDRS" | grep -qi "strict-transport-security"; check $? "HSTS header present"
-echo "$HDRS" | grep -qi "content-security-policy"; check $? "CSP header present"
+echo "$HDRS" | grep -qi "strict-transport-security" || [ $? -eq 141 ]; check $? "HSTS header present"
+echo "$HDRS" | grep -qi "content-security-policy" || [ $? -eq 141 ]; check $? "CSP header present"
 
 # ---- 2. always-on: persisted evidence artifacts ----
 STATUS=$(curl -sS "$SITE/evidence/status.json")
@@ -31,7 +31,7 @@ echo "$STATUS" | jq -e 'has("deployed")' > /dev/null; check $? "status.json serv
 EV=$(curl -sS "$SITE/evidence/evidence.json")
 echo "$EV" | jq -e '.generatedAt and .network and .securityTiers and .nacls and .endpoints and .flowLogs and .probes and .reachability' > /dev/null
 check $? "evidence.json has every exhibit section"
-curl -sS "$SITE/evidence/evidence.html" | grep -q "Network Blueprint Evidence Report"
+curl -sS "$SITE/evidence/evidence.html" | grep -q "Network Blueprint Evidence Report" || [ $? -eq 141 ]
 check $? "standalone evidence.html served through CloudFront"
 
 # routing: the no-NAT pattern
@@ -96,7 +96,7 @@ if [ "$DEMO_RESOURCES" -gt 0 ]; then
   [ "$N" = "5" ]; check $? "5 VPC endpoints available live (2 gateway + 3 interface)"
 
   aws ec2 describe-flow-logs --filter "Name=resource-id,Values=$VPC" \
-    --query 'FlowLogs[0].FlowLogStatus' --output text | grep -q ACTIVE
+    --query 'FlowLogs[0].FlowLogStatus' --output text | grep -q ACTIVE || [ $? -eq 141 ]
   check $? "VPC flow log ACTIVE right now"
 
   N=$(aws ec2 describe-network-insights-analyses \

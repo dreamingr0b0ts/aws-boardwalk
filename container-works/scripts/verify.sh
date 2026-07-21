@@ -36,8 +36,8 @@ echo "verifying $SITE"
 # ---- 1. static site + security headers ----
 HDRS=$(curl -sS -D - -o /tmp/ctr-index.html "$SITE/" | tr -d '\r')
 grep -q "Alpenglow Batch Works" /tmp/ctr-index.html; check $? "site serves the Batch Works page"
-echo "$HDRS" | grep -qi "strict-transport-security"; check $? "HSTS header present"
-echo "$HDRS" | grep -qi "content-security-policy"; check $? "CSP header present"
+echo "$HDRS" | grep -qi "strict-transport-security" || [ $? -eq 141 ]; check $? "HSTS header present"
+echo "$HDRS" | grep -qi "content-security-policy" || [ $? -eq 141 ]; check $? "CSP header present"
 
 # ---- 2. image pipeline is real: CodeBuild built it, ECR scanned it ----
 STATUS=$(curl -sS "$SITE/api/status")
@@ -84,15 +84,15 @@ echo "$RUN_JSON" | jq -e '.run.exitCode == 0' > /dev/null; check $? "container e
 echo "$RUN_JSON" | jq -e '.run.durationMs > 0' > /dev/null; check $? "duration recorded ($(echo "$RUN_JSON" | jq -r '.run.durationMs')ms)"
 
 LOGS=$(curl -sS "$SITE/api/runs/$RUN_ID" | jq -r '.logs[].m')
-echo "$LOGS" | grep -q '\[boot\].*task limits: 0.25 vCPU / 512 MiB'; check $? "logs prove the 0.25 vCPU / 512 MiB task size from inside the container"
-echo "$LOGS" | grep -q '\[4/5\] upload complete'; check $? "logs show the S3 artifact upload (task role)"
-echo "$LOGS" | grep -q '\[5/5\] done'; check $? "logs show a clean finish"
+echo "$LOGS" | grep -q '\[boot\].*task limits: 0.25 vCPU / 512 MiB' || [ $? -eq 141 ]; check $? "logs prove the 0.25 vCPU / 512 MiB task size from inside the container"
+echo "$LOGS" | grep -q '\[4/5\] upload complete' || [ $? -eq 141 ]; check $? "logs show the S3 artifact upload (task role)"
+echo "$LOGS" | grep -q '\[5/5\] done' || [ $? -eq 141 ]; check $? "logs show a clean finish"
 
 ART=$(curl -sS "$SITE/api/runs/$RUN_ID" | jq -r '.artifact // empty')
 [ "$ART" = "/artifacts/$RUN_ID.html" ]; check $? "API links the report artifact"
 ART_HTML=$(curl -sS "$SITE$ART")
-echo "$ART_HTML" | grep -q "Daily Operations Report"; check $? "report artifact is served through CloudFront"
-echo "$ART_HTML" | grep -q "$RUN_ID"; check $? "report was written by THIS task (task id in the footer)"
+echo "$ART_HTML" | grep -q "Daily Operations Report" || [ $? -eq 141 ]; check $? "report artifact is served through CloudFront"
+echo "$ART_HTML" | grep -q "$RUN_ID" || [ $? -eq 141 ]; check $? "report was written by THIS task (task id in the footer)"
 
 # ---- 5. run bookkeeping ----
 RUNS=$(curl -sS "$SITE/api/runs")
@@ -106,7 +106,7 @@ launch_and_wait fail; check $? "failing job launched and reached STOPPED"
 echo "$RUN_JSON" | jq -e '.run.exitCode == 1' > /dev/null; check $? "failing container exited 1"
 echo "$RUN_JSON" | jq -e '.artifact == null' > /dev/null; check $? "no artifact link for a failed run"
 LOGS=$(echo "$RUN_JSON" | jq -r '.logs[].m')
-echo "$LOGS" | grep -q 'ledger checksum mismatch'; check $? "failure reason visible in the logs"
+echo "$LOGS" | grep -q 'ledger checksum mismatch' || [ $? -eq 141 ]; check $? "failure reason visible in the logs"
 
 # ---- 7. the scheduled half of run-task ----
 SCHED=$(aws scheduler get-schedule --name "$($TF output -raw daily_schedule)" --query 'State' --output text 2>/dev/null)

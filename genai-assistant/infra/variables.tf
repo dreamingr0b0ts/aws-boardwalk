@@ -36,9 +36,9 @@ variable "demo_password" {
 # ---- AI cost guardrails (defense in depth behind the Cognito gate) ----
 
 variable "model_id" {
-  description = "Bedrock model for answers. Haiku 4.5 via the us. cross-region inference profile — cheapest capable Claude; bump for high-stakes demos."
+  description = "Bedrock model for answers. Haiku 4.5 via the global cross-region inference profile (worldwide capacity, priced at source-Region rates) — cheapest capable Claude; bump for high-stakes demos."
   type        = string
-  default     = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+  default     = "global.anthropic.claude-haiku-4-5-20251001-v1:0"
 }
 
 variable "embed_model_id" {

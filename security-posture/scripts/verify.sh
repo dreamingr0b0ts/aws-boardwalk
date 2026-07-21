@@ -22,8 +22,8 @@ echo "verifying $SITE"
 # ---- 1. always-on: static site + security headers ----
 HDRS=$(curl -sS -D - -o /tmp/sec-index.html "$SITE/" | tr -d '\r')
 grep -q "Alpenglow Security Posture" /tmp/sec-index.html; check $? "site serves the Security Posture page"
-echo "$HDRS" | grep -qi "strict-transport-security"; check $? "HSTS header present"
-echo "$HDRS" | grep -qi "content-security-policy"; check $? "CSP header present"
+echo "$HDRS" | grep -qi "strict-transport-security" || [ $? -eq 141 ]; check $? "HSTS header present"
+echo "$HDRS" | grep -qi "content-security-policy" || [ $? -eq 141 ]; check $? "CSP header present"
 
 # ---- 2. always-on: persisted evidence artifacts ----
 STATUS=$(curl -sS "$SITE/evidence/status.json")
@@ -31,7 +31,7 @@ echo "$STATUS" | jq -e 'has("deployed")' > /dev/null; check $? "status.json serv
 EV=$(curl -sS "$SITE/evidence/evidence.json")
 echo "$EV" | jq -e '.generatedAt and .cloudtrail and .guardduty and .securityHub and .config and .boundary' > /dev/null
 check $? "evidence.json has every exhibit section"
-curl -sS "$SITE/evidence/evidence.html" | grep -q "Security Posture Evidence Report"
+curl -sS "$SITE/evidence/evidence.html" | grep -q "Security Posture Evidence Report" || [ $? -eq 141 ]
 check $? "standalone evidence.html served through CloudFront"
 
 # evidence agrees the audit trail was healthy when generated
@@ -63,25 +63,25 @@ if [ "$DEMO_RESOURCES" -gt 0 ]; then
   PACK=$($TFD output -raw conformance_pack)
   ROLE=$($TFD output -raw boundary_role)
 
-  aws cloudtrail get-trail-status --name "$TRAIL" --query 'IsLogging' --output text | grep -qi true
+  aws cloudtrail get-trail-status --name "$TRAIL" --query 'IsLogging' --output text | grep -qi true || [ $? -eq 141 ]
   check $? "CloudTrail is logging right now"
   T=$(aws cloudtrail describe-trails --trail-name-list "$TRAIL" --query 'trailList[0]' --output json)
   echo "$T" | jq -e '.IsMultiRegionTrail and .LogFileValidationEnabled and (.KmsKeyId | length > 0)' > /dev/null
   check $? "trail is multi-region + validated + KMS-encrypted"
 
   KEY=$(echo "$T" | jq -r '.KmsKeyId')
-  aws kms get-key-rotation-status --key-id "$KEY" --query 'KeyRotationEnabled' --output text | grep -qi true
+  aws kms get-key-rotation-status --key-id "$KEY" --query 'KeyRotationEnabled' --output text | grep -qi true || [ $? -eq 141 ]
   check $? "KMS key rotation enabled on the trail key"
 
-  aws guardduty get-detector --detector-id "$DETECTOR" --query 'Status' --output text | grep -q ENABLED
+  aws guardduty get-detector --detector-id "$DETECTOR" --query 'Status' --output text | grep -q ENABLED || [ $? -eq 141 ]
   check $? "GuardDuty detector ENABLED"
   N=$(aws guardduty list-findings --detector-id "$DETECTOR" --max-results 50 --query 'length(FindingIds)' --output text)
   [ "$N" -gt 0 ]; check $? "GuardDuty has findings to aggregate ($N+ listed)"
 
-  aws securityhub get-enabled-standards --query 'StandardsSubscriptions[0].StandardsStatus' --output text | grep -q READY
+  aws securityhub get-enabled-standards --query 'StandardsSubscriptions[0].StandardsStatus' --output text | grep -q READY || [ $? -eq 141 ]
   check $? "Security Hub FSBP standard READY"
 
-  aws configservice describe-configuration-recorder-status --query 'ConfigurationRecordersStatus[0].recording' --output text | grep -qi true
+  aws configservice describe-configuration-recorder-status --query 'ConfigurationRecordersStatus[0].recording' --output text | grep -qi true || [ $? -eq 141 ]
   check $? "Config recorder is recording"
   PACK_STATE=$(aws configservice describe-conformance-pack-status --conformance-pack-names "$PACK" \
     --query 'ConformancePackStatusDetails[0].ConformancePackState' --output text)

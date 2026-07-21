@@ -27,8 +27,8 @@ echo "verifying $SITE"
 # ---- 1. docs site + security headers ----
 HDRS=$(curl -sS -D - -o /tmp/apx-index.html "$SITE/" | tr -d '\r')
 grep -q "Alpenglow Developer API" /tmp/apx-index.html; check $? "site serves the API docs page"
-echo "$HDRS" | grep -qi "strict-transport-security"; check $? "HSTS header present"
-echo "$HDRS" | grep -qi "content-security-policy"; check $? "CSP header present"
+echo "$HDRS" | grep -qi "strict-transport-security" || [ $? -eq 141 ]; check $? "HSTS header present"
+echo "$HDRS" | grep -qi "content-security-policy" || [ $? -eq 141 ]; check $? "CSP header present"
 
 SPEC=$(curl -sS "$SITE/openapi.json")
 echo "$SPEC" | jq -e '.openapi and (.paths | has("/v2/permits"))' > /dev/null

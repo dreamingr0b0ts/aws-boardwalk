@@ -30,16 +30,14 @@ Thumbs.db
 .idea/
 .vscode/
 
-# GenAI plank demo credentials (never committed)
+# Demo credentials (never committed) + runtime frontend config (written at publish time)
 .demo-creds
-genai-assistant/frontend/config.json
+*/frontend/config.json
 
-# IDP plank: runtime config + locally generated seed PDFs
-doc-processing/frontend/config.json
+# IDP plank: locally generated seed PDFs
 doc-processing/corpus/pdfs/
 
-# API plank: demo key + rendered spec are written at publish time
-api-platform/frontend/config.json
+# API plank: rendered spec is written at publish time
 api-platform/frontend/openapi.json
 
 # Plank 8 report Lambda archive (built by terraform archive provider)
@@ -52,6 +50,3 @@ network-blueprint/demo/lambda/report.zip
 relational-registry/infra/lambda/query.zip
 relational-registry/demo/lambda/seed.zip
 relational-registry/demo/lambda/report.zip
-
-# Plank 12: runtime config is written at publish time; handler zip is built
-model-workbench/frontend/config.json

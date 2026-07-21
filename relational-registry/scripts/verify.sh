@@ -37,8 +37,8 @@ echo "verifying $SITE"
 # ---- 1. always-on: static site + security headers ----
 HDRS=$(curl -sS -D - -o /tmp/rdb-index.html "$SITE/" | tr -d '\r')
 grep -q "Alpenglow Land &amp; Records Registry" /tmp/rdb-index.html; check $? "site serves the Registry page"
-echo "$HDRS" | grep -qi "strict-transport-security"; check $? "HSTS header present"
-echo "$HDRS" | grep -qi "content-security-policy"; check $? "CSP header present"
+echo "$HDRS" | grep -qi "strict-transport-security" || [ $? -eq 141 ]; check $? "HSTS header present"
+echo "$HDRS" | grep -qi "content-security-policy" || [ $? -eq 141 ]; check $? "CSP header present"
 
 # ---- 2. always-on: exhibit catalog + persisted evidence ----
 CAT=$(curl -sS "$SITE/api/exhibits")
@@ -50,7 +50,7 @@ echo "$STATUS" | jq -e 'has("deployed")' > /dev/null; check $? "status.json serv
 EV=$(curl -sS "$SITE/evidence/evidence.json")
 echo "$EV" | jq -e '.generatedAt and .cluster and .integrity and .migrations and .plans' > /dev/null
 check $? "evidence.json has every exhibit section"
-curl -sS "$SITE/evidence/evidence.html" | grep -q "Registry Database Evidence Report"
+curl -sS "$SITE/evidence/evidence.html" | grep -q "Registry Database Evidence Report" || [ $? -eq 141 ]
 check $? "standalone evidence.html served through CloudFront"
 
 echo "$EV" | jq -e '.cluster.scalesToZero and .cluster.dataApiEnabled and .cluster.storageEncrypted' > /dev/null
@@ -77,7 +77,7 @@ if [ "$DEMO_RESOURCES" -gt 0 ]; then
 
   CLUSTER_ID=$($TFD output -raw cluster_id)
   aws rds describe-db-clusters --db-cluster-identifier "$CLUSTER_ID" \
-    --query 'DBClusters[0].Status' --output text | grep -q available
+    --query 'DBClusters[0].Status' --output text | grep -q available || [ $? -eq 141 ]
   check $? "cluster $CLUSTER_ID is available"
   [ "$(aws rds describe-db-clusters --db-cluster-identifier "$CLUSTER_ID" --query 'DBClusters[0].HttpEndpointEnabled' --output text)" = "True" ]
   check $? "RDS Data API (HTTP endpoint) enabled"
