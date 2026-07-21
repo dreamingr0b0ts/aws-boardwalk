@@ -22,7 +22,6 @@
     --glow-soft: #fde5dc;
     --live-bg: #ecfdf5; --live-ink: #047857; --live-ring: #a7f3d0;
     --next-bg: #fef4f0; --next-ink: #c4401f; --next-ring: #fac5b4;
-    --plan-bg: #f5f5f4; --plan-ink: #78716c; --plan-ring: #d6d3d1;
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -36,7 +35,6 @@
       --glow-soft: rgba(228, 83, 47, .16);
       --live-bg: rgba(5,150,105,.15); --live-ink: #34d399; --live-ring: rgba(52,211,153,.35);
       --next-bg: rgba(228,83,47,.14); --next-ink: #f59e83; --next-ring: rgba(245,158,131,.35);
-      --plan-bg: #292524; --plan-ink: #a8a29e; --plan-ring: #44403c;
     }
   }
   * { box-sizing: border-box; margin: 0; }
@@ -70,15 +68,17 @@
   .card {
     background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
     padding: 22px; display: flex; flex-direction: column; gap: 10px;
+    transition: border-color .15s ease, transform .15s ease, box-shadow .15s ease;
   }
-  .card.live { border-color: var(--live-ring); }
+  .card:hover { border-color: var(--pine-mid); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(11,31,30,.08); }
   .card-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
   .num { font-size: 12px; font-weight: 800; color: var(--ink-3); letter-spacing: .08em; }
   .chip { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em;
           padding: 3px 10px; border-radius: 999px; border: 1px solid; }
+  /* Every environment is live; the chip now tells you the one thing that
+     differs — whether the heavy stack is always-on or deploys on demand. */
   .chip.live { background: var(--live-bg); color: var(--live-ink); border-color: var(--live-ring); }
-  .chip.next { background: var(--next-bg); color: var(--next-ink); border-color: var(--next-ring); }
-  .chip.plan { background: var(--plan-bg); color: var(--plan-ink); border-color: var(--plan-ring); }
+  .chip.ondemand { background: var(--next-bg); color: var(--next-ink); border-color: var(--next-ring); }
   .card h3 { font-size: 17px; font-weight: 800; }
   .card p { font-size: 14px; color: var(--ink-2); flex: 1; }
   .stack { font-size: 12px; color: var(--ink-3); }
@@ -87,7 +87,6 @@
   .card-links a.quiet { color: var(--pine-mid); }
   @media (prefers-color-scheme: dark) { .card-links a.quiet { color: #8db9b3; } }
   .card-links a:hover { text-decoration: underline; }
-  .card-links span { font-size: 14px; font-weight: 700; color: var(--ink-3); }
 
   .principles { margin-top: 56px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 26px; }
   .principles ul { margin: 14px 0 0; padding: 0; list-style: none; display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
@@ -114,14 +113,14 @@
     <p class="eyebrow">Planetek · Portfolio of working environments</p>
     <h1>The AWS Boardwalk</h1>
     <p class="lede">Not slides — systems. Each plank below is a real, deployed AWS environment you can walk through:
-    infrastructure-as-code, production security patterns, and free-tier-first architecture that idles at pennies.</p>
+    infrastructure-as-code, production security patterns, and free-tier-first architecture that idles at next to nothing.</p>
     <div class="hero-actions">
-      <a class="btn btn-glow" href="https://permits.demos.planetek.org">Visit the live web app</a>
+      <a class="btn btn-glow" href="#planks">Walk the boardwalk ↓</a>
       <a class="btn btn-ghost" href="https://github.com/dreamingr0b0ts/aws-boardwalk">Read the code</a>
     </div>
     <div class="hero-meta">
       <div><strong>Terraform</strong>every resource</div>
-      <div><strong>≈ $1/mo</strong>total idle cost</div>
+      <div><strong>≈ $10/mo</strong>idle cost, WAF included</div>
       <div><strong>12 of 12</strong>environments live</div>
     </div>
   </div>
@@ -132,15 +131,15 @@
 </header>
 
 <main class="wrap">
-  <div class="section-head">
+  <div class="section-head" id="planks">
     <h2>The planks</h2>
     <p>Every card is a live environment — walk in.</p>
   </div>
 
   <div class="grid">
-    <article class="card live">
+    <article class="card">
       <!-- plank 1 -->
-      <div class="card-top"><span class="num">WEB</span><span class="chip live">Live</span></div>
+      <div class="card-top"><span class="num">WEB</span><span class="chip live">always-on</span></div>
       <h3>Modern Web Application</h3>
       <p>Alpenglow Permits — a citizen permit portal with real sign-up, role-based access (guest / resident / staff),
       a live data tier, transparency dashboards, and a nightly self-reset.</p>
@@ -151,9 +150,9 @@
       </div>
     </article>
 
-    <article class="card live">
+    <article class="card">
       <!-- plank 6 -->
-      <div class="card-top"><span class="num">GENERATIVE AI</span><span class="chip live">Live</span></div>
+      <div class="card-top"><span class="num">GENERATIVE AI</span><span class="chip live">always-on</span></div>
       <h3>Generative AI (RAG)</h3>
       <p>A retrieval-augmented assistant over a swappable document corpus: citation-grounded answers, prompt
       guardrails, conversation audit logs, a human-feedback loop — and hard per-user + global daily cost caps
@@ -165,9 +164,9 @@
       </div>
     </article>
 
-    <article class="card live">
+    <article class="card">
       <!-- plank 10 -->
-      <div class="card-top"><span class="num">DEVOPS &amp; SRE</span><span class="chip live">Live</span></div>
+      <div class="card-top"><span class="num">DEVOPS &amp; SRE</span><span class="chip live">always-on</span></div>
       <h3>DevOps &amp; SRE</h3>
       <p>The meta-environment that ships the others: GitHub Actions with OIDC (no stored keys), Terraform plan/apply
       gates, Checkov + Trivy scanning on every PR, one CloudWatch pane over every plank, and an executable
@@ -179,9 +178,9 @@
       </div>
     </article>
 
-    <article class="card live">
+    <article class="card">
       <!-- plank 7 -->
-      <div class="card-top"><span class="num">DOCUMENTS</span><span class="chip live">Live</span></div>
+      <div class="card-top"><span class="num">DOCUMENTS</span><span class="chip live">always-on</span></div>
       <h3>Intelligent Document Processing</h3>
       <p>Drop any PDF or image: Textract OCR and form extraction, Comprehend entities and PII flags, Bedrock
       auto-classification, and a searchable, faceted metadata index — every document carrying its own
@@ -194,9 +193,9 @@
       </div>
     </article>
 
-    <article class="card live">
+    <article class="card">
       <!-- plank 3 -->
-      <div class="card-top"><span class="num">EVENTS</span><span class="chip live">Live</span></div>
+      <div class="card-top"><span class="num">EVENTS</span><span class="chip live">always-on</span></div>
       <h3>Event-Driven &amp; Messaging</h3>
       <p>A live event mesh you can poke: submit a 311-style request and watch it fan out through EventBridge
       rules to department queues, SNS pub/sub, and a Step Functions escalation — with a poison-message
@@ -210,7 +209,7 @@
 
     <article class="card">
       <!-- plank 5 -->
-      <div class="card-top"><span class="num">DATA</span><span class="chip live">Live</span></div>
+      <div class="card-top"><span class="num">DATA</span><span class="chip live">always-on</span></div>
       <h3>Data Lake &amp; Analytics</h3>
       <p>A serverless lake over 3.1M real Colorado business registrations: raw JSONL and curated partitioned
       Parquet zones, a Glue catalog, and live Athena SQL you can run yourself — with Athena's own
@@ -222,9 +221,9 @@
       </div>
     </article>
 
-    <article class="card live">
+    <article class="card">
       <!-- plank 2 -->
-      <div class="card-top"><span class="num">API</span><span class="chip live">Live</span></div>
+      <div class="card-top"><span class="num">API</span><span class="chip live">always-on</span></div>
       <h3>API &amp; Microservices</h3>
       <p>A documented public REST API with real governance: v1 endpoints that answer with honest
       Deprecation/Sunset headers, API keys on throttled+quota'd usage plans (try the printed demo key),
@@ -239,7 +238,7 @@
 
     <article class="card">
       <!-- plank 4 -->
-      <div class="card-top"><span class="num">CONTAINERS</span><span class="chip live">Live</span></div>
+      <div class="card-top"><span class="num">CONTAINERS</span><span class="chip live">always-on</span></div>
       <h3>Containers (scale-to-zero)</h3>
       <p>Press a button and a real Docker container launches on ECS Fargate just for you — watch it provision,
       pull, run, and exit with live logs, then read the report it uploads to S3. Image built in AWS by
@@ -253,7 +252,7 @@
 
     <article class="card">
       <!-- plank 8 -->
-      <div class="card-top"><span class="num">SECURITY</span><span class="chip live">Live</span></div>
+      <div class="card-top"><span class="num">SECURITY</span><span class="chip ondemand">on-demand</span></div>
       <h3>Security &amp; Governance</h3>
       <p>The deploy-demo-teardown plank: GuardDuty, Security Hub, a NIST 800-53 rev 5 Config conformance
       pack, KMS-encrypted CloudTrail, and a permission-boundary proof — daily-billing services deploy for
@@ -267,7 +266,7 @@
 
     <article class="card">
       <!-- plank 9 -->
-      <div class="card-top"><span class="num">NETWORK</span><span class="chip live">Live</span></div>
+      <div class="card-top"><span class="num">NETWORK</span><span class="chip ondemand">on-demand</span></div>
       <h3>Network Architecture</h3>
       <p>A textbook multi-AZ VPC, proven live: tiered subnets, security-group layering, NACLs, gateway
       endpoints (the no-NAT cost pattern), and flow logs — every reachable <em>and</em> unreachable path
@@ -282,7 +281,7 @@
 
     <article class="card">
       <!-- plank 11 -->
-      <div class="card-top"><span class="num">DATABASE</span><span class="chip live">Live</span></div>
+      <div class="card-top"><span class="num">DATABASE</span><span class="chip ondemand">on-demand</span></div>
       <h3>Relational Registry</h3>
       <p>Aurora Serverless v2 PostgreSQL that genuinely scales to zero, reached only through the RDS
       Data API — no NAT, no open database port. Live exhibits: watch it wake from 0 ACU, engine-enforced
@@ -297,7 +296,7 @@
 
     <article class="card">
       <!-- plank 12 -->
-      <div class="card-top"><span class="num">FOUNDATION MODELS</span><span class="chip live">Live</span></div>
+      <div class="card-top"><span class="num">FOUNDATION MODELS</span><span class="chip live">always-on</span></div>
       <h3>Model Workbench</h3>
       <p>One prompt, four foundation models from four vendors — Anthropic, Amazon, Meta, Mistral —
       side by side through the single Bedrock Converse API, with measured latency, tokens, and cost per
