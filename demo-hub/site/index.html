@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Planetek · AWS Boardwalk — live demonstration environments</title>
-<meta name="description" content="A portfolio of live, walkable AWS environments built by Planetek: web, APIs, events, data, AI, document intelligence, security, networking, and DevOps — all infrastructure-as-code, all free-tier-first.">
+<title>Planetek · AWS Boardwalk · live demonstration environments</title>
+<meta name="description" content="A portfolio of live, walkable AWS environments built by Planetek: web, APIs, events, data, AI, document intelligence, security, networking, and DevOps. All infrastructure-as-code, all free-tier-first.">
 <link rel="preload" as="image" href="/boardwalk-night.webp" fetchpriority="high">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <style>
@@ -147,7 +147,7 @@
 <main class="wrap">
   <div class="section-head" id="planks">
     <h2>The planks</h2>
-    <p>Every card is a live environment — walk in.</p>
+    <p>Every card is a live environment. Walk in.</p>
   </div>
 
   <div class="grid">
@@ -155,7 +155,7 @@
       <!-- plank 1 -->
       <div class="card-top"><span class="num">WEB</span><span class="chip live">always-on</span></div>
       <h3>Modern Web Application</h3>
-      <p>Alpenglow Permits — a citizen permit portal with real sign-up, role-based access (guest / resident / staff),
+      <p>Alpenglow Permits: a citizen permit portal with real sign-up, role-based access (guest / resident / staff),
       a live data tier, transparency dashboards, and a nightly self-reset.</p>
       <span class="stack">S3 · CloudFront · Cognito · API Gateway · Lambda · DynamoDB</span>
       <div class="card-links">
@@ -169,7 +169,7 @@
       <div class="card-top"><span class="num">GENERATIVE AI</span><span class="chip live">always-on</span></div>
       <h3>Generative AI (RAG)</h3>
       <p>A retrieval-augmented assistant over a swappable document corpus: citation-grounded answers, prompt
-      guardrails, conversation audit logs, a human-feedback loop — and hard per-user + global daily cost caps
+      guardrails, conversation audit logs, a human-feedback loop, plus hard per-user + global daily cost caps
       behind a Cognito gate (access provided during demos).</p>
       <span class="stack">Bedrock · Lambda · API Gateway · S3 · DynamoDB · Cognito</span>
       <div class="card-links">
@@ -197,7 +197,7 @@
       <div class="card-top"><span class="num">DOCUMENTS</span><span class="chip live">always-on</span></div>
       <h3>Intelligent Document Processing</h3>
       <p>Drop any PDF or image: Textract OCR and form extraction, Comprehend entities and PII flags, Bedrock
-      auto-classification, and a searchable, faceted metadata index — every document carrying its own
+      auto-classification, and a searchable, faceted metadata index, every document carrying its own
       step-by-step pipeline timeline. Browsing is public; uploads are gated and hard-capped (access provided
       during demos).</p>
       <span class="stack">Textract · Comprehend · Bedrock · Step Functions · DynamoDB</span>
@@ -212,7 +212,7 @@
       <div class="card-top"><span class="num">EVENTS</span><span class="chip live">always-on</span></div>
       <h3>Event-Driven &amp; Messaging</h3>
       <p>A live event mesh you can poke: submit a 311-style request and watch it fan out through EventBridge
-      rules to department queues, SNS pub/sub, and a Step Functions escalation — with a poison-message
+      rules to department queues, SNS pub/sub, and a Step Functions escalation, with a poison-message
       dead-letter drill, operator redrive, and a deliberately-retried transient fault, all traced hop by hop.</p>
       <span class="stack">EventBridge · SQS · SNS · Step Functions · Lambda · DynamoDB</span>
       <div class="card-links">
@@ -226,7 +226,7 @@
       <div class="card-top"><span class="num">DATA</span><span class="chip live">always-on</span></div>
       <h3>Data Lake &amp; Analytics</h3>
       <p>A serverless lake over 3.1M real Colorado business registrations: raw JSONL and curated partitioned
-      Parquet zones, a Glue catalog, and live Athena SQL you can run yourself — with Athena's own
+      Parquet zones, a Glue catalog, and live Athena SQL you can run yourself, with Athena's own
       bytes-scanned and cost numbers, a raw-vs-curated race, and a static BI dashboard.</p>
       <span class="stack">S3 · Glue · Athena · Parquet · Lambda · DynamoDB</span>
       <div class="card-links">
@@ -242,7 +242,7 @@
       <p>A documented public REST API with real governance: v1 endpoints that answer with honest
       Deprecation/Sunset headers, API keys on throttled+quota'd usage plans (try the printed demo key),
       request bodies schema-validated by the gateway itself, and per-service Lambdas fenced to their own
-      tables — docs rendered live from the same OpenAPI spec that deploys the gateway.</p>
+      tables. Docs render live from the same OpenAPI spec that deploys the gateway.</p>
       <span class="stack">API Gateway (REST) · Lambda · DynamoDB · S3 · CloudFront</span>
       <div class="card-links">
         <a href="https://api.demos.planetek.org">Read the docs, call the API</a>
@@ -254,7 +254,7 @@
       <!-- plank 4 -->
       <div class="card-top"><span class="num">CONTAINERS</span><span class="chip live">always-on</span></div>
       <h3>Containers (scale-to-zero)</h3>
-      <p>Press a button and a real Docker container launches on ECS Fargate just for you — watch it provision,
+      <p>Press a button and a real Docker container launches on ECS Fargate just for you. Watch it provision,
       pull, run, and exit with live logs, then read the report it uploads to S3. Image built in AWS by
       CodeBuild and vulnerability-scanned in ECR. No idle compute, ever.</p>
       <span class="stack">ECS Fargate · ECR · CodeBuild · EventBridge Scheduler · Lambda · DynamoDB</span>
@@ -269,7 +269,7 @@
       <div class="card-top"><span class="num">SECURITY</span><span class="chip ondemand">on-demand</span></div>
       <h3>Security &amp; Governance</h3>
       <p>The deploy-demo-teardown plank: GuardDuty, Security Hub, a NIST 800-53 rev 5 Config conformance
-      pack, KMS-encrypted CloudTrail, and a permission-boundary proof — daily-billing services deploy for
+      pack, KMS-encrypted CloudTrail, and a permission-boundary proof. Daily-billing services deploy for
       demo windows only, and the auto-generated findings-to-evidence report stays up in between.</p>
       <span class="stack">GuardDuty · Security Hub · Config · CloudTrail · KMS · Lambda</span>
       <div class="card-links">
@@ -283,7 +283,7 @@
       <div class="card-top"><span class="num">NETWORK</span><span class="chip ondemand">on-demand</span></div>
       <h3>Network Architecture</h3>
       <p>A textbook multi-AZ VPC, proven live: tiered subnets, security-group layering, NACLs, gateway
-      endpoints (the no-NAT cost pattern), and flow logs — every reachable <em>and</em> unreachable path
+      endpoints (the no-NAT cost pattern), and flow logs, every reachable <em>and</em> unreachable path
       verified by Reachability Analyzer and probes run on the instances. Deploys on demand; the evidence
       report stays up in between.</p>
       <span class="stack">VPC · Reachability Analyzer · PrivateLink · SSM · Flow Logs</span>
@@ -298,7 +298,7 @@
       <div class="card-top"><span class="num">DATABASE</span><span class="chip ondemand">on-demand</span></div>
       <h3>Relational Registry</h3>
       <p>Aurora Serverless v2 PostgreSQL that genuinely scales to zero, reached only through the RDS
-      Data API — no NAT, no open database port. Live exhibits: watch it wake from 0 ACU, engine-enforced
+      Data API: no NAT, no open database port. Live exhibits: watch it wake from 0 ACU, engine-enforced
       foreign keys and CHECK constraints, an atomic rollback, EXPLAIN plans, and checksummed migrations.
       Deploys on demand; the database evidence report stays up in between.</p>
       <span class="stack">Aurora Serverless v2 · RDS Data API · Secrets Manager · Lambda</span>
@@ -312,7 +312,7 @@
       <!-- plank 12 -->
       <div class="card-top"><span class="num">FOUNDATION MODELS</span><span class="chip live">always-on</span></div>
       <h3>Model Workbench</h3>
-      <p>One prompt, four foundation models from four vendors — Anthropic, Amazon, Meta, Mistral —
+      <p>One prompt, four foundation models from four vendors (Anthropic, Amazon, Meta, Mistral)
       side by side through the single Bedrock Converse API, with measured latency, tokens, and cost per
       answer and an audit ledger of every run. Scenario library built for public-sector GenAI:
       plan-review triage, grounded Q&amp;A with a refusal test, determinations, extraction.</p>
@@ -327,7 +327,7 @@
   <section class="principles">
     <h2>How the boardwalk is built</h2>
     <ul>
-      <li>Every environment is Terraform end-to-end — one command up, one command down.</li>
+      <li>Every environment is Terraform end-to-end: one command up, one command down.</li>
       <li>Free-tier-first: the always-on set idles at roughly a dollar a month, with hard budget tripwires.</li>
       <li>Security by default: private buckets behind CloudFront, a shared WAF edge ACL (rate limiting + AWS managed rules), least-privilege IAM per function, strict headers.</li>
       <li>Live demos self-heal: seeded data resets nightly, so the door is always open.</li>
@@ -339,13 +339,13 @@
   <div class="wrap foot-grid">
     <div>
       <p class="foot-brand">The AWS Boardwalk</p>
-      <p class="foot-desc">A portfolio of working AWS environments — production patterns, free-tier
+      <p class="foot-desc">A portfolio of working AWS environments: production patterns, free-tier
       costs, all infrastructure as code.</p>
     </div>
     <div>
       <p class="foot-head">Environment</p>
       <ul class="foot-list">
-        <li>AWS: S3 · CloudFront · Route53 · ACM — plus each plank's own stack</li>
+        <li>AWS: S3 · CloudFront · Route53 · ACM, plus each plank's own stack</li>
         <li>Infrastructure as code: Terraform</li>
         <li>Always-on planks idle at ~$0</li>
       </ul>
@@ -358,7 +358,7 @@
       </ul>
     </div>
   </div>
-  <div class="foot-bar">All environments are demonstrations for fictional entities — not affiliated with any real agency.</div>
+  <div class="foot-bar">All environments are demonstrations for fictional entities, not affiliated with any real agency.</div>
 </footer>
 
 </body>
