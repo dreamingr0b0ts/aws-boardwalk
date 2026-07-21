@@ -1,14 +1,17 @@
 # The boardwalk pipeline (plank 10):
 #   PR      → fmt + validate + Checkov/Trivy scans + read-only terraform plan
-#   main    → the same, then one "gate" approval (prod environment) releases
-#             the whole apply matrix
+#   main    → the same, then terraform apply through the "prod" environment
 #
 # GitHub exchanges its OIDC token for short-lived AWS credentials — there are
 # no stored AWS keys in this repo or its settings. The plan role is read-only;
-# the apply role trusts main-branch jobs of this repo only, and the apply
-# matrix runs solely behind the human-approved gate job. The gate carries the
-# prod environment instead of the matrix because a max-parallel-1 matrix
-# inside a reviewed environment prompts once per leg (~15 clicks per push).
+# the apply role is only assumable by jobs that passed the prod environment.
+#
+# DELIBERATE: the reviewed environment sits on the apply matrix itself, so the
+# owner approves each leg (~15 clicks per push). A single-gate variant (no-op
+# gate job holds the environment, matrix needs it) was tried and reverted on
+# 2026-07-21: it required the apply role to trust ref:refs/heads/main, which
+# moved approval enforcement out of IAM and let ANY main-branch job (incl. the
+# scan job's third-party actions) reach PowerUserAccess. Keep it this way.
 
 name: terraform
 
@@ -93,19 +96,11 @@ jobs:
           TF_VAR_state_bucket="aws-boardwalk-tfstate-${{ vars.AWS_ACCOUNT_ID }}" \
             terraform -chdir=$TF_DIR plan -input=false -lock-timeout=120s -out=tfplan
 
-  gate:
-    name: approve prod apply
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [scan, plan]
-    environment: prod
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo "prod apply approved — releasing the apply matrix"
-
   apply:
     name: apply (${{ matrix.dir }})
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [gate]
+    needs: [scan, plan]
+    environment: prod
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

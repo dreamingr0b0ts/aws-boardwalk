@@ -35,8 +35,9 @@ When a plank's page or exhibits change: update its card in `demo-hub/site/index.
 
 ## CI/CD (plank 10 — live)
 
-Every push to `main` plans AND APPLIES all planks via GitHub Actions (OIDC roles `ops-gh-plan`/`ops-gh-apply`, no stored keys; account ID lives in the `AWS_ACCOUNT_ID` repo variable). Applies wait on a single `gate` job (the `prod` environment, required reviewer `dreamingr0b0ts`) — one approval in the Actions UI releases the whole dependency-ordered apply matrix; the matrix legs deliberately do NOT carry the environment (a max-parallel-1 matrix inside a reviewed environment prompts once per leg), and the `ops-gh-apply` trust policy matches `ref:refs/heads/main`, not `environment:prod`. Two consequences:
+Every push to `main` plans AND APPLIES all planks via GitHub Actions (OIDC roles `ops-gh-plan`/`ops-gh-apply`, no stored keys; account ID lives in the `AWS_ACCOUNT_ID` repo variable). Two consequences:
 
+- **Applies wait for owner review per matrix leg** (the `prod` environment sits on the apply matrix; max-parallel 1 → ~15 sequential approvals per push). This is deliberate: a single-gate variant was tried and reverted 2026-07-21 because it required `ops-gh-apply` to trust `ref:refs/heads/main`, moving approval enforcement out of IAM and widening PowerUserAccess to any main-branch job. Don't re-propose it.
 - **Variable defaults must match the live state.** CI runs plain `terraform apply` with no extra `-var` flags — a default that differs from production (like plank 1's old `custom_domain_enabled=false`) WILL be "corrected" into an outage on the next push.
 - Checkov (`.checkov.yaml`) + Trivy (`.trivyignore`) gate every PR; both files carry justified, documented skips — add a reasoned entry rather than loosening the gate.
 
