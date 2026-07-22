@@ -50,6 +50,23 @@ the backstop. Seeds are permanent.
 | `make reset` | purge uploaded demo documents now |
 | `make destroy` | tear the plank down |
 
+## Design
+
+Plank identity: the records annex. A municipal archive mid-digitization — manila-folder
+document cards (with tabs), rubber-stamp badges and section labels, brass catalog
+hardware, faint ledger ruling on the page ground. Light mode is the reading room
+(manila cream, iron-gall ink); dark mode is the microfilm room (espresso wood, lamplit
+brass). Machine-read text (OCR previews, extracted values, metadata) speaks
+[Courier Prime](https://github.com/quoteunquoteapps/CourierPrime); the archive speaks
+[Ibarra Real Nova](https://github.com/fontsource) — both OFL, vendored as static woff2
+in `frontend/fonts/` (the CSP allows only self-hosted assets).
+
+Photography (Unsplash license, resized via CDN params, self-hosted in `frontend/images/`):
+hero is an espresso card catalog with brass pulls by
+[Erol Ahmed](https://unsplash.com/photos/Y3KEBQlB1Zk); the mid-page interlude is a
+honey-oak catalog by [Jan Antonin Kolar](https://unsplash.com/photos/lRoX0shwjUQ) —
+"the previous system of record" the pipeline replaces.
+
 ## Swappability
 
 The corpus is just PDFs: `corpus/generate.mjs` builds the fictional Alpenglow set, but

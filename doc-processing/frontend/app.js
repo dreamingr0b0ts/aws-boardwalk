@@ -71,7 +71,7 @@ async function loadIndex() {
     renderFacets();
     renderGrid();
   } catch {
-    $('doc-grid').innerHTML = '<p class="muted">Could not load the index — try refreshing.</p>';
+    $('doc-grid').innerHTML = '<p class="muted">Could not load the index. Try refreshing.</p>';
   }
 }
 
@@ -113,7 +113,7 @@ function renderGrid() {
   grid.innerHTML = '';
   const docs = allDocs.filter(matches);
   if (!docs.length) {
-    grid.innerHTML = '<p class="muted">No documents match — clear the search or facet filters.</p>';
+    grid.innerHTML = '<p class="muted">No documents match. Clear the search or facet filters.</p>';
     return;
   }
   for (const d of docs) {
@@ -273,7 +273,7 @@ function renderQuota(q) {
 async function api(method, path, body) {
   if (!idToken || tokenExp * 1000 < Date.now()) {
     logout();
-    throw new Error('Session expired — please sign in again');
+    throw new Error('Session expired. Please sign in again.');
   }
   const res = await fetch(path, {
     method,
@@ -285,7 +285,7 @@ async function api(method, path, body) {
   });
   if (res.status === 401) {
     logout();
-    throw new Error('Session expired — please sign in again');
+    throw new Error('Session expired. Please sign in again.');
   }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.message || `Request failed (${res.status})`);
@@ -308,7 +308,7 @@ async function onUpload(file) {
   const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
   const contentType = EXT_TYPES[ext];
   if (!contentType) {
-    return showUploadError('That file type is not supported — PDF, PNG, JPEG, or TIFF only.');
+    return showUploadError('That file type is not supported: PDF, PNG, JPEG, or TIFF only.');
   }
   if (file.size > 4 * 1024 * 1024) {
     return showUploadError('That file is over the 4 MB demo cap.');
@@ -365,7 +365,7 @@ async function trackPipeline(docId) {
     updateTracker(doc.steps ?? []);
 
     if (doc.status === 'INDEXED') {
-      result.textContent = '✓ Indexed — it is now in the searchable list above.';
+      result.textContent = '✓ Indexed. It is now in the searchable list above.';
       result.hidden = false;
       await loadIndex();
       openDoc(docId);
@@ -378,13 +378,13 @@ async function trackPipeline(docId) {
       return;
     }
     if (doc.status === 'FAILED') {
-      result.textContent = '✗ The pipeline failed on this document — see its record for details.';
+      result.textContent = '✗ The pipeline failed on this document. See its record for details.';
       result.hidden = false;
       await loadIndex();
       return;
     }
   }
-  result.textContent = 'Still processing — it will appear in the index when done.';
+  result.textContent = 'Still processing. It will appear in the index when done.';
   result.hidden = false;
 }
 

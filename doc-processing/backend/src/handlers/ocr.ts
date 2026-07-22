@@ -75,9 +75,9 @@ async function start({ bucket, key }: StartInput): Promise<PipelineOutput> {
   };
 
   const ext = filename.split('.').pop()?.toLowerCase() ?? '';
-  if (!ALLOWED_EXTENSIONS.includes(ext)) return reject(`Unsupported file type .${ext} — PDF and image formats only`);
+  if (!ALLOWED_EXTENSIONS.includes(ext)) return reject(`Unsupported file type .${ext}; PDF and image formats only`);
   if (sizeBytes < 1 || sizeBytes > MAX_UPLOAD_BYTES) {
-    return reject(`File is ${(sizeBytes / 1024 / 1024).toFixed(1)} MB — the demo cap is ${MAX_UPLOAD_BYTES / 1024 / 1024} MB`);
+    return reject(`File is ${(sizeBytes / 1024 / 1024).toFixed(1)} MB; the demo cap is ${MAX_UPLOAD_BYTES / 1024 / 1024} MB`);
   }
 
   if (ext === 'pdf') {
@@ -91,7 +91,7 @@ async function start({ bucket, key }: StartInput): Promise<PipelineOutput> {
       return reject('File could not be parsed as a PDF');
     }
     if (pageCount > MAX_PAGES) {
-      return reject(`Document has ${pageCount} pages — the demo cap is ${MAX_PAGES} pages per document`);
+      return reject(`Document has ${pageCount} pages; the demo cap is ${MAX_PAGES} pages per document`);
     }
   }
 
