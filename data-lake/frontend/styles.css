@@ -106,7 +106,10 @@ h1 { font-size: clamp(31px, 5.5vw, 47px); line-height: 1.05; margin-top: 12px; f
   font-family: "Bricolage Grotesque", sans-serif; font-variant-numeric: tabular-nums; margin-bottom: 2px;
 }
 
-main { padding: 38px 0 30px; display: grid; gap: 22px; }
+/* minmax(0,1fr): grid items must be allowed to shrink below the SQL pre's
+   unwrappable min-content width, or every panel overflows narrow viewports */
+main { padding: 38px 0 30px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; }
+.chart-grid > figure.chart { min-width: 0; }
 .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 26px 24px 24px; }
 
 .sect-label {

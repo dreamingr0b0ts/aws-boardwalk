@@ -252,6 +252,9 @@ function renderStats(r) {
 
 function renderTable(r) {
   const numeric = r.columns.map((_, i) => r.rows.every((row) => /^-?[\d.]+$/.test(row[i] ?? '')));
+  // years are numbers but not quantities: no thousands separators on them
+  const yearlike = r.columns.map((c, i) =>
+    /year/i.test(c) || r.rows.every((row) => /^(1[89]|20)\d{2}$/.test(row[i] ?? '')));
   const tbl = $('q-results');
   tbl.replaceChildren();
   const thead = tbl.createTHead().insertRow();
@@ -266,7 +269,7 @@ function renderTable(r) {
     const tr = tb.insertRow();
     row.forEach((v, i) => {
       const td = tr.insertCell();
-      td.textContent = numeric[i] && v !== '' ? nf.format(+v) : v;
+      td.textContent = numeric[i] && v !== '' && !yearlike[i] ? nf.format(+v) : v;
       if (numeric[i]) td.className = 'num';
     });
   }
