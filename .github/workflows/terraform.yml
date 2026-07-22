@@ -6,12 +6,14 @@
 # no stored AWS keys in this repo or its settings. The plan role is read-only;
 # the apply role is only assumable by jobs that passed the prod environment.
 #
-# DELIBERATE: the reviewed environment sits on the apply matrix itself, so the
-# owner approves each leg (~15 clicks per push). A single-gate variant (no-op
-# gate job holds the environment, matrix needs it) was tried and reverted on
-# 2026-07-21: it required the apply role to trust ref:refs/heads/main, which
-# moved approval enforcement out of IAM and let ANY main-branch job (incl. the
-# scan job's third-party actions) reach PowerUserAccess. Keep it this way.
+# Owner approval is a repo-settings toggle (prod environment → required
+# reviewers), currently OFF: pushes to main apply automatically. When it is
+# re-enabled it prompts once per matrix leg (~15 clicks per push) — accept
+# that cost. A single-gate variant (no-op gate job holds the environment,
+# matrix needs it) was tried and reverted on 2026-07-21: it required the
+# apply role to trust ref:refs/heads/main, which moved approval enforcement
+# out of IAM and let ANY main-branch job (incl. the scan job's third-party
+# actions) reach PowerUserAccess. The environment stays on the matrix legs.
 
 name: terraform
 

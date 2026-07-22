@@ -37,7 +37,7 @@ When a plank's page or exhibits change: update its card in `demo-hub/site/index.
 
 Every push to `main` plans AND APPLIES all planks via GitHub Actions (OIDC roles `ops-gh-plan`/`ops-gh-apply`, no stored keys; account ID lives in the `AWS_ACCOUNT_ID` repo variable). Two consequences:
 
-- **Applies wait for owner review per matrix leg** (the `prod` environment sits on the apply matrix; max-parallel 1 → ~15 sequential approvals per push). This is deliberate: a single-gate variant was tried and reverted 2026-07-21 because it required `ops-gh-apply` to trust `ref:refs/heads/main`, moving approval enforcement out of IAM and widening PowerUserAccess to any main-branch job. Don't re-propose it.
+- **Owner approval is a repo-settings toggle** (prod environment → required reviewers), **currently OFF since 2026-07-21** — pushes to main apply automatically. If re-enabled it prompts per matrix leg (~15 clicks/push); that cost is accepted. The single-gate variant was tried and reverted 2026-07-21 because it required `ops-gh-apply` to trust `ref:refs/heads/main`, moving approval enforcement out of IAM and widening PowerUserAccess to any main-branch job — don't re-propose it; the `environment: prod` stays on the matrix legs either way.
 - **Variable defaults must match the live state.** CI runs plain `terraform apply` with no extra `-var` flags — a default that differs from production (like plank 1's old `custom_domain_enabled=false`) WILL be "corrected" into an outage on the next push.
 - Checkov (`.checkov.yaml`) + Trivy (`.trivyignore`) gate every PR; both files carry justified, documented skips — add a reasoned entry rather than loosening the gate.
 
