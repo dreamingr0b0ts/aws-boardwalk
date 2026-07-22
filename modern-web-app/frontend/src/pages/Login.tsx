@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { Button, Card, ErrorNote, Field, Input } from '../components/Ui';
 import { Mountain } from '../components/Layout';
+import loginAspens from '../assets/login-aspens-800.webp';
 
 const DEMO_ACCOUNTS = [
   { role: 'Staff admin', email: 'admin@demo.planetek.org', password: 'Alpenglow-Admin1!', blurb: 'Review queue, decisions, metrics, catalog' },
@@ -38,11 +39,14 @@ export default function Login() {
     <div className="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-14 lg:flex-row">
       <div className="flex-1">
         <Card className="overflow-hidden">
-          <div className="flex items-center gap-3 bg-pine-950 px-6 py-5">
-            <Mountain className="size-10" />
-            <div>
-              <p className="font-bold text-white">Sign in</p>
-              <p className="text-xs text-pine-200">Alpenglow Permits resident & staff portal</p>
+          <div className="relative flex items-center gap-3 overflow-hidden bg-pine-950 px-6 py-6">
+            {/* Aspen grove — Royce Fonseca via Unsplash */}
+            <img src={loginAspens} alt="" aria-hidden decoding="async" className="absolute inset-0 size-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-r from-pine-950/90 via-pine-950/70 to-pine-900/40" aria-hidden />
+            <Mountain className="relative size-10" />
+            <div className="relative">
+              <p className="font-display text-lg font-bold text-white">Sign in</p>
+              <p className="text-xs text-pine-100">Alpenglow Permits resident & staff portal</p>
             </div>
           </div>
           <form onSubmit={submit} className="space-y-4 px-6 py-6">
@@ -81,7 +85,7 @@ export default function Login() {
       </div>
 
       <div className="flex-1">
-        <h2 className="text-sm font-bold uppercase tracking-wide text-stone-500 dark:text-stone-400">Demo accounts — walk right in</h2>
+        <h2 className="text-sm font-bold uppercase tracking-wide text-stone-500 dark:text-stone-400">Demo accounts · walk right in</h2>
         <div className="mt-3 space-y-3">
           {DEMO_ACCOUNTS.map((acct) => (
             <Card key={acct.email} className="p-5">
@@ -115,7 +119,7 @@ export default function Login() {
           ))}
         </div>
         <p className="mt-4 text-xs leading-relaxed text-stone-400">
-          These credentials are intentionally public — this is a portfolio demonstration. All accounts and data reset
+          These credentials are intentionally public. This is a portfolio demonstration. All accounts and data reset
           nightly at 3am Mountain.
         </p>
       </div>

@@ -46,7 +46,7 @@ export default function AppDetail() {
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-pine-950 dark:text-pine-100">{app.typeName}</h1>
+          <h1 className="font-display text-2xl font-bold text-pine-950 dark:text-pine-100">{app.typeName}</h1>
           <p className="mt-1 font-mono text-sm text-stone-500 dark:text-stone-400">{app.id}</p>
         </div>
         <StatusChip status={app.status} />
@@ -60,7 +60,7 @@ export default function AppDetail() {
               : 'border-rose-200 bg-rose-50 text-rose-900 dark:border-rose-900 dark:bg-rose-950/50 dark:text-rose-200'
           }`}
         >
-          <p className="font-bold">{app.status === 'approved' ? 'Permit approved' : 'Application denied'} — {fmtDate(app.decidedAt)}</p>
+          <p className="font-bold">{app.status === 'approved' ? 'Permit approved' : 'Application denied'} · {fmtDate(app.decidedAt)}</p>
           {app.decisionNote && <p className="mt-1">{app.decisionNote}</p>}
         </div>
       )}

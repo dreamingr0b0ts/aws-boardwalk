@@ -31,8 +31,8 @@ export default function Admin() {
     <div className="mx-auto max-w-6xl px-4 py-10">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-pine-950 dark:text-pine-100">Permit office</h1>
-          <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">Staff console — review queue, performance, and catalog.</p>
+          <h1 className="font-display text-2xl font-bold text-pine-950 dark:text-pine-100">Permit office</h1>
+          <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">Staff console: review queue, performance, and catalog.</p>
         </div>
         <div className="flex rounded-lg border border-stone-300 bg-white p-1 dark:border-stone-700 dark:bg-stone-900">
           {(

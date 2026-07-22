@@ -36,6 +36,7 @@ async function loadPublicInfo() {
   for (const m of info.models) {
     const card = document.createElement('div');
     card.className = 'model-card';
+    card.dataset.key = m.key;
     const vendor = document.createElement('div');
     vendor.className = 'vendor';
     vendor.textContent = m.vendor;
@@ -77,6 +78,7 @@ async function loadPublicInfo() {
   pick.replaceChildren();
   for (const m of info.models) {
     const label = document.createElement('label');
+    label.dataset.key = m.key;
     const box = document.createElement('input');
     box.type = 'checkbox';
     box.value = m.key;
@@ -151,7 +153,7 @@ function showBench() {
 async function api(method, path, body) {
   if (!idToken || tokenExp * 1000 < Date.now()) {
     logout();
-    throw new Error('Session expired — please sign in again');
+    throw new Error('Session expired. Please sign in again.');
   }
   const res = await fetch(path, {
     method,
@@ -163,7 +165,7 @@ async function api(method, path, body) {
   });
   if (res.status === 401) {
     logout();
-    throw new Error('Session expired — please sign in again');
+    throw new Error('Session expired. Please sign in again.');
   }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.message || `Request failed (${res.status})`);
@@ -236,6 +238,7 @@ function renderResults(res) {
   for (const r of res.results) {
     const card = document.createElement('div');
     card.className = `res-card${r.ok ? '' : ' err'}`;
+    card.dataset.key = r.key;
 
     const head = document.createElement('div');
     head.className = 'head';
@@ -261,7 +264,7 @@ function renderResults(res) {
 
     const answer = document.createElement('div');
     answer.className = 'answer';
-    answer.textContent = r.ok ? r.text : 'The invocation failed — see the error badge above.';
+    answer.textContent = r.ok ? r.text : 'The invocation failed. See the error badge above.';
 
     card.append(head, metrics, answer);
     grid.appendChild(card);
@@ -326,6 +329,7 @@ async function refreshLedger() {
       const m = info.models.find((x) => x.key === r.key);
       const li = document.createElement('li');
       li.className = r.ok ? 'ok' : 'no';
+      li.dataset.key = r.key;
       li.textContent = `${m?.label ?? r.key}: ${r.inputTokens}→${r.outputTokens} tok, $${(r.costUsd ?? 0).toFixed(5)}, ${(r.latencyMs / 1000).toFixed(1)}s (${r.stopReason ?? '–'})`;
       ul.appendChild(li);
     }

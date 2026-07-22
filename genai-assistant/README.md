@@ -66,6 +66,18 @@ make corpus   # syncs to S3 + re-embeds + atomically replaces the index
 Chunking is by `##` heading (split at ~1400 chars); each chunk is embedded with its document
 title and section name for context.
 
+## Design
+
+Plank identity: the records office that answers at midnight. Nocturne palette (indigo night,
+amber lamplight, violet starlight), [Spectral](https://github.com/productiontype/Spectral) (OFL)
+as the display serif, a constellation motif in the hero (retrieval as connecting stars), and
+serif "handbook excerpt" styling for assistant answers. Dark is the primary mood; light renders
+as a dawn reading room. The CSP allows only self-hosted assets, so the fonts (static woff2 in
+`frontend/fonts/`) and photography ship from the site bucket.
+
+Hero photo: snow peak under the Milky Way by [Benjamin Voros](https://unsplash.com/photos/phIFdC6lA4E)
+(Unsplash license), resized via CDN params and self-hosted in `frontend/images/`.
+
 ## Operations
 
 ```sh

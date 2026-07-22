@@ -5,6 +5,8 @@ import App from './App';
 import { AuthProvider } from './lib/auth';
 import { ThemeProvider } from './lib/theme';
 import { loadConfig } from './config';
+import '@fontsource-variable/fraunces';
+import '@fontsource-variable/fraunces/wght-italic.css';
 import './index.css';
 
 const root = createRoot(document.getElementById('root')!);

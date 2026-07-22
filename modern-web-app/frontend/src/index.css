@@ -4,6 +4,16 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
+  /* Fraunces (self-hosted via @fontsource-variable, imported in main.tsx) is
+     the display voice of the City of Alpenglow brand; body copy stays on the
+     system sans stack. CSP allows only font-src 'self', so no font CDNs. */
+  --font-display: 'Fraunces Variable', ui-serif, Georgia, serif;
+
+  /* Paper — pine-tinted page ground for light mode, so light never reads as
+     unthemed white. The hero RidgeCut must use the same solid (fill-paper)
+     for the cut illusion to hold. */
+  --color-paper: #f5f9f7;
+
   /* Pine — deep evergreen neutrals for structure */
   --color-pine-50: #f2f7f6;
   --color-pine-100: #dcebe8;
@@ -29,5 +39,5 @@
 }
 
 body {
-  @apply bg-stone-50 text-stone-800 antialiased dark:bg-stone-950 dark:text-stone-200;
+  @apply bg-paper text-stone-800 antialiased dark:bg-stone-950 dark:text-stone-200;
 }

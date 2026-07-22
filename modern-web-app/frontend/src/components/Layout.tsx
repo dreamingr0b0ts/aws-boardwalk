@@ -56,7 +56,7 @@ export default function Layout() {
   return (
     <div className="flex min-h-screen flex-col">
       <div className="bg-pine-950 px-4 py-1.5 text-center text-xs text-pine-100">
-        Fictional demonstration environment — the City of Alpenglow is not a real municipality. Demo data resets
+        Fictional demonstration environment. The City of Alpenglow is not a real municipality. Demo data resets
         nightly.
       </div>
 
@@ -65,7 +65,7 @@ export default function Layout() {
           <Link to="/" className="flex items-center gap-2.5">
             <Mountain className="size-9" />
             <span className="leading-tight">
-              <span className="block text-base font-bold text-pine-900 dark:text-pine-100">Alpenglow Permits</span>
+              <span className="block font-display text-base font-bold text-pine-900 dark:text-pine-100">Alpenglow Permits</span>
               <span className="block text-[11px] text-stone-500 dark:text-stone-400">
                 City of Alpenglow, Colorado · Demo
               </span>
@@ -131,6 +131,7 @@ export default function Layout() {
       </main>
 
       <footer className="mt-16 bg-pine-950 text-pine-100">
+        <div className="h-1 bg-gradient-to-r from-glow-700 via-glow-400 to-pine-500" aria-hidden />
         <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:grid-cols-3">
           <div>
             <div className="flex items-center gap-2">
@@ -139,7 +140,7 @@ export default function Layout() {
             </div>
             <p className="mt-3 text-xs leading-relaxed text-pine-200">
               A demonstration of a production-patterned serverless web application: static delivery, real
-              authentication, role-based access, and a live data tier — idling at ~$0.
+              authentication, role-based access, and a live data tier, idling at ~$0.
             </p>
           </div>
           <div className="text-sm">
@@ -148,6 +149,7 @@ export default function Layout() {
               <li>AWS: S3 · CloudFront · Cognito · API Gateway · Lambda · DynamoDB</li>
               <li>Infrastructure as code: Terraform</li>
               <li>Demo data reseeds nightly at 3am MT</li>
+              <li>Photography: Unsplash (Daniel Ribar, Alex Moliski, Royce Fonseca)</li>
             </ul>
           </div>
           <div className="text-sm">
@@ -178,7 +180,7 @@ export default function Layout() {
           </div>
         </div>
         <div className="border-t border-pine-800 px-4 py-4 text-center text-xs text-pine-300">
-          Fictional demo built by Planetek — not affiliated with any real government agency.
+          Fictional demo built by Planetek. Not affiliated with any real government agency.
         </div>
       </footer>
     </div>

@@ -197,7 +197,7 @@ export function TypeBar({
     .slice(0, 8);
 
   return (
-    <ChartCard title="Volume by permit type" subtitle="Trailing 12 months — single measure, one hue">
+    <ChartCard title="Volume by permit type" subtitle="Trailing 12 months · single measure, one hue">
       <ResponsiveContainer width="100%" height={data.length * 34 + 16}>
         <BarChart data={data} layout="vertical" margin={{ top: 0, right: 40, bottom: 0, left: 8 }}>
           <XAxis type="number" hide />

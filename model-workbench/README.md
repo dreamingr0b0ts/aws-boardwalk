@@ -32,6 +32,23 @@ determination letters, structured extraction to strict JSON, plain-language rewr
   `public.mjs` (anonymous roster/stats), `scenarios.mjs` (shared library)
 - `frontend/` — zero-build static UI (Cognito InitiateAuth, same-origin `/api/*`)
 
+## Design
+
+Plank identity: the signal bench. Four models are four oscilloscope channels (CH1 amber ·
+CH2 cyan · CH3 magenta · CH4 green), color-coded everywhere a model appears — roster cards,
+model pickers, result cards, the ledger. Graphite instrument-panel dark mode with phosphor-green
+readouts; light mode is a daylight metrology lab on graph-paper rulings (never plain white).
+Type: [Space Grotesk](https://github.com/floriankarsten/space-grotesk) (display) and
+[IBM Plex Mono](https://github.com/IBM/plex) (readouts), both OFL, vendored as static woff2 in
+`frontend/fonts/` — the CSP allows only self-hosted assets.
+
+Photography (Unsplash license, resized via CDN params, self-hosted in `frontend/images/`):
+hero is a long-exposure RGB light-painting of waveforms by
+[Mitchell Y](https://unsplash.com/photos/bxE-z_T87c0); the mid-page interlude is a 1922
+lantern slide of hand-drawn wave traces ("comparing wave shapes" is a century-old bench
+practice) preserved by
+[Auckland War Memorial Museum Tāmaki Paenga Hira](https://unsplash.com/photos/c7izR0O9cOE).
+
 ## Commands
 
 ```

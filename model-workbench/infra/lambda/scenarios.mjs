@@ -9,7 +9,7 @@ export const SCENARIOS = [
     id: "plan-review-triage",
     title: "Plan-review triage",
     blurb:
-      "A factory-built dwelling submission vs five code excerpts. The model triages compliance issues for a human reviewer — the DOLA-style use case.",
+      "A factory-built dwelling submission vs five code excerpts. The model triages compliance issues for a human reviewer: the DOLA-style use case.",
     system:
       "You are a preliminary plan-review assistant for a municipal building department. You never approve or deny — you TRIAGE for a human reviewer. Compare the submission against the provided code excerpts only. Output a numbered checklist of potential compliance issues, each citing the excerpt it relies on as [1]-[5]. If the submission is silent on something an excerpt requires, flag it as 'missing information'. If an item appears compliant, do not list it. End with a one-sentence summary of overall readiness.",
     prompt: `Code excerpts (the only authority for this review):
@@ -32,7 +32,7 @@ Produce the triage checklist.`,
     id: "code-qa",
     title: "Grounded Q&A + refusal test",
     blurb:
-      "Two questions against one small excerpt — the second is deliberately unanswerable from it. Watch which models stay grounded and which ones guess.",
+      "Two questions against one small excerpt; the second is deliberately unanswerable from it. Watch which models stay grounded and which ones guess.",
     system:
       "Answer strictly and only from the provided excerpt. Cite the section number for anything you assert. If the excerpt does not contain the answer, say exactly that and do not answer from general knowledge — a wrong-but-confident answer is a failure.",
     prompt: `Excerpt — Alpenglow Municipal Code §14-203, Residential decks:

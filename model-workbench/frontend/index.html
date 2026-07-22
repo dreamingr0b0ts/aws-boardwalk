@@ -4,9 +4,21 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Alpenglow Model Workbench · Planetek AWS Boardwalk</title>
-<meta name="description" content="A foundation-model evaluation workbench on Amazon Bedrock: one prompt, four models from four vendors through the single Converse API, side by side with measured latency, tokens, and cost — plus an audit ledger of every run. Plank 12 of the Planetek AWS Boardwalk.">
+<meta name="description" content="A foundation-model evaluation workbench on Amazon Bedrock: one prompt, four models from four vendors through the single Converse API, side by side with measured latency, tokens, and cost, plus an audit ledger of every run. Plank 12 of the Planetek AWS Boardwalk.">
 <meta name="robots" content="noindex, nofollow">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Alpenglow Model Workbench">
+<meta property="og:description" content="One prompt, four models, four vendors, one Bedrock Converse API. Answers side by side with measured latency, tokens, and cost, and an audit ledger of every run.">
+<meta property="og:url" content="https://models.demos.planetek.org/">
+<meta property="og:image" content="https://models.demos.planetek.org/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preload" href="/fonts/space-grotesk-700.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/plex-mono-400.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
@@ -16,8 +28,8 @@
     <p class="eyebrow">Planetek · AWS Boardwalk · Plank 12</p>
     <h1>Alpenglow Model Workbench</h1>
     <p class="lede">"Which model should we use?" is a procurement question, not a matter of taste.
-    This workbench sends <strong>one prompt to four foundation models from four vendors</strong> —
-    through the single Bedrock Converse API — and shows the answers side by side with measured
+    This bench sends <strong>one prompt to four foundation models from four vendors</strong>,
+    through the single Bedrock Converse API, and lines the answers up with measured
     latency, token counts, and computed cost. Every run lands in an
     <strong>audit ledger</strong>: who ran what, against which models, with which parameters.</p>
     <div class="hero-meta">
@@ -33,8 +45,9 @@
 
   <!-- Roster -->
   <section class="panel">
-    <h2>The roster</h2>
-    <p class="muted">Four models, four vendors, one <code>Converse</code> call — swapping models on
+    <p class="sect-label">CH 01 · Roster</p>
+    <h2>Four channels on the bench</h2>
+    <p class="muted">Four models, four vendors, one <code>Converse</code> call. Swapping models on
     Bedrock is a parameter, not a re-integration. Prices are published on-demand rates per million
     tokens, embedded so every response can carry its real cost.</p>
     <div class="roster" id="roster"></div>
@@ -42,9 +55,10 @@
 
   <!-- Login -->
   <section class="panel" id="login-panel">
+    <p class="sect-label">CH 02 · Access</p>
     <h2>Sign in to run comparisons</h2>
     <p class="muted">Every run fans out to real models and costs real tokens, so this demo requires
-    a credential — it isn't printed here, and there is no self-signup; Planetek hands it out with
+    a credential. It is not printed here, and there is no self-signup; Planetek hands it out with
     proposals and demos. Runs are capped per user and demo-wide per day.</p>
     <form class="auth" id="login-form">
       <input id="login-email" type="email" autocomplete="username" placeholder="email" required>
@@ -57,7 +71,10 @@
   <!-- Workbench -->
   <section class="panel" id="bench-panel" hidden>
     <div class="map-head">
-      <h2>Run a comparison</h2>
+      <div>
+        <p class="sect-label">CH 03 · Bench</p>
+        <h2>Run a comparison</h2>
+      </div>
       <button class="btn ghost" id="logout-btn" type="button">Sign out</button>
     </div>
 
@@ -83,8 +100,8 @@
     <p class="quota-line" id="quota-line"></p>
 
     <div class="ledger">
-      <h3 style="margin-top:20px">Audit ledger — today's runs</h3>
-      <p class="muted small">Model, parameters, tokens, cost, and latency for every run — the
+      <h3 style="margin-top:20px">Audit ledger: today's runs</h3>
+      <p class="muted small">Model, parameters, tokens, cost, and latency for every run. That is the
       accountability trail an agency's AI policy (think SB24-205) actually asks for. Rows expire
       after 30 days.</p>
       <div id="ledger-list"></div>
@@ -93,33 +110,48 @@
 
   <!-- Scenarios (anonymous view) -->
   <section class="panel" id="scenario-panel">
-    <h2>The scenario library</h2>
-    <p class="muted">Prompts shaped like the public-sector GenAI work this portfolio exists to win —
+    <p class="sect-label">CH 04 · Scenario library</p>
+    <h2>Prompts shaped like real work</h2>
+    <p class="muted">The library mirrors the public-sector GenAI work this portfolio exists to win:
     plan-review triage, grounded code Q&amp;A with a refusal test, determination letters, structured
     extraction, plain-language rewrites. All fictional, all self-contained.</p>
     <ul class="proof" id="scenario-list"></ul>
   </section>
 
+  <!-- 1922 interlude -->
+  <figure class="lineage">
+    <img src="/images/waveshapes-800.webp"
+         srcset="/images/waveshapes-800.webp 800w, /images/waveshapes-1600.webp 1600w"
+         sizes="(min-width: 1020px) 940px, calc(100vw - 40px)"
+         width="1600" height="600" loading="lazy"
+         alt="A 1922 lantern slide showing four hand-drawn wave traces on black glass, titled Wave Shapes">
+    <figcaption><strong>Wave shapes, compared by eye. Lantern slide, 1922.</strong>
+    Engineers have judged signals by laying their traces side by side for over a century.
+    The instruments changed; the method held. Slide preserved by Auckland War Memorial Museum
+    Tāmaki Paenga Hira, via Unsplash.</figcaption>
+  </figure>
+
   <!-- Proof -->
   <section class="panel">
+    <p class="sect-label">CH 05 · Evidence</p>
     <h2>What this plank proves</h2>
     <ul class="proof">
       <li><strong>Model selection as an engineering discipline:</strong> the same prompt, the same
-      parameters, four vendors side by side — with latency, tokens, and cost measured, not
+      parameters, four vendors side by side, with latency, tokens, and cost measured rather than
       estimated. The "cheapest capable model" conversation becomes evidence-based.</li>
-      <li><strong>One API, any model:</strong> Bedrock's Converse API means the fan-out is a loop,
-      not four integrations — swapping or adding a model is IAM + a config entry, which is exactly
-      the exit-ramp a government buyer should demand from a GenAI vendor.</li>
+      <li><strong>One API, any model:</strong> Bedrock's Converse API makes the fan-out a loop
+      rather than four integrations. Swapping or adding a model is IAM plus a config entry, which
+      is exactly the exit-ramp a government buyer should demand from a GenAI vendor.</li>
       <li><strong>Auditable by construction:</strong> every run is logged with its parameters,
-      token usage, and computed cost — the explainable audit trail responsible-AI policies require,
-      demonstrated rather than promised.</li>
-      <li><strong>Spend that cannot run away:</strong> Cognito gate with no self-signup and an
+      token usage, and computed cost. That is the explainable audit trail responsible-AI policies
+      require, demonstrated rather than promised.</li>
+      <li><strong>Spend that cannot run away:</strong> a Cognito gate with no self-signup and an
       unpublished credential, per-user and demo-wide daily run caps in DynamoDB, a hard
-      output-token ceiling, and a 5 rps edge throttle. Idle cost is $0; worst-case leaked-credential
-      day is a few dollars.</li>
+      output-token ceiling, and a 5 rps edge throttle. Idle cost is $0; a worst-case
+      leaked-credential day is a few dollars.</li>
       <li><strong>Grounding differences made visible:</strong> the refusal-test scenario shows which
-      models admit "the excerpt doesn't say" and which ones confidently invent — the single most
-      important behavior for civic AI.</li>
+      models admit "the excerpt doesn't say" and which ones confidently invent. For civic AI that
+      is the single most important behavior.</li>
     </ul>
   </section>
 
@@ -130,7 +162,7 @@
     <div>
       <p class="foot-brand">Alpenglow Model Workbench</p>
       <p class="foot-desc">A demonstration of foundation-model evaluation on Amazon Bedrock:
-      multi-vendor side-by-side comparison, measured cost and latency, and a full audit ledger —
+      multi-vendor side-by-side comparison, measured cost and latency, and a full audit ledger,
       behind a credential gate with hard daily spend caps.</p>
     </div>
     <div>
@@ -139,6 +171,8 @@
         <li>AWS: Bedrock (Converse API) · Lambda · API Gateway · Cognito · DynamoDB · S3 · CloudFront</li>
         <li>Models: Anthropic · Amazon · Meta · Mistral (cross-region inference profiles)</li>
         <li>Infrastructure as code: Terraform · Idle cost: $0</li>
+        <li>Hero photo: <a href="https://unsplash.com/photos/bxE-z_T87c0">Mitchell Y, Unsplash</a></li>
+        <li>1922 slide: <a href="https://unsplash.com/photos/c7izR0O9cOE">Auckland War Memorial Museum, Unsplash</a></li>
       </ul>
     </div>
     <div>
@@ -150,7 +184,7 @@
       </ul>
     </div>
   </div>
-  <div class="foot-bar">Fictional demo built by Planetek — not affiliated with any real government agency. Model outputs are unreviewed AI text.</div>
+  <div class="foot-bar">Fictional demo built by Planetek. Not affiliated with any real government agency. Model outputs are unreviewed AI text.</div>
 </footer>
 
 <script type="module" src="/app.js"></script>

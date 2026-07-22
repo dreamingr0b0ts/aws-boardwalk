@@ -32,9 +32,9 @@ export default function Stats() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
-      <h1 className="text-2xl font-bold text-pine-950 dark:text-pine-100">Permit office performance</h1>
+      <h1 className="font-display text-2xl font-bold text-pine-950 dark:text-pine-100">Permit office performance</h1>
       <p className="mt-1 max-w-2xl text-sm text-stone-500 dark:text-stone-400">
-        Published live from the permit system — the same numbers staff see. Transparency is policy in Alpenglow.
+        Published live from the permit system, the same numbers staff see. Transparency is policy in Alpenglow.
       </p>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

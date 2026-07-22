@@ -48,7 +48,7 @@ export default function Apply() {
       <div className="mx-auto max-w-xl px-4 py-16">
         <Card className="p-8 text-center">
           <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-emerald-100 text-2xl dark:bg-emerald-900/50">✓</div>
-          <h1 className="mt-4 text-2xl font-bold text-pine-950 dark:text-pine-100">Application submitted</h1>
+          <h1 className="mt-4 font-display text-2xl font-bold text-pine-950 dark:text-pine-100">Application submitted</h1>
           <p className="mt-2 text-stone-500 dark:text-stone-400">
             Your tracking ID is <span className="font-mono font-semibold text-pine-900">{submittedId}</span>. The
             permit office will begin review shortly.
@@ -68,7 +68,7 @@ export default function Apply() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
-      <h1 className="text-2xl font-bold text-pine-950 dark:text-pine-100">New permit application</h1>
+      <h1 className="font-display text-2xl font-bold text-pine-950 dark:text-pine-100">New permit application</h1>
 
       <ol className="mt-6 flex gap-2 text-xs font-bold">
         {(['Permit type', 'Details', 'Review & submit'] as const).map((label, i) => {
@@ -163,7 +163,7 @@ export default function Apply() {
             ))}
           </dl>
           <div className="mt-4 rounded-lg bg-pine-50 px-4 py-3 text-sm text-pine-900 dark:bg-pine-900/40 dark:text-pine-100">
-            Permit fee: <strong>{fmtMoney(selected.fee)}</strong> — due at issuance. (No payment is collected in this
+            Permit fee: <strong>{fmtMoney(selected.fee)}</strong>, due at issuance. (No payment is collected in this
             demo.)
           </div>
           <div className="mt-6 flex justify-between">

@@ -91,8 +91,8 @@ async function showChat() {
   refreshQuota();
   if (!$('messages').children.length) {
     addBot(
-      "Hi! I answer questions about the City of Alpenglow's permits, licenses, inspections, fees, " +
-        'and appeals — strictly from the demo knowledge base, with citations. Try: ' +
+      "Welcome in. Ask about the City of Alpenglow's permits, licenses, inspections, fees, " +
+        'or appeals. Answers come straight from the demo handbook, with citations. Try: ' +
         '"How much does a residential deck permit cost?"'
     );
   }
@@ -115,7 +115,7 @@ function renderQuota(q) {
 async function api(method, path, body) {
   if (!idToken || tokenExp * 1000 < Date.now()) {
     logout();
-    throw new Error('Session expired — please sign in again');
+    throw new Error('Session expired. Please sign in again.');
   }
   const res = await fetch(path, {
     method,
@@ -127,7 +127,7 @@ async function api(method, path, body) {
   });
   if (res.status === 401) {
     logout();
-    throw new Error('Session expired — please sign in again');
+    throw new Error('Session expired. Please sign in again.');
   }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.message || `Request failed (${res.status})`);
@@ -143,7 +143,7 @@ async function onAsk(e) {
   $('chat-btn').disabled = true;
 
   addMsg('user', question);
-  const pending = addBot('Searching the corpus…');
+  const pending = addBot('Consulting the records…');
   pending.classList.add('thinking');
 
   try {
@@ -188,7 +188,7 @@ function addAnswer(res) {
     const chip = document.createElement('span');
     chip.className = 'cite';
     chip.textContent = `[${c.n}] ${c.title} · ${c.section}`;
-    chip.title = `${c.doc} — retrieval similarity ${c.score}`;
+    chip.title = `${c.doc} · retrieval similarity ${c.score}`;
     meta.appendChild(chip);
   }
 

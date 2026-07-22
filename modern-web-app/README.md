@@ -45,6 +45,20 @@ Same-origin API: the SPA calls `/api/*` on its own hostname — CloudFront route
 
 **RBAC in layers:** unauthenticated routes are physically separate Lambda + read-only IAM role; citizen routes require a valid JWT; admin routes additionally require the `admin` group claim, enforced in code — and each Lambda's IAM role only permits the DynamoDB actions that function needs.
 
+## Design
+
+Each boardwalk plank carries its own visual identity; this one is a Colorado mountain-town civic
+portal. Photography-led hero with a layered SVG ridgeline cut, [Fraunces](https://github.com/undercasetype/Fraunces)
+(OFL, self-hosted via Fontsource) as the display face, and a pine/alpenglow palette. The strict CSP
+(`img-src 'self'`, `font-src 'self'`) means every image and font ships from the site bucket — no
+CDNs, no third-party requests.
+
+Photos are free-license images from Unsplash, resized and self-hosted:
+
+- Hero — Telluride, CO box canyon by [Daniel Ribar](https://unsplash.com/photos/Momc9B6BmZ8)
+- Transparency band — golden aspens by [Alex Moliski](https://unsplash.com/photos/128Xu1unqSg)
+- Sign-in header — aspen grove by [Royce Fonseca](https://unsplash.com/photos/1KJgY_ABptY)
+
 ## Runbook
 
 ```sh

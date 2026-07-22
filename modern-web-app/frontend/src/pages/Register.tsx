@@ -47,7 +47,7 @@ export default function Register() {
   return (
     <div className="mx-auto max-w-md px-4 py-14">
       <Card className="p-6">
-        <h1 className="text-xl font-bold text-pine-950 dark:text-pine-100">Create a resident account</h1>
+        <h1 className="font-display text-xl font-bold text-pine-950 dark:text-pine-100">Create a resident account</h1>
         <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">
           Real sign-up flow with email verification. Prefer not to? Use the{' '}
           <Link to="/login" className="font-semibold text-pine-700 dark:text-pine-300">
