@@ -55,6 +55,22 @@ The snapshot is deliberately static between refreshes (`make seed` re-pulls the 
 the manifest on the site shows the snapshot date. There is no nightly job — nothing a
 visitor does can write to the lake.
 
+## Design
+
+Plank identity: the lake survey. A data lake charted like a body of water:
+bathymetric-chart blues, survey-paper light mode, "the deep" after dark, one
+buoy-orange accent reserved for actions and emphasis. Depth-contour lines in the
+hero, a shallow-to-deep depth-tint scale as the section marker, and
+[Bricolage Grotesque](https://github.com/ateliertriay/bricolage) (OFL) for display
+type, vendored as static woff2 in `frontend/fonts/` (the CSP allows only
+self-hosted assets). Chart mark colors (#0b74ad/#c74e1e light, #2e9bc4/#e8632e
+dark) are validated for lightness band, chroma floor, CVD separation, and
+surface contrast in both color schemes.
+
+Hero photo: near-abstract deep navy ripples by
+[Liana S](https://unsplash.com/photos/7C6Xnao43LY) (Unsplash license), resized
+via CDN params and self-hosted in `frontend/images/`.
+
 ## Gotchas encoded here
 
 - **Athena CTAS caps at 100 partitions per query** — partitioning is by `decade`

@@ -103,7 +103,7 @@ export const catalog: CatalogEntry[] = [
     id: 'formations-recent',
     title: 'Formations by year since 2015',
     story:
-      'The WHERE clause names the partition key, so Athena prunes to the 2010s/2020s Parquet folders and never touches the other sixteen decades — watch the bytes-scanned number.',
+      'The WHERE clause names the partition key, so Athena prunes to the 2010s/2020s Parquet folders and never touches the other sixteen decades. Watch the bytes-scanned number.',
     zone: 'curated',
     sql: `SELECT form_year, count(*) AS formations
 FROM ${CURATED}
@@ -145,7 +145,7 @@ GROUP BY jurisdiction ORDER BY registrations DESC LIMIT 10`,
   {
     id: 'oldest-survivors',
     title: 'Oldest businesses still standing',
-    story: 'The longest-lived registrations still in Good Standing — some predate Colorado statehood (1876).',
+    story: 'The longest-lived registrations still in Good Standing; some predate Colorado statehood (1876).',
     zone: 'curated',
     sql: `SELECT entity_name, form_date, entity_type, city
 FROM ${CURATED}
@@ -154,7 +154,7 @@ ORDER BY form_date ASC LIMIT 10`,
   },
   {
     id: 'zone-curated',
-    title: 'Status counts — curated zone',
+    title: 'Status counts, curated zone',
     story: 'One half of the raw-vs-curated race: the same aggregation over partitioned Snappy Parquet. Columnar layout means Athena reads only the one column it needs.',
     zone: 'curated',
     sql: `SELECT status, count(*) AS entities
@@ -163,7 +163,7 @@ GROUP BY status ORDER BY entities DESC`,
   },
   {
     id: 'zone-raw',
-    title: 'Status counts — raw zone',
+    title: 'Status counts, raw zone',
     story: 'The other half of the race: the identical aggregation over the raw gzipped JSON. Row-oriented text means Athena must decompress and read every byte of every record.',
     zone: 'raw',
     sql: `SELECT entitystatus AS status, count(*) AS entities

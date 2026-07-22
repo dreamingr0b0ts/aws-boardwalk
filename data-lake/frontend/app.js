@@ -179,7 +179,7 @@ async function loadSummary() {
   $('p-ctas').textContent = `rebuilt in ${fmtMs(m.ctas.ms)}`;
   $('p-curated').textContent = `${fmtBytes(m.curated.bytes)} · ${m.curated.partitions} partitions`;
   $('dash-note').textContent =
-    `Rendered from aggregates the ETL precomputed into the analytics zone — a count(*) over the Parquet scans ${m.countScannedBytes === 0 ? 'zero bytes' : fmtBytes(m.countScannedBytes)} (the row-group metadata already knows).`;
+    `Rendered from aggregates the ETL precomputed into the analytics zone. A count(*) over the Parquet scans ${m.countScannedBytes === 0 ? 'zero bytes' : fmtBytes(m.countScannedBytes)} (the row-group metadata already knows).`;
 
   const years = s.formations_by_year.rows.map((r) => ({ x: +r[0], y: +r[1] }));
   const peak = columnChart($('chart-years'), years, 'new registrations');
@@ -245,7 +245,7 @@ function renderStats(r) {
   $('s-time').textContent = 'engine ' + fmtMs(r.stats.engineMs);
   $('s-cost').textContent = fmtCost(r.stats.estCostUsd);
   const c = $('s-cache');
-  c.textContent = r.cached ? 'cache hit — Athena not re-run' : 'live Athena execution';
+  c.textContent = r.cached ? 'cache hit: Athena not re-run' : 'live Athena execution';
   c.classList.toggle('hit', r.cached);
   $('qstats').hidden = false;
 }

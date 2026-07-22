@@ -5,7 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Colorado Business Data Lake · Planetek AWS Boardwalk</title>
 <meta name="description" content="A live serverless data lake: 3.1M real Colorado business registrations as raw JSON and curated partitioned Parquet, cataloged in Glue, queried by Athena SQL, rendered as a static BI dashboard. Plank 5 of the Planetek AWS Boardwalk.">
+<meta name="robots" content="noindex, nofollow">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Colorado Business Data Lake">
+<meta property="og:description" content="3.1M real Colorado business registrations in an S3 lake: raw JSON, curated Parquet, live Athena SQL billed by the byte, and a dashboard that renders for $0.">
+<meta property="og:url" content="https://data.demos.planetek.org/">
+<meta property="og:image" content="https://data.demos.planetek.org/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preload" href="/fonts/bricolage-700.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
@@ -14,8 +26,8 @@
   <div class="wrap">
     <p class="eyebrow">Planetek · AWS Boardwalk · Plank 5</p>
     <h1>Colorado Business Data Lake</h1>
-    <p class="lede">Every business ever registered with the Colorado Secretary of State — about 3.1 million,
-    back to 1864 — sitting in an S3 data lake you can query with live SQL. Raw records in one zone, curated
+    <p class="lede">Every business ever registered with the Colorado Secretary of State, about 3.1 million
+    back to 1864, sitting in an S3 data lake you can query with live SQL. Raw records in one zone, curated
     partitioned Parquet in another, a Glue catalog describing both, and Athena billing by the byte it scans.
     No database servers anywhere; the lake costs ~$0 while you're not looking at it.</p>
     <div class="hero-meta">
@@ -31,10 +43,11 @@
 
   <!-- The pipeline, with real numbers under each stage -->
   <section class="panel">
+    <p class="sect-label">Sounding 01 · The pipeline</p>
     <h2>From raw to ready</h2>
     <p class="muted">The classic lake shape, entirely serverless. An ingest job pages the source API into the
     raw zone; one Athena <code>CREATE TABLE AS SELECT</code> statement then cleans, types, and rewrites it as
-    partitioned Snappy Parquet — and registers the result in the Glue catalog. The dashboard below reads
+    partitioned Snappy Parquet, registering the result in the Glue catalog. The dashboard below reads
     aggregates the ETL precomputed, so rendering this page costs zero Athena.</p>
     <div class="pipeline" id="pipeline">
       <div class="stage"><span class="stage-what">data.colorado.gov</span><span class="stage-how">Secretary of State · CC0</span><span class="stage-fact" id="p-source">3.1M rows</span></div>
@@ -51,6 +64,7 @@
 
   <!-- BI dashboard from precomputed aggregates -->
   <section class="panel">
+    <p class="sect-label">Sounding 02 · The dashboard</p>
     <h2>The state of Colorado business</h2>
     <p class="muted" id="dash-note">Rendered from aggregates the ETL precomputed into the analytics zone.</p>
 
@@ -60,11 +74,11 @@
         <div id="chart-years" class="plot"></div>
       </figure>
       <figure class="chart">
-        <figcaption>What gets formed — entity types, all time</figcaption>
+        <figcaption>What gets formed: entity types, all time</figcaption>
         <div id="chart-types" class="plot"></div>
       </figure>
       <figure class="chart">
-        <figcaption>Where they stand today — status</figcaption>
+        <figcaption>Where they stand today: status</figcaption>
         <div id="chart-status" class="plot"></div>
       </figure>
       <figure class="chart">
@@ -72,7 +86,7 @@
         <div id="chart-cities" class="plot"></div>
       </figure>
       <figure class="chart">
-        <figcaption>Still standing — share of each year's cohort in Good Standing today</figcaption>
+        <figcaption>Still standing: share of each year's cohort in Good Standing today</figcaption>
         <div id="chart-survival" class="plot"></div>
       </figure>
     </div>
@@ -80,8 +94,9 @@
 
   <!-- Live SQL -->
   <section class="panel">
+    <p class="sect-label">Sounding 03 · Live SQL</p>
     <h2>Run live SQL on the lake</h2>
-    <p class="muted">These queries execute in Athena when you click — against the same 3.1M rows, inside a
+    <p class="muted">These queries execute in Athena when you click, against the same 3.1M rows, inside a
     workgroup that enforces a per-query scan cutoff. The stats underneath are Athena's own numbers: what it
     scanned, how long the engine ran, and what the query cost at $5 per terabyte scanned. Results cache for a
     few hours, and live executions are capped per day (<span id="usage-note">…</span>).</p>
@@ -107,9 +122,10 @@
 
   <!-- Raw vs curated -->
   <section class="panel">
+    <p class="sect-label">Sounding 04 · Raw vs curated</p>
     <h2>The raw-vs-curated race</h2>
     <p class="muted">The whole argument for a curated zone in one click: the identical
-    <code>GROUP BY status</code> aggregation runs twice — once over the raw gzipped JSON, once over the
+    <code>GROUP BY status</code> aggregation runs twice, once over the raw gzipped JSON and once over the
     partitioned Parquet. Columnar beats row-text on every number Athena reports.</p>
     <button id="race-btn" type="button">Run both in Athena</button>
     <p id="race-error" class="error" hidden></p>
@@ -130,6 +146,7 @@
 
   <!-- How it's built -->
   <section class="panel">
+    <p class="sect-label">Sounding 05 · The rigging</p>
     <h2>How this is built</h2>
     <div class="arch">
       <span class="chip">S3 raw / curated / analytics zones</span>
@@ -143,6 +160,7 @@
       <span class="chip">Terraform</span>
     </div>
     <p class="muted foot">Dataset: <a href="https://data.colorado.gov/Business/Business-Entities-in-Colorado/4ykn-tg5h" rel="noopener">Business Entities in Colorado</a> (CC0, Colorado Secretary of State), snapshot refreshed with the lake.
+    Hero photo: <a href="https://unsplash.com/photos/7C6Xnao43LY" rel="noopener">Liana S, Unsplash</a>.
     Part of the <a href="https://demos.planetek.org">Planetek AWS Boardwalk</a> · <a href="https://github.com/dreamingr0b0ts/aws-boardwalk" rel="noopener">source on GitHub</a>.</p>
   </section>
 

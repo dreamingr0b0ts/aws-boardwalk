@@ -1,40 +1,59 @@
-/* Shares the boardwalk design language: stone neutrals, pine greens, terracotta glow.
-   Chart mark colors are validated for lightness/chroma/CVD/contrast in both modes
-   (see dataviz notes in the repo). */
+/* Plank 5 identity: "the lake survey". A data lake charted like a body of
+   water: bathymetric-chart blues, survey-paper light mode, the deep after
+   dark, one buoy-orange accent for actions and emphasis. Decade partitions
+   read as depth strata. Chart mark colors are validated (lightness band,
+   chroma floor, CVD separation, contrast) on both surfaces with the dataviz
+   six-checks script. All assets self-hosted; the CSP allows nothing else. */
+
+@font-face {
+  font-family: "Bricolage Grotesque";
+  src: url("/fonts/bricolage-600.woff2") format("woff2");
+  font-weight: 600; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "Bricolage Grotesque";
+  src: url("/fonts/bricolage-700.woff2") format("woff2");
+  font-weight: 700; font-style: normal; font-display: swap;
+}
+
 :root {
-  --bg: #fafaf9;
-  --surface: #ffffff;
-  --border: #e7e5e4;
-  --ink: #1c1917;
-  --ink-2: #57534e;
-  --ink-3: #78716c;
-  --pine: #16302e;
-  --pine-deep: #0b1f1e;
-  --pine-mid: #2f615c;
-  --pine-soft: #dcebe8;
-  --glow: #e4532f;
-  --glow-soft: #fde5dc;
-  --chip-bg: #f5f5f4;
-  --chart-main: #0d8a6a;
-  --chart-accent: #e4532f;
-  --grid: #e7e5e4;
+  /* the chart room: survey paper, lake blue, buoy orange */
+  --bg: #ecf1f4;
+  --surface: #fafcfd;
+  --border: #d2dde4;
+  --ink: #13232f;
+  --ink-2: #3e5261;
+  --ink-3: #677d8c;
+  --deep: #0a1926;
+  --lake: #0b74ad;
+  --lake-soft: #dcebf4;
+  --buoy: #c74e1e;
+  --buoy-soft: #f7e2d8;
+  --chip-bg: #e4ebef;
+  --chart-main: #0b74ad;   /* validated: light surface #fafcfd */
+  --chart-accent: #c74e1e;
+  --grid: #dbe4ea;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0c0a09;
-    --surface: #1c1917;
-    --border: #292524;
-    --ink: #f5f5f4;
-    --ink-2: #d6d3d1;
-    --ink-3: #a8a29e;
-    --pine-soft: #16302e;
-    --glow-soft: rgba(228, 83, 47, .16);
-    --chip-bg: #292524;
-    --chart-main: #17a583;
-    --chart-accent: #e4532f;
-    --grid: #292524;
+    /* the deep: blue-black water, brighter marks */
+    --bg: #0a141d;
+    --surface: #101c27;
+    --border: #223140;
+    --ink: #e8eef3;
+    --ink-2: #bac8d2;
+    --ink-3: #8296a4;
+    --lake: #2e9bc4;
+    --lake-soft: rgba(46, 155, 196, 0.14);
+    --buoy: #e8632e;
+    --buoy-soft: rgba(232, 99, 46, 0.15);
+    --chip-bg: #182734;
+    --chart-main: #2e9bc4;   /* validated: dark surface #101c27 */
+    --chart-accent: #e8632e;
+    --grid: #1d2c39;
   }
 }
+
 * { box-sizing: border-box; margin: 0; }
 [hidden] { display: none !important; } /* beats the display:flex/grid on stat rows */
 body {
@@ -44,31 +63,77 @@ body {
 }
 .wrap { max-width: 980px; margin: 0 auto; padding: 0 20px; }
 
-header.hero { background: linear-gradient(180deg, var(--pine-deep), var(--pine)); color: #f2f7f6; padding: 56px 0 40px; }
-.eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: #f59e83; }
-h1 { font-size: clamp(30px, 5.5vw, 44px); line-height: 1.08; margin-top: 12px; font-weight: 800; }
-.hero .lede { margin-top: 14px; max-width: 720px; font-size: 17px; color: #b9d6d1; }
-.hero-meta { margin-top: 26px; display: flex; gap: 26px; flex-wrap: wrap; font-size: 13px; color: #8db9b3; }
-.hero-meta strong { display: block; color: #fff; font-size: 15px; }
+h1, h2, .stage-what, button, .foot-brand, figcaption {
+  font-family: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+}
 
-main { padding: 36px 0 24px; display: grid; gap: 20px; }
-.panel { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 24px; }
-h2 { font-size: 20px; font-weight: 800; margin-bottom: 8px; }
+/* ---- hero: the surface, sounded ---- */
+header.hero {
+  position: relative; color: #eef4f7; padding: 62px 0 46px;
+  background:
+    /* depth contours over the water */
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='420' viewBox='0 0 900 420'%3E%3Cg fill='none' stroke='%23bfe0ee' stroke-opacity='.14'%3E%3Cpath d='M-20 90 C160 60 300 130 470 100 S780 60 920 95'/%3E%3Cpath d='M-20 170 C180 135 330 210 500 175 S790 140 920 180'/%3E%3Cpath d='M-20 260 C170 220 340 300 520 258 S800 225 920 265'/%3E%3Cpath d='M-20 350 C190 310 350 390 530 350 S800 320 920 355'/%3E%3C/g%3E%3C/svg%3E") center / 900px 420px repeat,
+    linear-gradient(180deg, rgba(7, 17, 27, 0.82) 0%, rgba(7, 17, 27, 0.55) 50%, rgba(7, 17, 27, 0.86) 100%),
+    url("/images/hero-water-800.webp") center 60% / cover no-repeat #07111b;
+  /* depth-tint scale closes the hero: shallow to deep */
+  border-bottom: 9px solid transparent;
+  border-image: linear-gradient(180deg, #7fcbe3 0 3px, #2e9bc4 3px 6px, #0b5c8c 6px 9px) 1;
+}
+@media (min-width: 800px) {
+  header.hero { background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='420' viewBox='0 0 900 420'%3E%3Cg fill='none' stroke='%23bfe0ee' stroke-opacity='.14'%3E%3Cpath d='M-20 90 C160 60 300 130 470 100 S780 60 920 95'/%3E%3Cpath d='M-20 170 C180 135 330 210 500 175 S790 140 920 180'/%3E%3Cpath d='M-20 260 C170 220 340 300 520 258 S800 225 920 265'/%3E%3Cpath d='M-20 350 C190 310 350 390 530 350 S800 320 920 355'/%3E%3C/g%3E%3C/svg%3E"),
+    linear-gradient(180deg, rgba(7, 17, 27, 0.82) 0%, rgba(7, 17, 27, 0.5) 50%, rgba(7, 17, 27, 0.86) 100%),
+    url("/images/hero-water-1200.webp"); }
+}
+@media (min-width: 1400px) {
+  header.hero { background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='420' viewBox='0 0 900 420'%3E%3Cg fill='none' stroke='%23bfe0ee' stroke-opacity='.14'%3E%3Cpath d='M-20 90 C160 60 300 130 470 100 S780 60 920 95'/%3E%3Cpath d='M-20 170 C180 135 330 210 500 175 S790 140 920 180'/%3E%3Cpath d='M-20 260 C170 220 340 300 520 258 S800 225 920 265'/%3E%3Cpath d='M-20 350 C190 310 350 390 530 350 S800 320 920 355'/%3E%3C/g%3E%3C/svg%3E"),
+    linear-gradient(180deg, rgba(7, 17, 27, 0.82) 0%, rgba(7, 17, 27, 0.5) 50%, rgba(7, 17, 27, 0.86) 100%),
+    url("/images/hero-water-2000.webp"); }
+}
+.eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: #7fcbe3; }
+h1 { font-size: clamp(31px, 5.5vw, 47px); line-height: 1.05; margin-top: 12px; font-weight: 700; letter-spacing: -0.01em; }
+.hero .lede { margin-top: 15px; max-width: 720px; font-size: 17px; color: #b6cbd8; }
+
+.hero-meta { margin-top: 28px; display: flex; gap: 12px; flex-wrap: wrap; font-size: 11.5px; }
+.hero-meta > div {
+  min-width: 130px; padding: 9px 14px 8px; letter-spacing: 0.06em; text-transform: uppercase;
+  color: #8fb0c2; background: rgba(6, 15, 24, 0.55); border: 1px solid rgba(127, 203, 227, 0.28);
+  border-left: 3px solid #2e9bc4; border-radius: 6px;
+}
+.hero-meta strong {
+  display: block; color: #7fcbe3; font-size: 17px; letter-spacing: 0;
+  font-family: "Bricolage Grotesque", sans-serif; font-variant-numeric: tabular-nums; margin-bottom: 2px;
+}
+
+main { padding: 38px 0 30px; display: grid; gap: 22px; }
+.panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 26px 24px 24px; }
+
+.sect-label {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--lake); margin-bottom: 10px;
+}
+.sect-label::before {
+  content: ""; width: 9px; height: 12px; border-radius: 2px;
+  background: linear-gradient(180deg, #7fcbe3 0 4px, #2e9bc4 4px 8px, #0b5c8c 8px 12px);
+}
+h2 { font-size: 21px; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.01em; }
 .muted { color: var(--ink-3); font-size: 14px; }
-.error { color: var(--glow); font-size: 14px; font-weight: 600; margin-top: 10px; }
-a { color: var(--glow); font-weight: 600; }
-code { font-size: .9em; background: var(--chip-bg); padding: 1px 5px; border-radius: 5px; }
+.error { color: var(--buoy); font-size: 14px; font-weight: 600; margin-top: 10px; }
+a { color: var(--lake); font-weight: 600; }
+code { font-size: 0.9em; background: var(--chip-bg); padding: 1px 5px; border-radius: 5px; }
 
-/* ---- pipeline strip ---- */
+/* ---- pipeline strip: source to shore ---- */
 .pipeline { margin-top: 18px; display: flex; align-items: stretch; gap: 8px; flex-wrap: wrap; }
 .stage {
   flex: 1 1 150px; min-width: 150px; display: flex; flex-direction: column; gap: 2px;
-  border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; background: var(--bg);
+  border: 1px solid var(--border); border-top: 3px solid var(--lake);
+  border-radius: 10px; padding: 12px 14px; background: var(--bg);
 }
 .stage-what { font-weight: 700; font-size: 14px; }
 .stage-how { font-size: 12px; color: var(--ink-3); }
-.stage-fact { margin-top: 6px; font-size: 13px; font-weight: 700; color: var(--pine-mid); }
-@media (prefers-color-scheme: dark) { .stage-fact { color: var(--chart-main); } }
+.stage-fact { margin-top: 6px; font-size: 13px; font-weight: 700; color: var(--lake); font-variant-numeric: tabular-nums; }
 .arrow { align-self: center; color: var(--ink-3); font-weight: 700; }
 
 /* ---- charts ---- */
@@ -76,7 +141,7 @@ code { font-size: .9em; background: var(--chip-bg); padding: 1px 5px; border-rad
 .chart.wide { grid-column: 1 / -1; }
 @media (max-width: 720px) { .chart-grid { grid-template-columns: 1fr; } }
 figure.chart { margin: 0; }
-figcaption { font-size: 13px; font-weight: 700; color: var(--ink-2); margin-bottom: 8px; }
+figcaption { font-size: 13.5px; font-weight: 600; color: var(--ink-2); margin-bottom: 8px; }
 .cap-note { font-weight: 600; color: var(--ink-3); }
 .plot svg { display: block; width: 100%; height: auto; }
 .plot text { font: 11px ui-sans-serif, system-ui, sans-serif; fill: var(--ink-3); }
@@ -86,42 +151,47 @@ figcaption { font-size: 13px; font-weight: 700; color: var(--ink-2); margin-bott
 
 .tooltip {
   position: fixed; z-index: 10; pointer-events: none;
-  background: var(--ink); color: var(--bg);
+  background: var(--deep); color: #e8eef3;
   font-size: 12px; font-weight: 600; line-height: 1.4;
   padding: 6px 9px; border-radius: 7px; max-width: 260px;
-  box-shadow: 0 4px 14px rgba(0,0,0,.25);
+  border: 1px solid rgba(127, 203, 227, 0.3);
+  box-shadow: 0 4px 14px rgba(4, 12, 20, 0.35);
 }
-.tooltip small { display: block; font-weight: 400; opacity: .75; }
+.tooltip small { display: block; font-weight: 400; opacity: 0.75; }
 
 /* ---- live SQL ---- */
 .qpick { margin-top: 16px; display: flex; gap: 8px; flex-wrap: wrap; }
 .qpick button {
   border: 1px solid var(--border); background: var(--chip-bg); color: var(--ink-2);
-  font: 600 13px/1 inherit; font-family: inherit; padding: 8px 12px; border-radius: 999px; cursor: pointer;
+  font: 600 13px/1 inherit; font-family: inherit; padding: 8px 12px; border-radius: 8px; cursor: pointer;
 }
-.qpick button[aria-selected="true"] { background: var(--pine-soft); border-color: var(--pine-mid); color: var(--ink); }
+.qpick button[aria-selected="true"] { background: var(--lake-soft); border-color: var(--lake); color: var(--ink); }
 .qbox { margin-top: 14px; }
 .qstory { margin-bottom: 8px; }
 pre.sql {
-  background: var(--pine-deep); color: #cfe6e1; font: 12.5px/1.55 ui-monospace, "SF Mono", Menlo, monospace;
+  background: var(--deep); color: #bfe0ee; font: 12.5px/1.55 ui-monospace, "SF Mono", Menlo, monospace;
   padding: 14px 16px; border-radius: 10px; overflow-x: auto; white-space: pre;
+  border-left: 3px solid var(--lake);
 }
+pre.sql code { background: none; padding: 0; font-size: inherit; }
 .qrun { margin-top: 12px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 button#run-btn, button#race-btn {
-  background: var(--glow); color: #fff; border: 0; border-radius: 9px;
-  font: 700 14px/1 inherit; font-family: inherit; padding: 11px 18px; cursor: pointer;
+  background: var(--buoy); color: #fff7f2; border: 0; border-radius: 9px;
+  font-weight: 700; font-size: 14px; padding: 11px 18px; cursor: pointer;
 }
-button#run-btn:disabled, button#race-btn:disabled { opacity: .55; cursor: wait; }
+button#run-btn:hover, button#race-btn:hover { filter: brightness(1.08); }
+button#run-btn:disabled, button#race-btn:disabled { opacity: 0.55; cursor: wait; }
 .qstats { display: flex; gap: 8px; flex-wrap: wrap; }
 .chip {
   display: inline-block; background: var(--chip-bg); border: 1px solid var(--border);
   color: var(--ink-2); font-size: 12.5px; font-weight: 600; padding: 5px 10px; border-radius: 999px;
+  font-variant-numeric: tabular-nums;
 }
-.chip.hit { background: var(--pine-soft); border-color: var(--pine-mid); }
+.chip.hit { background: var(--lake-soft); border-color: var(--lake); }
 .results-scroll { margin-top: 14px; overflow-x: auto; }
 table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
 th, td { text-align: left; padding: 7px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
-th { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-3); }
+th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-3); }
 td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 
 /* ---- race ---- */
@@ -129,7 +199,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .race-row { display: grid; grid-template-columns: 130px 1fr 190px; align-items: center; gap: 12px; }
 .race-label { font-size: 13px; font-weight: 700; color: var(--ink-2); }
 .race-track { background: var(--chip-bg); border-radius: 6px; height: 18px; overflow: hidden; }
-.race-fill { height: 100%; border-radius: 0 4px 4px 0; width: 0; transition: width .6s ease; }
+.race-fill { height: 100%; border-radius: 0 4px 4px 0; width: 0; transition: width 0.6s ease; }
 .race-fill.raw { background: var(--chart-accent); }
 .race-fill.cur { background: var(--chart-main); }
 .race-num { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
@@ -139,3 +209,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 /* ---- footer panel ---- */
 .arch { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
 .foot { margin-top: 16px; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}

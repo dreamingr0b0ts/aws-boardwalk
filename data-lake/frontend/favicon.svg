@@ -1,8 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="14" fill="#0b1f1e"/>
-  <rect x="12" y="14" width="40" height="9" rx="4.5" fill="#e4532f"/>
-  <rect x="12" y="27" width="40" height="9" rx="4.5" fill="#2f9e85"/>
-  <rect x="12" y="40" width="26" height="9" rx="4.5" fill="#dcebe8"/>
-  <circle cx="46" cy="44.5" r="5" fill="none" stroke="#dcebe8" stroke-width="3"/>
-  <line x1="49.5" y1="48" x2="54" y2="52.5" stroke="#dcebe8" stroke-width="3" stroke-linecap="round"/>
+  <rect width="64" height="64" rx="14" fill="#07111b"/>
+  <rect x="1" y="1" width="62" height="62" rx="13" fill="none" stroke="#223140" stroke-width="1"/>
+  <!-- depth contours -->
+  <g fill="none" stroke-linecap="round">
+    <path d="M10 20 C20 14 32 24 42 18 S54 16 56 19" stroke="#7fcbe3" stroke-width="4"/>
+    <path d="M8 32 C20 26 34 38 46 30 S55 29 57 32" stroke="#2e9bc4" stroke-width="4"/>
+    <path d="M10 44 C22 39 34 50 45 43 S54 42 56 45" stroke="#0b5c8c" stroke-width="4"/>
+  </g>
+  <!-- the buoy: where the query drops in -->
+  <circle cx="47" cy="17" r="5" fill="#e8632e"/>
 </svg>
