@@ -81,7 +81,7 @@ async function submit(event: Parameters<ReturnType<typeof router>>[0]) {
 
   const matches = [`category=${category} → ${category} queue`, 'all requests → SNS fan-out'];
   if (priority === 'urgent') matches.push('priority=urgent → escalation workflow');
-  await addHop(requestId, 'published', `published to the evt-bus — matched rules: ${matches.join('; ')}`, 'api');
+  await addHop(requestId, 'published', `published to the evt-bus; matched rules: ${matches.join('; ')}`, 'api');
   await bumpStats(['events']);
 
   return json(202, { requestId, shortId: shortId(requestId) });
@@ -165,7 +165,7 @@ async function redrive(event: Parameters<ReturnType<typeof router>>[0]) {
   } catch (err: unknown) {
     // Racing a second click, or an empty DLQ — both fine to surface gently.
     console.error('redrive', err);
-    throw new HttpError(409, 'Redrive not started — the DLQ may be empty or a move is already running');
+    throw new HttpError(409, 'Redrive not started; the DLQ may be empty or a move is already running');
   }
   await bumpStats(['redrives']);
   return json(202, { started: true, queue: dept });

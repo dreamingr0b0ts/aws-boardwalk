@@ -15,7 +15,7 @@ export async function handler(event: SNSEvent): Promise<void> {
     await addHop(
       detail.requestId,
       'notified',
-      'citizen confirmation dispatched from the SNS topic (Lambda subscriber) — production would send email/SMS here',
+      'citizen confirmation dispatched from the SNS topic (Lambda subscriber); production would send email/SMS here',
       'notifier'
     );
     await bumpStats(['notifications']);

@@ -1,134 +1,270 @@
-/* Shares the boardwalk design language: stone neutrals, pine greens, terracotta glow. */
+/* Plank 3 identity: "the switchyard" — Alpenglow's narrow-gauge classification
+   yard, run from an illuminated CTC dispatch board. Dark mode is the board at
+   night (steel green-black, lamp amber/green/red); light mode is the employee
+   timetable (warm ivory paper, railroad rules). Node states map to signal
+   aspects: done = clear (green), in flight = approach (amber), fail = stop. */
+
+@font-face {
+  font-family: 'Barlow Condensed';
+  src: url('/fonts/barlow-condensed-latin-500-normal.woff2') format('woff2');
+  font-weight: 500; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Barlow Condensed';
+  src: url('/fonts/barlow-condensed-latin-700-normal.woff2') format('woff2');
+  font-weight: 700; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Barlow';
+  src: url('/fonts/barlow-latin-400-normal.woff2') format('woff2');
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Barlow';
+  src: url('/fonts/barlow-latin-600-normal.woff2') format('woff2');
+  font-weight: 600; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Spline Sans Mono';
+  src: url('/fonts/spline-sans-mono-latin-400-normal.woff2') format('woff2');
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Spline Sans Mono';
+  src: url('/fonts/spline-sans-mono-latin-600-normal.woff2') format('woff2');
+  font-weight: 600; font-style: normal; font-display: swap;
+}
+
 :root {
-  --bg: #fafaf9;
-  --surface: #ffffff;
-  --border: #e7e5e4;
-  --ink: #1c1917;
-  --ink-2: #57534e;
-  --ink-3: #78716c;
-  --pine: #16302e;
-  --pine-deep: #0b1f1e;
-  --pine-mid: #2f615c;
-  --pine-soft: #dcebe8;
-  --glow: #e4532f;
-  --glow-soft: #fde5dc;
-  --chip-bg: #f5f5f4;
+  /* the employee timetable: warm ivory paper, black ink, brass and signal inks */
+  --bg: #f4f1e6;
+  --surface: #fcfaf2;
+  --surface-2: #ede8d8;
+  --border: #ddd5bf;
+  --rail: #8a8268;
+  --tie: #c9c1a6;
+  --ink: #211d14;
+  --ink-2: #524c3b;
+  --ink-3: #7d7663;
+  --clear: #1a7a4d;
+  --clear-soft: rgba(26, 122, 77, .12);
+  --approach: #a6720e;
+  --approach-soft: rgba(166, 114, 14, .14);
+  --stop: #b53a36;
+  --stop-soft: rgba(181, 58, 54, .12);
+  --brass: #9c6a0d;
+  --cta: #9c6a0d;
+  --cta-ink: #fffdf4;
+  --lamp-off: #cfc7ae;
+  --plate-bg: #202920;
+  --plate-ink: #ede8d8;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0c0a09;
-    --surface: #1c1917;
-    --border: #292524;
-    --ink: #f5f5f4;
-    --ink-2: #d6d3d1;
-    --ink-3: #a8a29e;
-    --pine-soft: #16302e;
-    --glow-soft: rgba(228, 83, 47, .16);
-    --chip-bg: #292524;
+    /* the CTC board at night: steel green-black panel, lamp light */
+    --bg: #0a0f0c;
+    --surface: #121812;
+    --surface-2: #0d130e;
+    --border: #263024;
+    --rail: #4d5a45;
+    --tie: #2b3527;
+    --ink: #ece9db;
+    --ink-2: #c2beab;
+    --ink-3: #8c8874;
+    --clear: #43bd80;
+    --clear-soft: rgba(67, 189, 128, .13);
+    --approach: #eeb045;
+    --approach-soft: rgba(238, 176, 69, .13);
+    --stop: #e05a52;
+    --stop-soft: rgba(224, 90, 82, .14);
+    --brass: #d9a94e;
+    --cta: #eeb045;
+    --cta-ink: #191104;
+    --lamp-off: #333d30;
+    --plate-bg: #161d15;
+    --plate-ink: #d9d5c4;
   }
 }
+
 * { box-sizing: border-box; margin: 0; }
 body {
   background: var(--bg); color: var(--ink);
-  font: 16px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font: 16px/1.55 'Barlow', ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 .wrap { max-width: 980px; margin: 0 auto; padding: 0 20px; }
 
-header.hero { background: linear-gradient(180deg, var(--pine-deep), var(--pine)); color: #f2f7f6; padding: 56px 0 40px; }
-.eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: #f59e83; }
-h1 { font-size: clamp(30px, 5.5vw, 44px); line-height: 1.08; margin-top: 12px; font-weight: 800; }
-.hero .lede { margin-top: 14px; max-width: 700px; font-size: 17px; color: #b9d6d1; }
-.hero-meta { margin-top: 26px; display: flex; gap: 26px; flex-wrap: wrap; font-size: 13px; color: #8db9b3; }
-.hero-meta strong { display: block; color: #fff; font-size: 15px; }
+/* ---- hero: the yard at the head of the valley ---- */
+header.hero {
+  position: relative; color: #f0ede1; padding: 64px 0 46px;
+  background:
+    linear-gradient(180deg, rgba(7, 12, 9, .62) 0%, rgba(7, 12, 9, .5) 45%, rgba(8, 13, 10, .88) 100%),
+    url('/img/hero-1600.webp') center 38% / cover no-repeat #0a0f0c;
+}
+@media (max-width: 720px) {
+  header.hero { background-image:
+    linear-gradient(180deg, rgba(7, 12, 9, .66) 0%, rgba(7, 12, 9, .52) 45%, rgba(8, 13, 10, .9) 100%),
+    url('/img/hero-800.webp'); }
+}
+.eyebrow {
+  font-family: 'Barlow Condensed', 'Barlow', sans-serif; font-weight: 500;
+  font-size: 15px; letter-spacing: .24em; text-transform: uppercase; color: #ecc06a;
+}
+h1 {
+  font-family: 'Barlow Condensed', 'Barlow', sans-serif; font-weight: 700;
+  font-size: clamp(38px, 7vw, 62px); line-height: 1.02; margin-top: 10px;
+  text-transform: uppercase; letter-spacing: .015em;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, .45);
+}
+.hero .lede { margin-top: 16px; max-width: 680px; font-size: 17px; color: #d8d4c2; text-shadow: 0 1px 12px rgba(0, 0, 0, .5); }
+.hero-meta {
+  margin-top: 30px; display: flex; gap: 12px 30px; flex-wrap: wrap;
+  font-family: 'Spline Sans Mono', ui-monospace, monospace;
+  font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: #a8a48e;
+}
+.hero-meta strong { display: block; color: #f5c96b; font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
 
-main { padding: 36px 0 24px; display: grid; gap: 20px; }
-.panel { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 24px; }
-h2 { font-size: 20px; font-weight: 800; margin-bottom: 8px; }
-h4 { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3); margin: 22px 0 8px; }
+/* track divider: two rails and crossties, closing the hero and topping the footer */
+.track {
+  height: 13px; border-top: 2px solid var(--rail); border-bottom: 2px solid var(--rail);
+  background: repeating-linear-gradient(90deg, var(--tie) 0 3px, transparent 3px 14px);
+}
+header.hero + .track { border-color: #6d6748; background: repeating-linear-gradient(90deg, #3b3a2c 0 3px, transparent 3px 14px); }
+
+main { padding: 36px 0 24px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; }
+.panel { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 26px 24px 24px; }
+
+/* section plates: numbered like board panels */
+.plate {
+  display: inline-block; font-family: 'Spline Sans Mono', ui-monospace, monospace;
+  font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase;
+  background: var(--plate-bg); color: var(--plate-ink);
+  padding: 3px 10px; border-radius: 2px; margin-bottom: 12px;
+}
+h2 {
+  font-family: 'Barlow Condensed', 'Barlow', sans-serif; font-weight: 700;
+  font-size: 27px; letter-spacing: .01em; text-transform: uppercase; margin-bottom: 8px;
+}
+h4 {
+  font-family: 'Spline Sans Mono', ui-monospace, monospace;
+  font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .1em;
+  color: var(--ink-3); margin: 24px 0 8px;
+}
 .muted { color: var(--ink-3); font-size: 14px; }
-.error { color: var(--glow); font-size: 14px; font-weight: 600; margin-top: 10px; }
-a { color: var(--glow); font-weight: 600; }
-code { font-size: .9em; background: var(--chip-bg); padding: 1px 5px; border-radius: 5px; }
+.error { color: var(--stop); font-size: 14px; font-weight: 600; margin-top: 10px; }
+a { color: var(--brass); font-weight: 600; }
+code { font-family: 'Spline Sans Mono', ui-monospace, monospace; font-size: .88em; background: var(--surface-2); padding: 1px 5px; border-radius: 3px; }
+pre code { background: none; }
 
-/* ---- submit form ---- */
+/* ---- submit form (the yard office window) ---- */
 form#submit-form { margin-top: 16px; display: grid; gap: 16px; }
 .seg { border: 0; padding: 0; display: flex; gap: 8px; flex-wrap: wrap; }
-.seg legend { font-size: 13px; font-weight: 700; color: var(--ink-2); margin-bottom: 8px; }
+.seg legend { font-size: 13px; font-weight: 600; color: var(--ink-2); margin-bottom: 8px; }
 .seg label { cursor: pointer; }
 .seg input { position: absolute; opacity: 0; }
 .seg span {
-  display: inline-block; padding: 8px 16px; border-radius: 999px; font-size: 14px; font-weight: 600;
-  border: 1px solid var(--border); background: var(--chip-bg); color: var(--ink-2);
+  display: inline-block; padding: 8px 16px; border-radius: 3px;
+  font-family: 'Barlow Condensed', sans-serif; font-size: 16px; font-weight: 500;
+  letter-spacing: .05em; text-transform: uppercase;
+  border: 1px solid var(--border); background: var(--surface-2); color: var(--ink-2);
 }
-.seg input:checked + span { background: var(--pine); border-color: var(--pine); color: #f2f7f6; }
-.seg input:focus-visible + span { outline: 2px solid var(--pine-mid); }
+.seg input:checked + span { background: var(--plate-bg); border-color: var(--plate-bg); color: var(--plate-ink); }
+.seg input:focus-visible + span { outline: 2px solid var(--approach); }
 
-label.txt { font-size: 13px; font-weight: 700; color: var(--ink-2); display: grid; gap: 5px; }
+label.txt { font-size: 13px; font-weight: 600; color: var(--ink-2); display: grid; gap: 5px; }
 textarea {
-  font: inherit; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--border);
+  font: inherit; padding: 9px 12px; border-radius: 3px; border: 1px solid var(--border);
   background: var(--bg); color: var(--ink); resize: vertical;
 }
-textarea:focus { outline: 2px solid var(--pine-mid); border-color: transparent; }
+textarea:focus { outline: 2px solid var(--approach); border-color: transparent; }
 
 .toggles { display: grid; gap: 10px; }
 .toggle { display: flex; gap: 10px; align-items: start; font-size: 13px; color: var(--ink-2); cursor: pointer; }
-.toggle input { margin-top: 3px; accent-color: var(--glow); }
+.toggle input { margin-top: 3px; accent-color: var(--stop); }
 
 button {
-  font: inherit; font-weight: 700; padding: 10px 18px; border-radius: 10px; border: 0;
-  background: var(--glow); color: #fff; cursor: pointer; justify-self: start;
+  font-family: 'Barlow Condensed', sans-serif; font-size: 17px; font-weight: 700;
+  letter-spacing: .07em; text-transform: uppercase;
+  padding: 10px 20px; border-radius: 3px; border: 0;
+  background: var(--cta); color: var(--cta-ink); cursor: pointer; justify-self: start;
 }
-button:hover { filter: brightness(1.08); }
+button:hover { filter: brightness(1.07); }
 button:disabled { opacity: .5; cursor: wait; }
 
-/* ---- the mesh map ---- */
+/* ---- the board: an illuminated track schematic ---- */
 .map-head { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; flex-wrap: wrap; }
-.mesh { margin-top: 18px; display: grid; gap: 10px; }
+.map-head .muted { font-family: 'Spline Sans Mono', ui-monospace, monospace; font-size: 12.5px; }
+.mesh {
+  margin-top: 18px; display: grid; gap: 10px;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 3px;
+  padding: 16px 14px;
+}
 .lane { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.lane.entry { padding-bottom: 6px; border-bottom: 1px dashed var(--border); }
-.lane-tag { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-3); margin-top: 10px; }
-.arr { color: var(--ink-3); font-size: 14px; }
+.lane.entry { padding-bottom: 10px; border-bottom: 1px dashed var(--rail); }
+.lane-tag {
+  font-family: 'Spline Sans Mono', ui-monospace, monospace;
+  font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .12em;
+  color: var(--ink-3); margin-top: 10px;
+}
+.arr { color: var(--rail); font-size: 14px; }
 .stack { display: grid; gap: 6px; }
 
+/* nodes are board plates; each carries a signal lamp in its corner */
 .node {
-  display: inline-grid; gap: 1px; padding: 7px 14px; border-radius: 10px; font-size: 13px; font-weight: 700;
-  border: 1.5px solid var(--border); background: var(--chip-bg); color: var(--ink-3);
+  position: relative; display: inline-grid; gap: 1px; padding: 7px 14px 7px 24px;
+  border-radius: 3px; font-family: 'Spline Sans Mono', ui-monospace, monospace;
+  font-size: 12.5px; font-weight: 600;
+  border: 1px solid var(--border); background: var(--surface); color: var(--ink-3);
   transition: all .25s ease;
 }
-.node small { font-size: 11px; font-weight: 400; color: var(--ink-3); }
-.node.rule { border-style: dashed; border-radius: 999px; }
-.node.hub { border-width: 2px; }
-.node.step { border-radius: 8px; padding: 5px 12px; }
-
-.node.lit {
-  border-color: var(--glow); color: var(--ink); background: var(--glow-soft);
-  animation: pulse 1.1s ease-in-out infinite;
+.node::before {
+  content: ""; position: absolute; left: 9px; top: 12px; width: 7px; height: 7px;
+  border-radius: 50%; background: var(--lamp-off); transition: all .25s ease;
 }
-.node.done { border-color: var(--pine-mid); background: var(--pine-soft); color: var(--ink); }
-.node.done small { color: var(--pine-mid); }
-.node.fail { border-color: var(--glow); background: var(--glow-soft); color: var(--glow); }
-@keyframes pulse { 50% { box-shadow: 0 0 0 5px var(--glow-soft); } }
-@media (prefers-color-scheme: dark) { .node.done small { color: #8db9b3; } }
+.node small { font-size: 10.5px; font-weight: 400; color: var(--ink-3); }
+.node.rule { border-style: dashed; background: transparent; }
+.node.hub { border-width: 2px; border-color: var(--rail); }
+.node.step { padding: 5px 12px 5px 22px; }
+.node.step::before { top: 10px; }
+
+/* signal aspects */
+.node.lit {
+  border-color: var(--approach); color: var(--ink); background: var(--approach-soft);
+}
+.node.lit::before { background: var(--approach); box-shadow: 0 0 8px 1px var(--approach); animation: lamp 1.1s ease-in-out infinite; }
+.node.done { border-color: var(--clear); background: var(--clear-soft); color: var(--ink); }
+.node.done::before { background: var(--clear); box-shadow: 0 0 6px 0 var(--clear); }
+.node.done small { color: var(--clear); }
+.node.fail { border-color: var(--stop); background: var(--stop-soft); color: var(--stop); }
+.node.fail::before { background: var(--stop); box-shadow: 0 0 8px 1px var(--stop); }
+@keyframes lamp { 50% { box-shadow: 0 0 2px 0 var(--approach); } }
+@media (prefers-reduced-motion: reduce) {
+  .node.lit::before, .node.dlq.fail::before { animation: none; }
+}
 
 .sfn-box {
-  display: grid; gap: 6px; padding: 8px 12px 10px; border: 1.5px solid var(--border);
-  border-radius: 12px; background: var(--bg);
+  display: grid; gap: 6px; padding: 8px 12px 10px; border: 1px solid var(--rail);
+  border-radius: 3px; background: var(--surface);
 }
-.sfn-title { font-size: 11px; font-weight: 700; color: var(--ink-3); }
+.sfn-title {
+  font-family: 'Spline Sans Mono', ui-monospace, monospace;
+  font-size: 10.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--ink-3);
+}
 .sfn-steps { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.retry-note { color: var(--glow); font-weight: 800; }
+.retry-note { color: var(--approach); font-weight: 600; }
 
 .dlq-strip {
   display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-  margin-left: 24px; padding-left: 14px; border-left: 2px dashed var(--border);
+  margin-left: 24px; padding-left: 14px; border-left: 2px dashed var(--stop);
 }
 .node.dlq { border-style: dashed; }
-.node.dlq.fail { animation: pulse 1.1s ease-in-out infinite; }
+.node.dlq.fail::before { animation: lamp-stop 1.1s ease-in-out infinite; }
+@keyframes lamp-stop { 50% { box-shadow: 0 0 2px 0 var(--stop); } }
 .dlq-actions { display: flex; gap: 8px; }
-.dlq-actions button { font-size: 12px; padding: 6px 12px; background: var(--pine-mid); }
+.dlq-actions button { font-size: 14px; padding: 6px 12px; background: var(--clear); color: #fff; }
 
-/* ---- hop timeline ---- */
+/* ---- hop timeline: the train sheet ---- */
 .hops { margin: 0; padding: 0; list-style: none; display: grid; gap: 0; }
 .hops li {
   position: relative; padding: 6px 0 6px 30px; font-size: 14px;
@@ -136,47 +272,60 @@ button:disabled { opacity: .5; cursor: wait; }
 }
 .hops li::before {
   content: ""; position: absolute; left: 8px; top: 12px; width: 10px; height: 10px;
-  border-radius: 50%; border: 2px solid var(--pine-mid); background: var(--pine-mid);
+  border-radius: 50%; border: 2px solid var(--clear); background: var(--clear);
 }
-.hops li.fail::before { border-color: var(--glow); background: var(--glow-soft); }
-.hops li .h { font-weight: 700; }
-.hops li.fail .h { color: var(--glow); }
+.hops li.fail::before { border-color: var(--stop); background: var(--stop-soft); }
+.hops li .h { font-family: 'Spline Sans Mono', ui-monospace, monospace; font-weight: 600; font-size: 13px; }
+.hops li.fail .h { color: var(--stop); }
 .hops li .n { color: var(--ink-2); font-size: 13px; flex: 1 1 280px; }
-.hops li .t { font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.hops li .t { font-family: 'Spline Sans Mono', ui-monospace, monospace; font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
 
-/* ---- activity feed ---- */
-.feed { margin-top: 14px; display: grid; gap: 8px; }
+/* ---- activity feed: the arrivals board ---- */
+.feed { margin-top: 14px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
 .req-row {
   display: flex; gap: 10px; align-items: center; flex-wrap: wrap; text-align: left; font: inherit;
-  background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px;
+  min-width: 0; max-width: 100%;
+  background: var(--bg); border: 1px solid var(--border); border-left: 3px solid var(--border);
+  border-radius: 3px; padding: 10px 14px;
   color: var(--ink); cursor: pointer; justify-self: stretch;
+  text-transform: none; letter-spacing: normal;
 }
-.req-row:hover { border-color: var(--pine-mid); }
-.req-row.selected { border-color: var(--pine-mid); background: var(--pine-soft); }
-.req-row .id { font-weight: 800; font-size: 13px; }
-.req-row .desc { flex: 1 1 240px; font-size: 13px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.req-row .age { font-size: 12px; color: var(--ink-3); }
+.req-row:hover { border-color: var(--rail); border-left-color: var(--approach); }
+.req-row.selected { border-color: var(--clear); border-left-color: var(--clear); background: var(--clear-soft); }
+.req-row .id { font-family: 'Spline Sans Mono', ui-monospace, monospace; font-weight: 600; font-size: 13px; }
+.req-row .desc { flex: 1 1 140px; min-width: 0; font-size: 13px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.req-row .age { font-family: 'Spline Sans Mono', ui-monospace, monospace; font-size: 11.5px; color: var(--ink-3); }
 
 .badge {
-  display: inline-block; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em;
-  padding: 2px 9px; border-radius: 999px; border: 1px solid var(--border); color: var(--ink-3);
+  display: inline-block; font-family: 'Spline Sans Mono', ui-monospace, monospace;
+  font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em;
+  padding: 2px 9px; border-radius: 2px; border: 1px solid var(--border); color: var(--ink-3);
 }
-.badge.cat { color: var(--pine-mid); border-color: var(--pine-soft); background: var(--pine-soft); }
-@media (prefers-color-scheme: dark) { .badge.cat { color: #8db9b3; } }
-.badge.urgent { color: #b45309; border-color: #fcd34d; background: rgba(217, 119, 6, .08); }
-.badge.dead { color: var(--glow); border-color: var(--glow-soft); background: var(--glow-soft); }
+.badge.cat { color: var(--clear); border-color: var(--clear); background: var(--clear-soft); }
+.badge.urgent { color: var(--approach); border-color: var(--approach); background: var(--approach-soft); }
+.badge.dead { color: var(--stop); border-color: var(--stop); background: var(--stop-soft); }
 .badge.hb { border-style: dashed; }
 
-ul.proof { margin: 12px 0 0; padding-left: 20px; display: grid; gap: 8px; font-size: 14px; color: var(--ink-2); }
+/* ---- interlude photo: the classification tracks ---- */
+.interlude { margin: 6px 0; }
+.interlude img { display: block; width: 100%; height: auto; border-radius: 4px; border: 1px solid var(--border); }
+.interlude figcaption {
+  margin-top: 10px; font-family: 'Spline Sans Mono', ui-monospace, monospace;
+  font-size: 12px; color: var(--ink-3); letter-spacing: .02em;
+}
 
-/* Boardwalk-standard footer (modeled on the permits site) */
-footer { margin-top: 40px; background: var(--pine-deep); color: #b9d6d1; font-size: 13px; }
+ul.proof { margin: 12px 0 0; padding-left: 20px; display: grid; gap: 8px; font-size: 14px; color: var(--ink-2); }
+ul.proof strong { color: var(--ink); }
+
+/* ---- footer: the depot at night, in both modes ---- */
+footer { margin-top: 40px; background: #0c110d; color: #b9c0ad; font-size: 13px; }
+footer .track { border-color: #4d5a45; background: repeating-linear-gradient(90deg, #2b3527 0 3px, transparent 3px 14px); }
 .foot-grid { display: grid; gap: 28px; padding: 34px 20px 28px; }
 @media (min-width: 640px) { .foot-grid { grid-template-columns: repeat(3, 1fr); } }
-.foot-brand { font-weight: 800; color: #fff; font-size: 14px; }
-.foot-desc { margin-top: 8px; font-size: 12px; line-height: 1.6; color: #8db9b3; }
-.foot-head { font-weight: 700; color: #fff; }
+.foot-brand { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: #f0ede1; font-size: 16px; }
+.foot-desc { margin-top: 8px; font-size: 12px; line-height: 1.6; color: #8c937e; }
+.foot-head { font-weight: 600; color: #f0ede1; }
 .foot-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; }
-.foot-list a { color: #b9d6d1; font-weight: 400; text-decoration: none; }
+.foot-list a { color: #b9c0ad; font-weight: 400; text-decoration: none; }
 .foot-list a:hover { color: #fff; text-decoration: underline; text-underline-offset: 2px; }
-.foot-bar { border-top: 1px solid rgba(185, 214, 209, .18); padding: 14px 20px; text-align: center; font-size: 12px; color: #8db9b3; }
+.foot-bar { border-top: 1px solid rgba(185, 192, 173, .18); padding: 14px 20px; text-align: center; font-size: 12px; color: #8c937e; }

@@ -42,10 +42,28 @@ dashboard never looks dead. Idle cost ≈ $0.
 
 ```bash
 make deploy    # bundle Lambdas, terraform apply, publish the frontend
-make verify    # 25 end-to-end checks against the live URL (incl. DLQ + redrive drill)
+make verify    # 29 end-to-end checks against the live URL (incl. DLQ + redrive drill)
 make reset     # sweep traces + purge DLQs now (also runs nightly)
 make destroy
 ```
 
 State lives in the shared boardwalk bucket (key `event-mesh.tfstate`); the custom domain and
 wildcard cert come from `../platform`. CI (plank 10) plans and applies this plank on every push.
+
+## Design
+
+The plank's visual identity is **the switchyard**: Alpenglow's narrow-gauge classification
+yard, run from an illuminated CTC dispatch board. Dark mode is the board at night (steel
+green-black panel, lamp light); light mode is the employee timetable (warm ivory paper,
+railroad rules). Every node on the mesh map carries a signal lamp that follows railroad
+aspects: clear (green) when a hop completes, approach (pulsing amber) while work is in
+flight, stop (red) on failures and dead letters. The dead-letter strip is the rip track;
+redriving a message re-rails it.
+
+- Type: Barlow Condensed (display), Barlow (text), Spline Sans Mono (readouts), self-hosted
+  woff2 in `frontend/fonts/` (the CSP allows no font CDNs).
+- Photos (Unsplash free license, resized via CDN params and self-hosted in the site bucket):
+  hero is the Georgetown Loop locomotive #111 in the Colorado pines by Claud Richmond;
+  the interlude is a night classification yard under mast lights by Yuriy Vertikov.
+- Favicon: a turnout with a green lamp on the main and a red lamp on the siding
+  (`favicon.svg` + PNG fallbacks).

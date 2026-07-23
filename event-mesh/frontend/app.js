@@ -122,8 +122,8 @@ async function watch(requestId, { fresh } = { fresh: false }) {
       (trace.meta.simulate === 'fail' ? ' · poisoned' : '');
     const settled = isSettled(trace.meta, trace.hops);
     $('#watching').textContent = settled
-      ? `${label} — settled (${trace.hops.length} hops)`
-      : `${label} — watching live…`;
+      ? `${label} · settled (${trace.hops.length} hops)`
+      : `${label} · watching live…`;
 
     if (settled || Date.now() > state.pollUntil) {
       clearInterval(state.pollTimer);
@@ -233,7 +233,7 @@ async function loadFeed() {
   }
   const feed = $('#feed');
   if (!data.requests.length) {
-    feed.innerHTML = '<p class="muted">Nothing yet — the next heartbeat is at most 30 minutes out, or send your own above.</p>';
+    feed.innerHTML = '<p class="muted">Nothing yet. The next scheduled heartbeat is at most 30 minutes out, or send your own above.</p>';
     return;
   }
   feed.innerHTML = data.requests
