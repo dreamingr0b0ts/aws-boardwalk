@@ -4,22 +4,33 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Alpenglow Network Blueprint · Planetek AWS Boardwalk</title>
-<meta name="description" content="A textbook multi-AZ VPC, deployed on demand and proven live: public/private subnet tiers, security-group layering, stateless NACLs, S3/DynamoDB gateway endpoints (the no-NAT cost pattern), PrivateLink-managed instances, flow logs — with every reachable AND unreachable path verified by Reachability Analyzer and real probes. Plank 9 of the Planetek AWS Boardwalk.">
+<meta name="description" content="A textbook multi-AZ VPC, deployed on demand and proven live: public/private subnet tiers, security-group layering, stateless NACLs, S3/DynamoDB gateway endpoints (the no-NAT cost pattern), PrivateLink-managed instances, flow logs. Every reachable AND unreachable path is verified by Reachability Analyzer and real probes. Plank 9 of the Planetek AWS Boardwalk.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Alpenglow Network Blueprint · Planetek AWS Boardwalk">
+<meta property="og:description" content="A multi-AZ VPC drawn like a blueprint and proven like one: the plan check runs in Reachability Analyzer, the field inspection runs on the instances, and the as-built record outlives the stack.">
+<meta property="og:url" content="https://network.demos.planetek.org/">
+<meta property="og:image" content="https://network.demos.planetek.org/img/og.jpg">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
 
 <header class="hero">
-  <div class="wrap">
+  <img class="hero-photo" src="/img/blueprint-hero-1600.webp"
+       srcset="/img/blueprint-hero-800.webp 800w, /img/blueprint-hero-1600.webp 1600w"
+       sizes="100vw" alt="A hand-lettered cyanotype blueprint of a building renovation, white linework on Prussian blue" fetchpriority="high">
+  <div class="hero-scrim" aria-hidden="true"></div>
+  <div class="wrap hero-inner">
     <p class="eyebrow">Planetek · AWS Boardwalk · Plank 9</p>
     <h1>Alpenglow Network Blueprint</h1>
-    <p class="lede">The classic infrastructure interview, live: a multi-AZ VPC with tiered subnets,
-    layered security groups, stateless NACLs, and <strong>no NAT gateway anywhere</strong> — private
-    workloads reach S3 and DynamoDB through free gateway endpoints instead. Every segmentation claim
-    is <em>proven</em>, twice: by AWS's own Reachability Analyzer and by probe commands run on the
-    instances themselves. The stack deploys for demo windows and tears down after; the evidence
-    below survives it.</p>
+    <p class="lede">The classic infrastructure interview, drawn and then built: a multi-AZ VPC with
+    tiered subnets, layered security groups, stateless NACLs, and <strong>no NAT gateway
+    anywhere</strong>. Private workloads reach S3 and DynamoDB through free gateway endpoints
+    instead. Every line on this sheet is proven twice: AWS's own Reachability Analyzer checks the
+    plan, and probe commands run on the instances walk the site. The stack is erected for demo
+    windows and struck afterward; the as-built record below outlives it.</p>
     <div class="hero-meta">
       <div><strong id="stat-status">–</strong>stack status</div>
       <div><strong id="stat-evidence">–</strong>latest evidence</div>
@@ -27,29 +38,38 @@
       <div><strong id="stat-probes">–</strong>live probes as designed</div>
     </div>
   </div>
+  <div class="hero-titleblock" aria-hidden="true">
+    <span>Alpenglow municipal works</span>
+    <span>dwg no. 09</span>
+    <span>scale 1:1</span>
+    <span>drawn in Terraform</span>
+    <span>checked twice</span>
+  </div>
 </header>
 
 <main class="wrap">
 
   <!-- Status banner -->
   <section class="panel" id="status-panel">
+    <div class="plate"><span class="plate-no">Sheet 01</span><span class="plate-title">Site status</span></div>
     <div class="status-row">
       <span class="badge" id="status-badge">checking…</span>
       <p class="muted" id="status-text">Reading <code>/evidence/status.json</code>…</p>
     </div>
-    <p class="muted small">One command each way: <code>make demo</code> builds the whole network,
-    runs the Reachability Analyzer paths, executes the probe suite, and generates fresh evidence in
-    about 15 minutes; <code>make teardown</code> destroys everything that bills (two instances,
-    three interface endpoints, flow logs) and leaves this page serving the final report. Idle
-    between windows: ~$0.</p>
+    <p class="muted small">One command each way: <code>make demo</code> stakes out the whole
+    network, runs the Reachability Analyzer paths, executes the probe suite, and files fresh
+    evidence in about 15 minutes; <code>make teardown</code> strikes everything that bills (two
+    instances, three interface endpoints, flow logs) and leaves this page serving the final
+    report. Idle between windows: ~$0.</p>
   </section>
 
   <!-- Architecture diagram -->
   <section class="panel">
+    <div class="plate"><span class="plate-no">Sheet 02</span><span class="plate-title">Plan view</span></div>
     <h2>The blueprint</h2>
     <p class="muted">Three subnet tiers across two availability zones. Traffic is admitted one hop
-    at a time — 443 from the internet to the web tier, 8080 from web to app, 5432 from app to data —
-    and the private tiers have <strong>no route to the internet at all</strong>.</p>
+    at a time: 443 from the internet to the web tier, 8080 from web to app, 5432 from app to data.
+    The private tiers have <strong>no route to the internet at all</strong>.</p>
 
     <div class="diagram-scroll">
     <svg viewBox="0 0 920 578" role="img" aria-label="VPC architecture diagram: internet gateway to public subnets; app and data private subnets reach S3 and DynamoDB via gateway endpoints; no NAT gateway" xmlns="http://www.w3.org/2000/svg">
@@ -67,7 +87,7 @@
       <!-- ghost NAT -->
       <rect x="500" y="14" width="180" height="44" rx="10" class="d-node d-ghost"/>
       <text x="590" y="32" class="d-label d-ghost-text" text-anchor="middle">NAT gateway</text>
-      <text x="590" y="48" class="d-sub" text-anchor="middle">not deployed — $0 by design</text>
+      <text x="590" y="48" class="d-sub" text-anchor="middle">struck from the drawing, $0 by design</text>
       <line x1="530" y1="20" x2="650" y2="52" class="d-line d-no"/>
 
       <!-- VPC box -->
@@ -150,37 +170,38 @@
     </div>
 
     <p class="muted small" style="margin-top:14px">Both instances are managed exclusively through
-    SSM — no SSH port exists anywhere in the VPC. The public one registers over the internet; the
-    private one registers through the three PrivateLink interface endpoints ($0.01/hr each — the
-    plank's main running cost, and the reason it tears down between windows).</p>
+    SSM; no SSH port exists anywhere in the VPC. The public one registers over the internet, the
+    private one through the three PrivateLink interface endpoints ($0.01/hr each: the plank's main
+    running cost, and the reason it tears down between windows).</p>
   </section>
 
   <!-- Evidence report -->
   <section class="panel">
+    <div class="plate"><span class="plate-no">Sheet 03</span><span class="plate-title">As-built record</span></div>
     <div class="map-head">
       <h2>Latest evidence report</h2>
       <p class="muted" id="evidence-when">–</p>
     </div>
-    <p id="evidence-empty" class="muted" hidden>No evidence has been generated yet — the first
+    <p id="evidence-empty" class="muted" hidden>No evidence has been generated yet. The first
     <code>make demo</code> cycle will populate this section.</p>
 
     <div id="evidence-body" hidden>
       <div class="ev-grid">
         <div class="ev-card wide">
-          <h3>Reachability Analyzer verdicts <span class="tag">AWS-proven</span></h3>
+          <h3>Reachability Analyzer verdicts <span class="tag">the plan check</span></h3>
           <p class="muted small">Four paths analyzed by AWS's configuration-analysis engine on every
-          deploy. Two are designed to be reachable, two are designed <em>not</em> to be — the ✗ rows
+          deploy. Two are designed to be reachable, two are designed <em>not</em> to be; the ✗ rows
           passing is the point.</p>
           <table class="sim" id="ev-reach"><thead><tr><th>Path</th><th>Verdict</th><th></th></tr></thead><tbody></tbody></table>
         </div>
         <div class="ev-card wide">
-          <h3>Live connectivity probes <span class="tag">run on the instances</span></h3>
+          <h3>Live connectivity probes <span class="tag">the field inspection</span></h3>
           <p class="muted small">Commands executed on both instances via SSM Run Command during
-          report generation — the data plane agreeing with the control plane.</p>
+          report generation: the data plane agreeing with the control plane.</p>
           <table class="sim" id="ev-probes"><thead><tr><th>Probe</th><th>Result</th><th></th></tr></thead><tbody></tbody></table>
         </div>
         <div class="ev-card">
-          <h3>Routing — the no-NAT pattern</h3>
+          <h3>Routing: the no-NAT pattern</h3>
           <ul class="fact" id="ev-routing"></ul>
         </div>
         <div class="ev-card">
@@ -205,24 +226,35 @@
     </div>
   </section>
 
+  <!-- Interlude -->
+  <figure class="interlude">
+    <img src="/img/drafting-1400.webp"
+         srcset="/img/drafting-800.webp 800w, /img/drafting-1400.webp 1400w"
+         sizes="(min-width: 1020px) 980px, 100vw"
+         alt="An architect's hands drawing on a technical plan with a pencil and a wooden scale rule" loading="lazy">
+    <figcaption>Every line gets checked twice: once at the drafting table, once on the site.
+    Photo by Daniel McCullough (Unsplash).</figcaption>
+  </figure>
+
   <!-- Proof -->
   <section class="panel">
+    <div class="plate"><span class="plate-no">Sheet 04</span><span class="plate-title">General notes</span></div>
     <h2>What this plank proves</h2>
     <ul class="proof">
       <li><strong>Segmentation you can verify, not just draw:</strong> every tier boundary is tested
-      from both directions — Reachability Analyzer analyzes the configuration, and probe commands on
+      from both directions. Reachability Analyzer analyzes the configuration, and probe commands on
       the instances confirm the data plane, including the paths that are supposed to fail.</li>
       <li><strong>The no-NAT cost pattern:</strong> private subnets have no internet route at all,
       yet reach S3 and DynamoDB through free gateway endpoints. A NAT gateway idles at ~$33/month
-      before data charges — knowing when you don't need one is real architecture.</li>
+      before data charges; knowing when you don't need one is real architecture.</li>
       <li><strong>Zero SSH:</strong> both instances are administered through SSM Session
-      Manager/Run Command — the private one over PrivateLink interface endpoints — so no bastion,
+      Manager/Run Command, the private one over PrivateLink interface endpoints, so no bastion,
       no port 22, no key pairs exist anywhere in the design.</li>
       <li><strong>Defense in layers:</strong> stateful security groups referencing groups (not
       CIDRs), stateless NACLs underneath with an explicit RDP deny, a locked default security
-      group, IMDSv2 enforced, encrypted volumes — each layer visible in the evidence.</li>
+      group, IMDSv2 enforced, encrypted volumes. Each layer is visible in the evidence.</li>
       <li><strong>Cost-honest architecture:</strong> instances, interface endpoints, and flow logs
-      bill hourly, so the plank is deploy-demo-teardown by design — one command up, one command
+      bill hourly, so the plank is deploy-demo-teardown by design. One command up, one command
       down, evidence persisted between windows.</li>
     </ul>
   </section>
@@ -234,7 +266,7 @@
     <div>
       <p class="foot-brand">Alpenglow Network Blueprint</p>
       <p class="foot-desc">A demonstration of core AWS networking: multi-AZ VPC design, subnet
-      tiering, security-group layering, NACLs, VPC endpoints, flow logs — deployed on demand,
+      tiering, security-group layering, NACLs, VPC endpoints, flow logs. Deployed on demand,
       proven by analysis and live probes, torn down after.</p>
     </div>
     <div>
@@ -254,7 +286,9 @@
       </ul>
     </div>
   </div>
-  <div class="foot-bar">Fictional demo built by Planetek — not affiliated with any real government agency.</div>
+  <div class="foot-bar">Fictional demo built by Planetek. Not affiliated with any real government
+  agency. Blueprint photograph: Amsterdam City Archives · drafting photograph: Daniel McCullough
+  (both Unsplash).</div>
 </footer>
 
 <script type="module" src="/app.js"></script>

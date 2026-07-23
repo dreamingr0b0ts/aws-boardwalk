@@ -30,11 +30,11 @@ function renderStatus(status) {
   badge.className = `badge ${live ? "live" : "down"}`;
   $("stat-status").textContent = live ? "LIVE" : "torn down";
   $("status-text").innerHTML = live
-    ? "The full network is deployed and billing — both instances are up, the interface endpoints " +
+    ? "The full network is staked out and billing: both instances are up, the interface endpoints " +
       "are serving SSM, and the paths below are live right now."
     : status
-      ? `The hourly-billing stack was destroyed ${fmtWhen(status.updatedAt)} after its last demo window. ` +
-        "The evidence below is the persisted proof from that cycle — redeployable in ~15 minutes."
+      ? `The hourly-billing stack was struck ${fmtWhen(status.updatedAt)} after its last demo window. ` +
+        "The evidence below is the as-built record from that cycle, redeployable in ~15 minutes."
       : "No demo cycle has run yet. The first <code>make demo</code> will build the network and generate evidence.";
 }
 
@@ -111,7 +111,7 @@ function renderEvidence(ev) {
   $("ev-routing").replaceChildren(
     fact(rt.publicDefaultViaIgw, "Public tier default route via the internet gateway"),
     fact(rt.privateDefaultRoutes === 0, "Private route tables: zero default routes (no internet path)"),
-    fact(rt.natGateways === 0, `NAT gateways: ${rt.natGateways ?? "?"} — ~$33/mo avoided`),
+    fact(rt.natGateways === 0, `NAT gateways: ${rt.natGateways ?? "?"} (~$33/mo avoided)`),
     fact((rt.privateRouteTables ?? []).every((t) => t.gatewayEndpointRoutes > 0),
       "Gateway-endpoint routes present in every private route table"),
   );
@@ -119,8 +119,8 @@ function renderEvidence(ev) {
   // endpoints
   const ep = ev.endpoints ?? {};
   $("ev-endpoints").replaceChildren(
-    fact(ep.gatewayAvailable === 2, `Gateway endpoints (S3, DynamoDB): ${ep.gatewayAvailable ?? 0}/2 — free`),
-    fact(ep.interfaceAvailable === 3, `Interface endpoints (SSM trio): ${ep.interfaceAvailable ?? 0}/3 — PrivateLink`),
+    fact(ep.gatewayAvailable === 2, `Gateway endpoints (S3, DynamoDB): ${ep.gatewayAvailable ?? 0}/2, free`),
+    fact(ep.interfaceAvailable === 3, `Interface endpoints (SSM trio): ${ep.interfaceAvailable ?? 0}/3, PrivateLink`),
     fact(true, "Interface endpoints admit HTTPS from inside the VPC only"),
   );
 
@@ -143,7 +143,7 @@ function renderEvidence(ev) {
   );
   $("ev-flow-note").textContent =
     `Last ${fl.windowMinutes ?? 30} minutes before report generation. The rejected flows are genuine ` +
-    "internet background noise — strangers scanning a minutes-old public IP, turned away by the security group.";
+    "internet background noise: strangers scanning a minutes-old public IP, turned away by the security group.";
 }
 
 const [status, evidence] = await Promise.all([

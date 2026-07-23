@@ -225,21 +225,21 @@ const PRIVATE_PROBES = [
   {
     name: "private-internet-egress",
     label: "private app tier → internet",
-    expect: "blocked — no NAT, no route",
+    expect: "blocked: no NAT, no route",
     cmd: `curl -s -m 6 -o /dev/null -w "%{http_code}" https://example.com`,
     judge: (rc) => rc !== 0,
   },
   {
     name: "private-s3-gateway",
     label: "private app tier → S3 (gateway endpoint)",
-    expect: "reachable — prefix-list route, $0",
+    expect: "reachable: prefix-list route, $0",
     cmd: `curl -s -m 10 -o /dev/null -w "%{http_code}" https://s3.${REGION}.amazonaws.com`,
     judge: (rc, out) => rc === 0 && out !== "000",
   },
   {
     name: "private-ddb-gateway",
     label: "private app tier → DynamoDB (gateway endpoint)",
-    expect: "reachable — prefix-list route, $0",
+    expect: "reachable: prefix-list route, $0",
     cmd: `curl -s -m 10 -o /dev/null -w "%{http_code}" https://dynamodb.${REGION}.amazonaws.com`,
     judge: (rc, out) => rc === 0 && out.startsWith("2"),
   },
@@ -270,7 +270,7 @@ const PUBLIC_PROBES = [
   {
     name: "web-to-app-8080",
     label: "web tier → app tier :8080",
-    expect: "reachable — app SG admits the web SG",
+    expect: "reachable: app SG admits the web SG",
     cmd: `curl -s -m 6 -o /dev/null -w "%{http_code}" http://${PRIVATE_APP_IP}:8080/`,
     judge: (rc, out) => rc === 0 && out.startsWith("2"),
   },
@@ -362,44 +362,60 @@ function renderHtml(ev) {
   const st = ev.securityTiers;
   const fl = ev.flowLogs;
   const fmtRules = (list) => list.map((r) => `${r.port} ← ${r.peers.join(", ")}`).join(" · ") || "none";
+  const sheetDate = String(ev.generatedAt).slice(0, 10);
 
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Network Blueprint Evidence Report · ${esc(ev.generatedAt)}</title>
 <style>
-  body{font:15px/1.55 ui-sans-serif,system-ui,sans-serif;color:#1c1917;max-width:860px;margin:0 auto;padding:32px 24px}
-  h1{font-size:26px;margin:0}h2{font-size:18px;margin:32px 0 6px;border-bottom:2px solid #16302e;padding-bottom:4px}
-  .meta{color:#57534e;font-size:13px;margin-top:6px}
-  .note{background:#f0f7f5;border:1px solid #b8d8d2;border-radius:8px;padding:10px 14px;font-size:13px;margin:18px 0}
-  table{border-collapse:collapse;width:100%;margin-top:10px;font-size:14px}
-  th,td{text-align:left;padding:6px 10px;border:1px solid #e7e5e4;vertical-align:top}
-  th{background:#f5f5f4;font-weight:600;width:40%}
-  .pill{display:inline-block;padding:1px 9px;border-radius:999px;font-size:12px;font-weight:700}
-  .ok{background:#ecfdf5;color:#047857}.bad{background:#fef2f2;color:#b91c1c}
-  code{font-size:.9em;background:#f5f5f4;padding:1px 5px;border-radius:5px}
-  footer{margin-top:36px;color:#78716c;font-size:12px;border-top:1px solid #e7e5e4;padding-top:12px}
-  @media print{body{padding:0}}
+  @font-face{font-family:"Big Shoulders";font-weight:700;font-display:swap;src:url("https://network.demos.planetek.org/fonts/big-shoulders-700.woff2") format("woff2")}
+  @font-face{font-family:"Instrument Sans";font-weight:400;font-display:swap;src:url("https://network.demos.planetek.org/fonts/instrument-sans-400.woff2") format("woff2")}
+  @font-face{font-family:"Sometype Mono";font-weight:400;font-display:swap;src:url("https://network.demos.planetek.org/fonts/sometype-mono-400.woff2") format("woff2")}
+  body{font:15px/1.55 "Instrument Sans",ui-sans-serif,system-ui,sans-serif;color:#26251f;background:#f3efe4;
+    background-image:linear-gradient(rgba(29,78,121,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(29,78,121,.06) 1px,transparent 1px);
+    background-size:26px 26px;max-width:880px;margin:0 auto;padding:32px 24px}
+  .titleblock{display:flex;flex-wrap:wrap;border:1.5px solid #26251f;background:#faf7ee;
+    font:700 10px/1.3 "Sometype Mono",monospace;text-transform:uppercase;letter-spacing:.14em;color:#55524a;margin-bottom:20px}
+  .titleblock span{padding:7px 14px;border-right:1px solid #26251f}
+  .titleblock span:last-child{border-right:0}
+  .titleblock .dwg{background:#1d4e79;color:#faf7ee}
+  h1{font:800 34px/1.05 "Big Shoulders","Arial Narrow",sans-serif;text-transform:uppercase;letter-spacing:.03em;margin:0;color:#12354f}
+  h2{font:700 19px/1.2 "Big Shoulders","Arial Narrow",sans-serif;text-transform:uppercase;letter-spacing:.05em;margin:34px 0 6px;color:#12354f}
+  h2::after{content:"";display:block;width:120px;height:5px;margin-top:6px;border:1px solid #55524a;
+    background:repeating-linear-gradient(90deg,#55524a 0 14px,transparent 14px 28px)}
+  .meta{color:#7c776a;font-size:13px;margin-top:6px}
+  .note{background:#e2eaf1;border:1px solid #1d4e79;padding:10px 14px;font-size:13px;margin:18px 0}
+  table{border-collapse:collapse;width:100%;margin-top:10px;font-size:14px;background:#faf7ee}
+  th,td{text-align:left;padding:6px 10px;border:1px solid #d9d2bd;vertical-align:top}
+  th{background:#ece7d8;font-weight:600;width:40%}
+  .pill{display:inline-block;padding:1px 9px;border-radius:3px;font:700 11.5px "Sometype Mono",monospace;text-transform:uppercase;letter-spacing:.05em}
+  .ok{background:#e3eee3;color:#22633f}.bad{background:#f6e2df;color:#b3392e}
+  code{font:.88em "Sometype Mono",monospace;background:#ece7d8;padding:1px 5px;border-radius:3px}
+  footer{margin-top:36px;color:#7c776a;font-size:12px;border-top:1.5px solid #26251f;padding-top:12px}
+  a{color:#1d4e79}
+  @media print{body{padding:0;background:#fff}}
 </style></head><body>
+<div class="titleblock"><span class="dwg">dwg no. 09</span><span>Alpenglow municipal works</span><span>as-built record</span><span>date ${esc(sheetDate)}</span><span>checked twice</span></div>
 <h1>Network Blueprint Evidence Report</h1>
 <p class="meta">City of Alpenglow demo account · region ${esc(ev.region)} · generated ${esc(ev.generatedAt)} by the <code>net-evidence-report</code> Lambda (plank 9, Planetek AWS Boardwalk)</p>
-<div class="note"><strong>How to read this:</strong> every claim below is a live API result, a Reachability Analyzer
+<div class="note"><strong>How to read this sheet:</strong> every claim below is a live API result, a Reachability Analyzer
 verdict, or the output of a probe command executed on the instances via SSM Run Command during report generation.
 Rows marked <span class="pill ok">as designed</span> include the paths that are <em>supposed</em> to fail.</div>
 
 <h2>1 · VPC &amp; subnets</h2>
 <table>${rows([
-    ["VPC", `<code>${esc(ev.network.vpcId)}</code> — ${esc(ev.network.cidr)}`],
+    ["VPC", `<code>${esc(ev.network.vpcId)}</code> · ${esc(ev.network.cidr)}`],
     ["Availability zones", esc(ev.network.azs.join(", "))],
     ["Public tier", ev.network.subnets.public.map((s) => `<code>${esc(s.cidr)}</code> (${esc(s.az)})`).join(" · ")],
     ["App tier (private)", ev.network.subnets.app.map((s) => `<code>${esc(s.cidr)}</code> (${esc(s.az)})`).join(" · ")],
     ["Data tier (private)", ev.network.subnets.data.map((s) => `<code>${esc(s.cidr)}</code> (${esc(s.az)})`).join(" · ")],
-    ["Subnet-level auto-assign public IP", yn(ev.network.subnets.public.some((s) => s.autoAssignPublicIp)) + " — public exposure is granted per-instance"],
+    ["Subnet-level auto-assign public IP", yn(ev.network.subnets.public.some((s) => s.autoAssignPublicIp)) + ": public exposure is granted per-instance"],
   ])}</table>
 
-<h2>2 · Routing — the no-NAT pattern</h2>
+<h2>2 · Routing: the no-NAT pattern</h2>
 <table>${rows([
     ["Public default route via IGW", yn(ev.network.routing.publicDefaultViaIgw)],
-    ["Default routes in private route tables", `${ev.network.routing.privateDefaultRoutes} — private subnets have <strong>no internet path at all</strong>`],
+    ["Default routes in private route tables", `${ev.network.routing.privateDefaultRoutes}: private subnets have <strong>no internet path at all</strong>`],
     ["NAT gateways", `${ev.network.routing.natGateways} ($0.045/hr + per-GB, avoided by design)`],
     ["Private route tables", ev.network.routing.privateRouteTables.map((rt) => `<code>${esc(rt.name)}</code>: ${rt.gatewayEndpointRoutes} gateway-endpoint routes, default route ${rt.hasDefaultRoute ? "PRESENT (!)" : "absent"}`).join("<br>")],
   ])}</table>
@@ -407,10 +423,10 @@ Rows marked <span class="pill ok">as designed</span> include the paths that are 
 <h2>3 · Security-group tiers</h2>
 <table><tr><th>Tier</th><td><strong>Ingress</strong> / egress</td></tr>${st.groups.map((g) =>
     `<tr><th><code>${esc(g.name)}</code></th><td><strong>${esc(fmtRules(g.ingress))}</strong><br>egress: ${esc(fmtRules(g.egress))}</td></tr>`).join("")}
-<tr><th>Default SG</th><td>${st.defaultSgLocked ? '<span class="pill ok">locked</span> — zero rules; nothing can use it' : '<span class="pill bad">has rules</span>'}</td></tr></table>
+<tr><th>Default SG</th><td>${st.defaultSgLocked ? '<span class="pill ok">locked</span> zero rules; nothing can use it' : '<span class="pill bad">has rules</span>'}</td></tr></table>
 
 <h2>4 · Network ACLs (stateless layer)</h2>
-${ev.nacls.nacls.map((n) => `<p class="meta"><code>${esc(n.name)}</code> — ${n.subnets} subnets</p>
+${ev.nacls.nacls.map((n) => `<p class="meta"><code>${esc(n.name)}</code> · ${n.subnets} subnets</p>
 <table><tr><th style="width:12%">Rule</th><th style="width:14%">Dir</th><th style="width:12%">Action</th><th style="width:18%">Ports</th><th>Source/Dest</th></tr>${n.entries.map((e) =>
     `<tr><td>${e.rule}</td><td>${esc(e.direction)}</td><td>${e.action === "deny" ? '<span class="pill bad">deny</span>' : "allow"}</td><td>${esc(e.ports)}</td><td><code>${esc(e.cidr)}</code></td></tr>`).join("")}</table>`).join("")}
 
@@ -419,24 +435,25 @@ ${ev.nacls.nacls.map((n) => `<p class="meta"><code>${esc(n.name)}</code> — ${n
     `<tr><th><code>${esc(e.service)}</code></th><td><strong>${esc(e.type)}</strong> · ${esc(e.state)}${e.type === "Gateway" ? " · free" : " · $0.01/hr (why this plank tears down)"}</td></tr>`).join("")}</table>
 
 <h2>6 · Reachability Analyzer verdicts</h2>
-<p class="meta">AWS's own configuration-analysis engine ran each path during deploy — reachable and unreachable claims are proven, not asserted.</p>
+<p class="meta">The plan check: AWS's own configuration-analysis engine ran each path during deploy, so reachable and unreachable claims are proven, not asserted.</p>
 <table><tr><th>Path</th><td><strong>Verdict</strong></td></tr>${ev.reachability.map((r) =>
     `<tr><th>${esc(r.label)}</th><td>${r.reachable ? "reachable" : "NOT reachable"} ${verdict(r.pass)}<br><span class="meta">${esc(r.because)}${r.explanationCodes.length ? ` · analyzer: <code>${r.explanationCodes.map(esc).join("</code>, <code>")}</code>` : ""}</span></td></tr>`).join("")}</table>
 
 <h2>7 · Live connectivity probes (SSM Run Command)</h2>
+<p class="meta">The field inspection: commands executed on both instances, the data plane agreeing with the control plane.</p>
 <table><tr><th>Probe</th><td><strong>Expected</strong> · result</td></tr>${ev.probes.map((p) =>
     `<tr><th>${esc(p.label)}<br><span class="meta">from ${esc(p.from)}</span></th><td>${esc(p.expect)} ${verdict(p.pass)}<br><span class="meta">${esc(p.detail)}</span></td></tr>`).join("")}</table>
 
 <h2>8 · Flow logs</h2>
 <table>${rows([
     ["Flow log status", fl.active ? "ACTIVE (all traffic, 60s aggregation)" : "not active"],
-    [`Records in the last ${fl.windowMinutes} min`, `${fl.totalEvents} — ${fl.accept} ACCEPT · ${fl.reject} REJECT`],
+    [`Records in the last ${fl.windowMinutes} min`, `${fl.totalEvents} total · ${fl.accept} ACCEPT · ${fl.reject} REJECT`],
     ["Sample rejected flows", fl.rejectSamples.length
-      ? fl.rejectSamples.map((r) => `<code>${esc(r.srcAddr)}</code> → :${r.dstPort}/${esc(r.protocol)}`).join(" · ") + "<br><span class=\"meta\">real internet background noise, turned away at the security group — captured minutes after the public IP went live</span>"
+      ? fl.rejectSamples.map((r) => `<code>${esc(r.srcAddr)}</code> → :${r.dstPort}/${esc(r.protocol)}`).join(" · ") + "<br><span class=\"meta\">real internet background noise, turned away at the security group, captured minutes after the public IP went live</span>"
       : "none captured in the window"],
   ])}</table>
 
-<footer>Generated automatically from live AWS APIs. Planetek AWS Boardwalk plank 9 — Network Architecture
+<footer>Generated automatically from live AWS APIs. Planetek AWS Boardwalk plank 9, Network Architecture
 (deploy-demo-teardown). Fictional demo; not affiliated with any real government agency.
 <a href="https://network.demos.planetek.org">network.demos.planetek.org</a></footer>
 </body></html>`;

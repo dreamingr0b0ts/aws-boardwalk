@@ -61,7 +61,7 @@ demo: init-demo
 	$(MAKE) report
 	$(MAKE) write-status DEPLOYED=true
 	@echo ""
-	@echo "network LIVE — evidence at $$($(TF) output -raw site_url)"
+	@echo "network LIVE: evidence at $$($(TF) output -raw site_url)"
 	@echo "re-run 'make report' any time for fresh probes and flow-log samples,"
 	@echo "and 'make teardown' when the demo window is over (≈\$$0.04/hr until then)."
 
@@ -79,7 +79,7 @@ teardown:
 	-$(MAKE) report
 	$(TFD) destroy -auto-approve $(DEMO_VARS)
 	$(MAKE) write-status DEPLOYED=false
-	@echo "network torn down — the evidence report remains on the site."
+	@echo "network torn down. The evidence report remains on the site."
 
 ## Internal: status.json drives the page's LIVE / torn-down banner.
 write-status:
@@ -91,5 +91,5 @@ write-status:
 
 status:
 	@$(TFD) state list 2>/dev/null | grep -q . \
-	  && echo "demo stack: DEPLOYED (billing hourly — 'make teardown' when done)" \
+	  && echo "demo stack: DEPLOYED (billing hourly; 'make teardown' when done)" \
 	  || echo "demo stack: torn down (idle ≈ \$$0)"
