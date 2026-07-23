@@ -49,32 +49,32 @@ function renderStatus(status) {
     $("stat-status").textContent = "torn down";
     $("stat-acu").textContent = "$0";
     $("status-text").innerHTML =
-      "The Aurora cluster is destroyed right now — idle ≈ $0. The evidence report below is the " +
-      "persisted output of its last demo cycle; <code>make demo</code> redeploys the whole stack " +
-      "in about 15 minutes.";
+      "The Aurora cluster is destroyed right now; idle ≈ $0. The evidence report below is the " +
+      "certified copy from its last demo cycle, and <code>make demo</code> raises the whole stack " +
+      "again in about 15 minutes.";
     $("exhibit-panel").querySelectorAll("button").forEach((b) => (b.disabled = true));
     return;
   }
 
   const c = status.cluster ?? {};
   const paused = c.paused === true;
-  badge.textContent = paused ? "live · paused at 0 ACU" : "live";
+  badge.textContent = paused ? "live · sealed at 0 ACU" : "live";
   badge.className = "badge live";
   $("stat-status").textContent = c.status ?? "live";
   $("stat-acu").textContent = c.currentAcu === null ? "–" : `${c.currentAcu} ACU`;
   $("node-aurora").classList.add("live");
   $("status-text").innerHTML = paused
-    ? `The cluster is deployed and <strong>paused at 0 ACU</strong> — compute billing is zero right ` +
-      `now. Run any exhibit to wake it (~15s) and watch <code>${c.engine ?? "PostgreSQL"}</code> come back.`
+    ? `The cluster is deployed and <strong>sealed at 0 ACU</strong>: compute billing is zero right ` +
+      `now. Run any exhibit to unseal it (~15s) and watch <code>${c.engine ?? "PostgreSQL"}</code> come back.`
     : `The cluster is awake at ${c.currentAcu ?? "≤1"} ACU (${c.engine ?? ""}, ${c.minAcu}–${c.maxAcu} ` +
-      `ACU, auto-pause after ${c.autoPauseSeconds}s idle). Leave it alone for five minutes and it pauses itself.`;
+      `ACU, auto-pause after ${c.autoPauseSeconds}s idle). Leave it alone for five minutes and it seals itself.`;
 }
 
 function renderUsage() {
   if (!usage) return;
   $("usage-line").textContent =
-    `Shared demo budget: ${usage.used}/${usage.limit} exhibit runs today — queries are canned, ` +
-    `the cap just bounds how long strangers can keep the cluster awake.`;
+    `Shared demo budget: ${usage.used}/${usage.limit} exhibit runs today. Queries are canned; ` +
+    `the cap just bounds how long strangers can keep the vault awake.`;
 }
 
 // ---- exhibit catalog -------------------------------------------------------
@@ -129,7 +129,7 @@ async function runExhibit(ex, btn) {
       if (status === 202) {
         woke = true;
         $("wake").hidden = false;
-        $("wake-text").textContent = `Aurora is resuming from 0 ACU… ${((Date.now() - startedAt) / 1000).toFixed(1)}s`;
+        $("wake-text").textContent = `Unsealing the vault: Aurora is resuming from 0 ACU… ${((Date.now() - startedAt) / 1000).toFixed(1)}s`;
         await new Promise((r) => setTimeout(r, 2500));
         continue;
       }
@@ -138,7 +138,7 @@ async function runExhibit(ex, btn) {
         if (woke) {
           const note = document.createElement("div");
           note.className = "ok-box";
-          note.textContent = `Woke from 0 ACU in ${((Date.now() - startedAt) / 1000).toFixed(1)}s — that pause was $0 of compute.`;
+          note.textContent = `Unsealed from 0 ACU in ${((Date.now() - startedAt) / 1000).toFixed(1)}s. That pause was $0 of compute.`;
           $("result-body").appendChild(note);
         }
         renderResult(body);
@@ -225,7 +225,7 @@ function renderResult(res) {
       body.append(h, pre);
     }
   } else if (res.kind === "integrity") {
-    body.appendChild(res.ok ? okBox(`✓ ${res.verdict} — the registry is untouched`) : errBox("Unexpected: the engine accepted it"));
+    body.appendChild(res.ok ? okBox(`✓ ${res.verdict}. The registry is untouched.`) : errBox("Unexpected: the engine accepted it"));
     if (res.error) body.appendChild(errBox(res.error));
     const note = document.createElement("p");
     note.className = "muted small";
@@ -238,15 +238,15 @@ function renderResult(res) {
     }
     body.appendChild(
       res.unchanged
-        ? okBox("Transaction rolled back — both steps undone, balances identical before and after.")
-        : errBox("Balances differ — this should not happen.")
+        ? okBox("Transaction rolled back: both steps undone, balances identical before and after.")
+        : errBox("Balances differ. This should not happen.")
     );
     body.appendChild(rowsTable(res.after));
   } else if (res.kind === "denials") {
     for (const a of res.attempts) {
       body.appendChild(a.failed ? errBox(`${a.label} → ${a.error}`) : errBox(`${a.label} → UNEXPECTEDLY ALLOWED`));
     }
-    if (res.ok) body.appendChild(okBox("Both attempts denied in the engine — app_user's fence holds below the IAM layer too."));
+    if (res.ok) body.appendChild(okBox("Both attempts denied in the engine. app_user's fence holds below the IAM layer too."));
   }
 }
 
@@ -281,7 +281,7 @@ function renderEvidence(ev) {
   $("ev-cluster").replaceChildren(
     fact(true, `${c.engine ?? "aurora-postgresql"}`),
     fact(c.scalesToZero, `Scales to zero: ${c.serverlessV2?.minAcu}–${c.serverlessV2?.maxAcu} ACU, pause after ${c.serverlessV2?.autoPauseSeconds}s`),
-    fact(c.dataApiEnabled, "Data API only — no database sockets"),
+    fact(c.dataApiEnabled, "Data API only, no database sockets"),
     fact(c.storageEncrypted, "Storage encrypted at rest"),
     ev.wake?.observed
       ? fact(true, `Resume from 0 ACU observed: ~${(ev.wake.ms / 1000).toFixed(1)}s`)

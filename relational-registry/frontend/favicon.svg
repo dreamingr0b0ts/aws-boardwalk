@@ -1,6 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="14" fill="#16302e"/>
-  <ellipse cx="32" cy="18" rx="17" ry="7" stroke="#e4532f" stroke-width="4" fill="none"/>
-  <path d="M15 18v14c0 3.9 7.6 7 17 7s17-3.1 17-7V18" stroke="#e4532f" stroke-width="4" fill="none" stroke-linecap="round"/>
-  <path d="M15 32v14c0 3.9 7.6 7 17 7s17-3.1 17-7V32" stroke="#7fd1b9" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <!-- The County Vault: brass dial on iron -->
+  <rect width="64" height="64" rx="12" fill="#16191d"/>
+  <circle cx="32" cy="32" r="23" fill="none" stroke="#c9a35a" stroke-width="3.5"/>
+  <g stroke="#c9a35a" stroke-width="3" stroke-linecap="round">
+    <line x1="32" y1="13.5" x2="32" y2="24"/>
+    <line x1="32" y1="40" x2="32" y2="50.5"/>
+    <line x1="13.5" y1="32" x2="24" y2="32"/>
+    <line x1="40" y1="32" x2="50.5" y2="32"/>
+    <line x1="18.9" y1="18.9" x2="26.4" y2="26.4"/>
+    <line x1="37.6" y1="37.6" x2="45.1" y2="45.1"/>
+    <line x1="45.1" y1="18.9" x2="37.6" y2="26.4"/>
+    <line x1="26.4" y1="37.6" x2="18.9" y2="45.1"/>
+  </g>
+  <circle cx="32" cy="32" r="6.5" fill="#c9a35a"/>
+  <circle cx="32" cy="32" r="2.6" fill="#16191d"/>
 </svg>

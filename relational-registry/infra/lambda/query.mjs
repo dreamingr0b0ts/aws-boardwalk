@@ -108,7 +108,7 @@ const EXHIBITS = [
     group: "serverless",
     title: "Touch the database",
     blurb:
-      "Any statement wakes a paused cluster. If Aurora is at 0 ACU this call returns 202 while the engine resumes (~15s) — the page times the wake for you.",
+      "Any statement unseals a paused cluster. If Aurora is at 0 ACU this call returns 202 while the engine resumes (~15s); the page times the wake for you.",
     sql: ["SELECT now() AS server_time, current_user, version() AS postgres;"],
     run: async (stack) => {
       const r = await exec(stack, "SELECT now() AS server_time, current_user AS connected_as, version() AS postgres");
@@ -119,7 +119,7 @@ const EXHIBITS = [
     id: "counts",
     group: "read",
     title: "Registry row counts",
-    blurb: "The seeded system of record: parcels, contractors, permits, inspections — all generated in-engine by the migration Lambda.",
+    blurb: "The seeded system of record: parcels, contractors, permits, inspections, all generated in-engine by the migration Lambda.",
     sql: ["SELECT (SELECT count(*) FROM registry.parcels) AS parcels, …;"],
     run: async (stack) => {
       const r = await exec(
@@ -136,7 +136,7 @@ const EXHIBITS = [
     id: "join-activity",
     group: "read",
     title: "Three-table join: busiest parcels",
-    blurb: "Parcels → permits → inspections joined and aggregated — the everyday shape of a submit→review→decide system's reporting queries.",
+    blurb: "Parcels → permits → inspections joined and aggregated: the everyday shape of a submit→review→decide system's reporting queries.",
     sql: [
       `SELECT p.parcel_number, p.owner_name, count(DISTINCT pe.id) AS permits,
        sum(pe.valuation) AS total_valuation, max(i.inspected_at) AS last_inspection
@@ -177,7 +177,7 @@ const EXHIBITS = [
     id: "view-contractors",
     group: "read",
     title: "Reporting view: contractor scorecard",
-    blurb: "Pass rates per licensed contractor, computed from inspections at query time — no denormalized copies to drift.",
+    blurb: "Pass rates per licensed contractor, computed from inspections at query time; no denormalized copies to drift.",
     sql: ["SELECT * FROM registry.contractor_scorecard ORDER BY inspections DESC LIMIT 8;"],
     run: async (stack) => {
       const r = await exec(stack, "SELECT * FROM registry.contractor_scorecard ORDER BY inspections DESC LIMIT 8");
@@ -189,7 +189,7 @@ const EXHIBITS = [
     group: "plans",
     title: "EXPLAIN ANALYZE: index vs sequential scan",
     blurb:
-      "The same lookup twice: by unique parcel number (index scan) and by unindexed owner name (sequential scan). The planner's own output, live.",
+      "The tract index versus turning every page: the same lookup by unique parcel number (index scan) and by unindexed owner name (sequential scan). The planner's own output, live.",
     sql: [
       "EXPLAIN ANALYZE SELECT * FROM registry.parcels WHERE parcel_number = 'AP-01207';",
       "EXPLAIN ANALYZE SELECT * FROM registry.parcels WHERE owner_name = '…';",
@@ -215,7 +215,7 @@ const EXHIBITS = [
     group: "integrity",
     title: "Foreign key: orphan permit rejected",
     blurb:
-      "An INSERT referencing a parcel that doesn't exist. The database itself refuses — referential integrity is enforced in the engine, not in hopeful application code.",
+      "An INSERT referencing a parcel that doesn't exist. The recorder refuses the instrument: referential integrity is enforced in the engine, not in hopeful application code.",
     sql: ["INSERT INTO registry.permits (…, parcel_id, …) VALUES (…, 9999999, …);  -- no such parcel"],
     run: async (stack) =>
       withRollback(stack, async (tx) => {
@@ -230,7 +230,7 @@ const EXHIBITS = [
           verdict: attempt.failed ? "rejected by the engine" : "UNEXPECTEDLY ACCEPTED",
           ok: attempt.failed,
           error: attempt.error,
-          note: "Attempted inside a transaction that is always rolled back — the registry is untouched either way.",
+          note: "Attempted inside a transaction that is always rolled back; the registry is untouched either way.",
         };
       }),
   },
@@ -238,7 +238,7 @@ const EXHIBITS = [
     id: "check-violation",
     group: "integrity",
     title: "CHECK constraint: invalid inspection result",
-    blurb: "An inspection with result 'maybe' — outside the CHECK list ('pass','fail','partial'). Domain rules live next to the data.",
+    blurb: "An inspection with result 'maybe', outside the CHECK list ('pass','fail','partial'). Domain rules live next to the data.",
     sql: ["INSERT INTO registry.inspections (…, result, …) VALUES (…, 'maybe', …);"],
     run: async (stack) =>
       withRollback(stack, async (tx) => {
@@ -253,7 +253,7 @@ const EXHIBITS = [
           verdict: attempt.failed ? "rejected by the engine" : "UNEXPECTEDLY ACCEPTED",
           ok: attempt.failed,
           error: attempt.error,
-          note: "Rolled back regardless — nothing an exhibit does is ever committed.",
+          note: "Rolled back regardless: nothing an exhibit does is ever committed.",
         };
       }),
   },
@@ -262,7 +262,7 @@ const EXHIBITS = [
     group: "integrity",
     title: "Transaction: all-or-nothing transfer",
     blurb:
-      "A two-step ledger transfer where step 2 breaks a balance>=0 CHECK. The whole transaction rolls back — step 1 never happened. Atomicity, demonstrated.",
+      "A two-step ledger transfer where step 2 breaks a balance>=0 CHECK. The whole transaction rolls back; step 1 never happened. Atomicity, demonstrated.",
     sql: [
       "BEGIN;",
       "UPDATE sandbox.ledger SET balance = balance + 9000 WHERE account = 'general-fund';  -- succeeds",
@@ -290,8 +290,8 @@ const EXHIBITS = [
         kind: "txn",
         ok: !result.step1.failed && result.step2.failed && unchanged,
         steps: [
-          { label: "step 1 — credit general-fund +$9,000", failed: result.step1.failed, error: result.step1.error },
-          { label: "step 2 — debit permit-escrow −$9,000", failed: result.step2.failed, error: result.step2.error },
+          { label: "step 1: credit general-fund +$9,000", failed: result.step1.failed, error: result.step1.error },
+          { label: "step 2: debit permit-escrow −$9,000", failed: result.step2.failed, error: result.step2.error },
         ],
         before: before.rows,
         after: after.rows,
@@ -305,7 +305,7 @@ const EXHIBITS = [
     group: "integrity",
     title: "Least privilege: the API's own role, fenced",
     blurb:
-      "This very API connects as app_user, which can read the registry and write the sandbox — nothing else. Watch its DELETE and DROP attempts die.",
+      "This very API connects as app_user, which may read the registry books and write the sandbox, nothing else. Watch its DELETE and DROP attempts die.",
     sql: ["DELETE FROM registry.permits WHERE id = 1;", "DROP TABLE registry.inspections;"],
     run: async (stack) => {
       const del = await execExpectError(stack, "DELETE FROM registry.permits WHERE id = 1");
@@ -324,7 +324,7 @@ const EXHIBITS = [
     id: "migrations",
     group: "schema",
     title: "Migration ledger",
-    blurb: "Every schema change is an ordered, checksummed migration recorded in the database it shaped — rerunnable, auditable, boring on purpose.",
+    blurb: "Every schema change is an ordered, checksummed migration recorded in the database it shaped: rerunnable, auditable, boring on purpose.",
     sql: ["SELECT id, left(checksum, 12) AS checksum, applied_at FROM registry.schema_migrations ORDER BY id;"],
     run: async (stack) => {
       const r = await exec(
@@ -449,10 +449,10 @@ async function postRun(id) {
     if (isResuming(err)) {
       // Aurora is scaling up from 0 ACU. Tell the browser to retry — the
       // visible wait IS the scale-to-zero exhibit.
-      return json(202, { id, resuming: true, message: "Aurora is resuming from 0 ACU — retrying automatically…" });
+      return json(202, { id, resuming: true, message: "Aurora is resuming from 0 ACU: retrying automatically…" });
     }
     console.error("exhibit failed", id, err);
-    return json(502, { message: "The database rejected this exhibit unexpectedly — try again in a moment." });
+    return json(502, { message: "The database rejected this exhibit unexpectedly; try again in a moment." });
   }
 }
 

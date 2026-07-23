@@ -4,69 +4,82 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Alpenglow Land &amp; Records Registry · Planetek AWS Boardwalk</title>
-<meta name="description" content="A deploy-demo-teardown relational core: Aurora Serverless v2 PostgreSQL that scales to zero, reached only through the RDS Data API. Live exhibits for constraints, transactions, query plans, and checksummed migrations — with an evidence report that outlives the cluster. Plank 11 of the Planetek AWS Boardwalk.">
+<meta name="description" content="The county vault: Aurora Serverless v2 PostgreSQL that scales to zero, reached only through the RDS Data API. Live exhibits for constraints, transactions, query plans, and checksummed migrations, plus a certified evidence report that outlives the cluster. Plank 11 of the Planetek AWS Boardwalk.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Alpenglow Land &amp; Records Registry">
+<meta property="og:description" content="Aurora Serverless v2 PostgreSQL that genuinely scales to zero: the vault seals itself five idle minutes after the last reader leaves, and the first request unseals it. No NAT, no ALB, no open database port anywhere.">
+<meta property="og:url" content="https://registry.demos.planetek.org/">
+<meta property="og:image" content="https://registry.demos.planetek.org/og.jpg">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
 
 <header class="hero">
   <div class="wrap">
-    <p class="eyebrow">Planetek · AWS Boardwalk · Plank 11</p>
+    <p class="eyebrow">Planetek · AWS Boardwalk · Plank 11 · The County Vault</p>
     <h1>Alpenglow Land &amp; Records Registry</h1>
-    <p class="lede">Every submit→review→decide system a government buys rests on a relational core.
-    This one is <strong>Aurora Serverless v2 PostgreSQL that genuinely scales to zero</strong>: 0 ACU
-    floor, five-minute auto-pause, reached only through the RDS Data API — no NAT, no ALB, no open
-    database port anywhere. When the demo window ends the whole cluster is torn down, and the
-    <strong>evidence report</strong> below is what remains.</p>
+    <p class="lede">Every submit, review, decide system a government buys rests on a relational
+    core. This one is <strong>Aurora Serverless v2 PostgreSQL that genuinely scales to
+    zero</strong>: a vault that seals itself five idle minutes after the last reader leaves, and
+    unseals on the first request. It is reached only through the RDS Data API. No NAT, no ALB, no
+    open database port anywhere. When the demo window ends the whole cluster is torn down, and the
+    <strong>certified copy</strong> below is what remains on the counter.</p>
     <div class="hero-meta">
       <div><strong id="stat-status">–</strong>cluster</div>
       <div><strong id="stat-acu">–</strong>capacity now</div>
-      <div><strong id="stat-rows">–</strong>seeded rows</div>
-      <div><strong id="stat-evidence">–</strong>latest evidence</div>
+      <div><strong id="stat-rows">–</strong>rows on record</div>
+      <div><strong id="stat-evidence">–</strong>latest certified copy</div>
     </div>
   </div>
+  <p class="hero-credit">Vault door · Alex Duffy · Unsplash</p>
 </header>
+<div class="tooling" role="presentation"></div>
 
 <main class="wrap">
 
   <!-- Status banner -->
   <section class="panel" id="status-panel">
+    <p class="plate">Book 01 · Vault status</p>
     <div class="status-row">
       <span class="badge" id="status-badge">checking…</span>
       <p class="muted" id="status-text">Reading <code>/api/status</code>…</p>
     </div>
-    <p class="muted small">One command each way: <code>make demo</code> stands up the cluster, runs
-    the checksummed migrations, generates ~20,000 rows in-engine, and writes fresh evidence;
+    <p class="muted small">One command each way: <code>make demo</code> raises the vault, runs the
+    checksummed migrations, generates ~20,000 rows in-engine, and files fresh evidence.
     <code>make teardown</code> destroys every billing resource. While deployed, five idle minutes
-    drop compute to 0 ACU — the first exhibit you run wakes it, and the page times the wake.</p>
+    seal the vault at 0 ACU; the first exhibit you run unseals it, and the page times the wake.</p>
   </section>
 
   <!-- Architecture -->
   <section class="panel">
-    <h2>How a query gets here</h2>
+    <p class="plate">Book 02 · Chain of access</p>
+    <h2>How a request reaches the record</h2>
     <div class="pipe">
-      <span class="node">Browser<small>same-origin /api/* — no CORS anywhere</small></span>
+      <span class="node">Browser<small>same-origin /api/* · no CORS anywhere</small></span>
       <span class="arr">→</span>
-      <span class="node">CloudFront + Lambda<small>canned exhibits only — no user SQL exists</small></span>
+      <span class="node">CloudFront + Lambda<small>canned exhibits only · no user SQL exists</small></span>
       <span class="arr">→</span>
-      <span class="node hub">RDS Data API<small>HTTPS + IAM + Secrets Manager — no database socket</small></span>
+      <span class="node hub">RDS Data API<small>the wicket: HTTPS + IAM + Secrets Manager · no database socket</small></span>
       <span class="arr">→</span>
-      <span class="node" id="node-aurora">Aurora Serverless v2<small>PostgreSQL 17 · 0→1 ACU · auto-pause 5 min</small></span>
+      <span class="node" id="node-aurora">Aurora Serverless v2<small>PostgreSQL 17 · 0→1 ACU · seals after 5 idle min</small></span>
       <span class="arr">→</span>
-      <span class="node done">Evidence report<small>survives teardown</small></span>
+      <span class="node done">Evidence report<small>the certified copy · survives teardown</small></span>
     </div>
     <p class="muted small" style="margin-top:14px">The cluster's security group has <strong>zero
-    ingress rules</strong> — nothing can open a connection to it. The API connects as
-    <code>app_user</code>, a Postgres role that can read the registry and write only the rollback
-    sandbox; its DELETE and DROP attempts are one of the exhibits.</p>
+    ingress rules</strong>; nothing can open a connection to it. The API signs in as
+    <code>app_user</code>, a Postgres role that may read the registry books and write only the
+    practice ledger. Its DELETE and DROP attempts dying in the engine is one of the exhibits.</p>
   </section>
 
   <!-- Exhibits -->
   <section class="panel" id="exhibit-panel">
-    <h2>Run the exhibits</h2>
-    <p class="muted">Each button executes fixed SQL over the Data API and shows you exactly what the
-    engine said — result rows, planner output, or the constraint violation, verbatim.</p>
+    <p class="plate">Book 03 · Request slips</p>
+    <h2>Present a request at the counter</h2>
+    <p class="muted">Each slip files fixed SQL over the Data API and shows you exactly what the
+    engine said back: result rows, planner output, or the refusal, verbatim.</p>
     <div id="exhibit-groups" class="ex-groups"></div>
 
     <div id="result" hidden>
@@ -80,18 +93,28 @@
     </div>
     <div id="wake" class="wake-note" hidden>
       <span class="spin"></span>
-      <span id="wake-text">Aurora is resuming from 0 ACU…</span>
+      <span id="wake-text">Unsealing the vault: Aurora is resuming from 0 ACU…</span>
     </div>
     <p class="usage-line" id="usage-line"></p>
   </section>
 
+  <!-- Interlude: the bound volumes -->
+  <figure class="interlude">
+    <img src="/img/books-spines.webp" alt="Bound archive volumes with hand-lettered paper spine labels" width="1400" height="560" loading="lazy">
+    <figcaption>
+      <span>Every schema change is an amendment recorded in the book it shaped: ordered, checksummed, rerunnable.</span>
+      <span>Archive volumes · Catarina Carvalho · Unsplash</span>
+    </figcaption>
+  </figure>
+
   <!-- Evidence report -->
   <section class="panel">
+    <p class="plate">Book 04 · Certified copy</p>
     <div class="map-head">
       <h2>Latest evidence report</h2>
       <p class="muted" id="evidence-when">–</p>
     </div>
-    <p id="evidence-empty" class="muted" hidden>No evidence has been generated yet — the first
+    <p id="evidence-empty" class="muted" hidden>No evidence has been filed yet. The first
     <code>make demo</code> cycle will populate this section.</p>
 
     <div id="evidence-body" hidden>
@@ -107,7 +130,7 @@
         <div class="ev-card">
           <h3>System of record</h3>
           <div class="scan-counts" id="ev-counts"></div>
-          <p class="muted small">Generated in-engine by the migration Lambda — no fixture files.</p>
+          <p class="muted small">Generated in-engine by the migration Lambda. No fixture files.</p>
         </div>
         <div class="ev-card">
           <h3>Query planner</h3>
@@ -128,36 +151,38 @@
 
   <!-- Proof -->
   <section class="panel">
+    <p class="plate">Book 05 · Terms of record</p>
     <h2>What this plank proves</h2>
     <ul class="proof">
       <li><strong>The relational fundamentals, live:</strong> foreign keys, CHECK constraints, and
-      atomic transactions demonstrated by the engine's own error messages — not slideware claims.
-      Every integrity exhibit runs inside a transaction that is always rolled back.</li>
-      <li><strong>Scale-to-zero is real:</strong> min capacity 0 ACU with auto-pause. A quiet
-      cluster bills no compute; the visible ~15-second wake when you run the first exhibit is the
-      trade-off, measured honestly on this page.</li>
+      atomic transactions demonstrated by the engine's own refusals, not slideware claims. Every
+      integrity exhibit runs inside a transaction that is always rolled back.</li>
+      <li><strong>Scale-to-zero is real:</strong> min capacity 0 ACU with auto-pause. A sealed
+      vault bills no compute; the visible ~15-second unsealing when you run the first exhibit is
+      the trade-off, measured honestly on this page.</li>
       <li><strong>No-socket access pattern:</strong> the RDS Data API means HTTPS + IAM +
-      Secrets Manager instead of connection strings — a security group with zero ingress rules,
+      Secrets Manager instead of connection strings: a security group with zero ingress rules,
       no VPC-attached Lambdas, no NAT to pay for.</li>
       <li><strong>Least privilege below the IAM layer too:</strong> the public API's Postgres role
-      can read the registry and write only the sandbox; the exhibit shows its DELETE and DROP dying
-      in the engine.</li>
+      may read the books and write only the practice ledger; the exhibit shows its DELETE and DROP
+      dying in the engine.</li>
       <li><strong>Schema as code:</strong> ordered, checksummed migrations recorded in the database
-      they shaped, rerunnable idempotently — and cost-honest architecture: RDS is banned always-on
-      in this portfolio, so the whole cluster is deploy-demo-teardown with evidence persisted
-      between windows.</li>
+      they shaped, rerunnable idempotently. And cost-honest architecture: RDS is banned always-on
+      in this portfolio, so the whole cluster is deploy-demo-teardown with the evidence report
+      persisted between windows.</li>
     </ul>
   </section>
 
 </main>
 
 <footer>
+  <div class="tooling" role="presentation"></div>
   <div class="wrap foot-grid">
     <div>
       <p class="foot-brand">Alpenglow Land &amp; Records Registry</p>
       <p class="foot-desc">A demonstration of a governed relational core: Aurora Serverless v2
       PostgreSQL with scale-to-zero, RDS Data API access, engine-enforced integrity, and
-      checksummed migrations — deployed on demand, torn down after, evidence persisted.</p>
+      checksummed migrations. Deployed on demand, torn down after, evidence persisted.</p>
     </div>
     <div>
       <p class="foot-head">Environment</p>
@@ -176,7 +201,9 @@
       </ul>
     </div>
   </div>
-  <div class="foot-bar">Fictional demo built by Planetek — not affiliated with any real government agency.</div>
+  <div class="foot-bar">Fictional demo built by Planetek, not affiliated with any real government
+  agency. Design: "The County Vault". Photos: Alex Duffy (vault door) and Catarina Carvalho
+  (archive volumes), Unsplash free license.</div>
 </footer>
 
 <script type="module" src="/app.js"></script>

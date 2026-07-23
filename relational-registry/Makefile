@@ -49,7 +49,7 @@ demo: init-demo
 	$(MAKE) report
 	$(MAKE) write-status DEPLOYED=true
 	@echo ""
-	@echo "Aurora demo stack LIVE — exhibits at $$($(TF) output -raw site_url)"
+	@echo "Aurora demo stack LIVE: exhibits at $$($(TF) output -raw site_url)"
 	@echo "idle it auto-pauses to 0 ACU; 'make teardown' when the demo window is over."
 
 ## Apply migrations + regenerate seed data (idempotent; FORCE=1 reruns the seed).
@@ -74,7 +74,7 @@ teardown:
 	-$(MAKE) report
 	$(TFD) destroy -auto-approve $(DEMO_VARS)
 	$(MAKE) write-status DEPLOYED=false
-	@echo "Aurora stack torn down — the evidence report remains on the site."
+	@echo "Aurora stack torn down; the evidence report remains on the site."
 
 ## Internal: status.json drives the page's LIVE / torn-down banner.
 write-status:
@@ -87,7 +87,7 @@ write-status:
 status:
 	@COUNT=$$($(TFD) state list 2>/dev/null | wc -l | tr -d ' '); \
 	if [ "$$COUNT" -gt 0 ]; then \
-	  echo "demo stack: DEPLOYED (auto-pauses to 0 ACU when idle — 'make teardown' when done)"; \
+	  echo "demo stack: DEPLOYED (auto-pauses to 0 ACU when idle; 'make teardown' when done)"; \
 	else \
 	  echo "demo stack: torn down (idle ≈ \$$0)"; \
 	fi

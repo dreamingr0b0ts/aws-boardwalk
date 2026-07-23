@@ -192,26 +192,44 @@ function renderHtml(ev) {
   const i = ev.integrity;
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Registry Database Evidence Report — ${esc(ev.generatedAt)}</title>
+<title>Registry Database Evidence Report · ${esc(ev.generatedAt)}</title>
 <style>
-  body{font:15px/1.5 ui-sans-serif,system-ui,-apple-system,sans-serif;color:#1c1917;max-width:860px;margin:32px auto;padding:0 20px}
-  h1{font-size:24px}h2{font-size:17px;margin-top:28px;border-bottom:1px solid #e7e5e4;padding-bottom:6px}
-  ul{padding-left:2px;list-style:none}li{margin:4px 0}
-  li.ok::before{content:"✓ ";color:#047857;font-weight:700}li.no::before{content:"✗ ";color:#b91c1c;font-weight:700}
+  /* The County Vault: certified-copy styling. Fonts load from the site origin
+     when served there and degrade to system faces if saved offline. */
+  @font-face{font-family:"Besley";src:url("https://registry.demos.planetek.org/fonts/besley-latin-400-normal.woff2") format("woff2");font-weight:400;font-display:swap}
+  @font-face{font-family:"Besley";src:url("https://registry.demos.planetek.org/fonts/besley-latin-900-normal.woff2") format("woff2");font-weight:900;font-display:swap}
+  @font-face{font-family:"Fragment Mono";src:url("https://registry.demos.planetek.org/fonts/fragment-mono-latin-400-normal.woff2") format("woff2");font-weight:400;font-display:swap}
+  :root{--paper:#f2ecdd;--ink:#241e15;--ink3:#7c745d;--border:#d9cfb4;--wax:#8e2f26;--brass:#8a6d2c;
+        --steel:#23272d;--slab-ink:#ded5bd;--chip:#ece4cf;--ok:#33633c;--bad:#8e2f26}
+  @media (prefers-color-scheme:dark){
+    :root{--paper:#0e1013;--ink:#eae2cf;--ink3:#92896f;--border:#2b2e35;--wax:#c65a4d;--brass:#c9a35a;
+          --steel:#1b1e23;--slab-ink:#ded5bd;--chip:#21242a;--ok:#8fc79a;--bad:#e39288}}
+  body{font:15px/1.6 "Besley",Georgia,serif;background:var(--paper);color:var(--ink);max-width:860px;margin:32px auto;padding:0 20px}
+  .sheet{border:1px solid var(--brass);outline:1px solid var(--brass);outline-offset:-5px;padding:28px 30px;border-radius:2px}
+  h1{font-size:26px;font-weight:900;line-height:1.15}
+  h2{font-size:12px;margin-top:30px;border-bottom:1px solid var(--border);padding-bottom:6px;
+     font-family:"Fragment Mono",ui-monospace,monospace;font-weight:400;text-transform:uppercase;letter-spacing:.18em;color:var(--brass)}
+  ul{padding-left:2px;list-style:none;margin:10px 0}li{margin:4px 0}
+  li.ok::before{content:"✓ ";color:var(--ok);font-weight:900}li.no::before{content:"✗ ";color:var(--bad);font-weight:900}
   table{border-collapse:collapse;width:100%;font-size:13.5px;margin-top:8px}
-  th,td{text-align:left;padding:5px 9px;border-bottom:1px solid #e7e5e4}
-  th{font-size:11px;text-transform:uppercase;color:#78716c}
-  pre{background:#f5f5f4;border-radius:8px;padding:12px;font-size:12px;overflow-x:auto}
-  .muted{color:#78716c;font-size:13px}code{background:#f5f5f4;padding:1px 5px;border-radius:4px}
-</style></head><body>
+  th,td{text-align:left;padding:5px 9px;border-bottom:1px solid var(--border)}
+  th{font-family:"Fragment Mono",ui-monospace,monospace;font-weight:400;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink3)}
+  pre{background:var(--steel);color:var(--slab-ink);border-left:3px solid var(--brass);border-radius:3px;padding:12px 14px;
+      font:12px/1.6 "Fragment Mono",ui-monospace,monospace;overflow-x:auto}
+  .muted{color:var(--ink3);font-size:13px}
+  code{font-family:"Fragment Mono",ui-monospace,monospace;font-size:.85em;background:var(--chip);padding:1px 5px;border-radius:3px}
+  .stamp{display:inline-block;font-family:"Fragment Mono",ui-monospace,monospace;font-size:10.5px;letter-spacing:.2em;
+         text-transform:uppercase;color:var(--wax);border:1.5px solid var(--wax);border-radius:3px;padding:4px 12px;margin-bottom:14px}
+</style></head><body><div class="sheet">
+<p class="stamp">Certified copy · The County Vault</p>
 <h1>Registry Database Evidence Report</h1>
-<p class="muted">Alpenglow Land &amp; Records Registry (fictional) · generated ${esc(ev.generatedAt)} · aws-boardwalk plank 11 · every proof below produced by live engine responses, not assertions.</p>
+<p class="muted">Alpenglow Land &amp; Records Registry (fictional) · filed ${esc(ev.generatedAt)} · aws-boardwalk plank 11 · every proof below is a live engine response, not an assertion.</p>
 
-<h2>Cluster</h2>
+<h2>Book 01 · Cluster</h2>
 <ul>
 ${yes(true, `Engine: ${c.engine} (${c.status})`)}
 ${yes(c.scalesToZero, `Serverless v2 scales to ZERO: ${c.serverlessV2.minAcu}–${c.serverlessV2.maxAcu} ACU, auto-pause after ${c.serverlessV2.autoPauseSeconds}s idle`)}
-${yes(c.dataApiEnabled, "RDS Data API enabled — access is HTTPS + IAM, no database sockets")}
+${yes(c.dataApiEnabled, "RDS Data API enabled: access is HTTPS + IAM, no database sockets")}
 ${yes(c.noIngressSecurityGroup, "Security group has zero ingress rules (nothing can open a connection)")}
 ${yes(c.storageEncrypted, "Storage encrypted at rest")}
 ${yes(c.iamAuth, "IAM database authentication enabled")}
@@ -219,15 +237,15 @@ ${yes((c.backupRetentionDays ?? 0) >= 7, `Automated backups: ${c.backupRetention
 ${ev.wake.observed ? yes(true, `Observed resume from 0 ACU during this report: ~${(ev.wake.ms / 1000).toFixed(1)}s`) : yes(true, "Cluster was already awake when this report ran")}
 </ul>
 
-<h2>Seeded system of record</h2>
-<p>parcels <strong>${esc(ev.data.counts.parcels)}</strong> · contractors <strong>${esc(ev.data.counts.contractors)}</strong> · permits <strong>${esc(ev.data.counts.permits)}</strong> · inspections <strong>${esc(ev.data.counts.inspections)}</strong> — generated in-engine by the migration Lambda (generate_series), no fixture files.</p>
+<h2>Book 02 · Seeded system of record</h2>
+<p>parcels <strong>${esc(ev.data.counts.parcels)}</strong> · contractors <strong>${esc(ev.data.counts.contractors)}</strong> · permits <strong>${esc(ev.data.counts.permits)}</strong> · inspections <strong>${esc(ev.data.counts.inspections)}</strong>, generated in-engine by the migration Lambda (generate_series), no fixture files.</p>
 
-<h2>Migration ledger</h2>
+<h2>Book 03 · Migration ledger</h2>
 <table><thead><tr><th>id</th><th>checksum</th><th>applied</th></tr></thead><tbody>
 ${ev.migrations.map((m) => `<tr><td><code>${esc(m.id)}</code></td><td><code>${esc(m.checksum)}…</code></td><td>${esc(m.applied_at)}</td></tr>`).join("")}
 </tbody></table>
 
-<h2>Integrity proofs (run as the least-privilege app role)</h2>
+<h2>Book 04 · Integrity proofs (run as the least-privilege app role)</h2>
 <ul>
 ${yes(i.fkViolation.ok, "Foreign key: orphan permit INSERT rejected by the engine")}
 ${yes(i.checkViolation.ok, "CHECK constraint: invalid inspection result rejected")}
@@ -238,7 +256,7 @@ ${yes(i.leastPrivilege.ok, "Least privilege: app role's DELETE and DROP attempts
 ${esc(i.checkViolation.error ?? "")}
 ${esc(i.leastPrivilege.attempts.map((a) => a.error).join("\n"))}</pre>
 
-<h2>Query plans</h2>
+<h2>Book 05 · Query plans</h2>
 <ul>
 ${yes(ev.plans.indexed.usesIndexScan, `Lookup by unique parcel_number uses an Index Scan (${ev.plans.indexed.executionMs} ms)`)}
 ${yes(ev.plans.seqScan.usesSeqScan, `Lookup by unindexed owner_name falls back to a Seq Scan (${ev.plans.seqScan.executionMs} ms)`)}
@@ -246,8 +264,8 @@ ${yes(ev.plans.seqScan.usesSeqScan, `Lookup by unindexed owner_name falls back t
 <pre>${esc(ev.plans.indexed.plan)}</pre>
 <pre>${esc(ev.plans.seqScan.plan)}</pre>
 
-<p class="muted">Fictional demo built by Planetek — not affiliated with any real government agency. Between demo windows the cluster is destroyed entirely; this report persists on the always-on site.</p>
-</body></html>`;
+<p class="muted">Fictional demo built by Planetek, not affiliated with any real government agency. Between demo windows the cluster is destroyed entirely; this certified copy persists on the always-on site.</p>
+</div></body></html>`;
 }
 
 // ---- handler ---------------------------------------------------------------
