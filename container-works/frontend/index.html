@@ -4,68 +4,87 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Alpenglow Batch Works · Planetek AWS Boardwalk</title>
-<meta name="description" content="Launch a real Docker container on ECS Fargate and watch it live: task lifecycle, streaming CloudWatch logs, exit codes, and the report it uploads to S3 — plus the CodeBuild→ECR image pipeline with vulnerability scanning. Plank 4 of the Planetek AWS Boardwalk.">
+<meta name="description" content="Launch a real Docker container on ECS Fargate and watch it live: task lifecycle, streaming CloudWatch logs, exit codes, and the report it uploads to S3, plus the CodeBuild to ECR image pipeline with vulnerability scanning. Plank 4 of the Planetek AWS Boardwalk.">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f7f1e5">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#171009">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Alpenglow Batch Works · scale-to-zero containers on ECS Fargate">
+<meta property="og:description" content="Before it meant compute, a batch was a baking. Fire a real container on Fargate, watch it provision, pull, run, and exit, then read the report it pulls out of the oven. Between bakes, nothing runs anywhere.">
+<meta property="og:url" content="https://containers.demos.planetek.org/">
+<meta property="og:image" content="https://containers.demos.planetek.org/og.jpg">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
 
 <header class="hero">
-  <div class="wrap">
+  <picture>
+    <source media="(max-width: 640px)" srcset="/img/hero-oven-mobile.webp">
+    <img class="hero-photo" src="/img/hero-oven.webp" alt="A baker's peel reaching into a wood-fired stone oven, loaves lit by the embers inside" fetchpriority="high">
+  </picture>
+  <div class="wrap hero-inner">
     <p class="eyebrow">Planetek · AWS Boardwalk · Plank 4</p>
     <h1>Alpenglow Batch Works</h1>
-    <p class="lede">Containers with no idle bill: press the button and a real Docker container is
-    launched on ECS Fargate just for you — watch it provision, pull, run, and exit, log line by log
-    line, then read the report it uploads to S3. Between runs, nothing is running anywhere.</p>
+    <p class="hero-tag">The town bakehouse for batch compute</p>
+    <p class="lede">Before it meant compute, a <em>batch</em> was a baking: one oven load of bread.
+    This works runs on the same rule. Press the button and a real Docker container fires on ECS
+    Fargate just for you. Watch it provision, pull, run, and exit, log line by log line, then read
+    the report it pulls out of the oven. Between bakes, nothing is running anywhere.</p>
     <div class="hero-meta">
-      <div><strong id="stat-launches">–</strong>launches today</div>
+      <div><strong id="stat-launches">–</strong>bakes today</div>
       <div><strong id="stat-image">–</strong>image size</div>
       <div><strong id="stat-scan">–</strong>scan findings</div>
       <div><strong id="stat-build">–</strong>last image build</div>
     </div>
   </div>
 </header>
+<div class="bricks" aria-hidden="true"></div>
 
 <main class="wrap">
 
   <!-- Launcher -->
   <section class="panel">
+    <p class="station">№ 01 · The counter</p>
     <h2>Launch a container</h2>
-    <p class="muted">Each launch is a genuine <code>ecs:RunTask</code> against a scale-to-zero Fargate
-    cluster — 0.25 vCPU / 512 MiB, the smallest size Fargate sells (~$0.001 per run). One task runs at
-    a time and there's a global daily cap, so if someone else's container is in flight you'll be
-    handed theirs to watch instead.</p>
+    <p class="muted">Each launch is a genuine <code>ecs:RunTask</code> against a scale-to-zero
+    Fargate cluster: 0.25 vCPU / 512 MiB, the smallest size Fargate sells, about $0.001 per run.
+    The oven holds one batch at a time and there is a global daily cap, so if someone else's
+    container is in flight you'll be handed theirs to watch instead.</p>
 
     <div class="launch-row">
       <button id="launch-report">▶ Run the nightly report job</button>
       <button id="launch-fail" class="secondary">Run the failing job</button>
-      <p class="muted small">The failing job hits a deliberate bad-input error and exits 1 — so you
-      can see how a container failure actually surfaces: non-zero exit code, stopped reason, no
-      artifact.</p>
+      <p class="muted small">The failing job is the burnt batch: a deliberate bad-input error,
+      exit 1, so you can see how a container failure actually surfaces. Non-zero exit code,
+      stopped reason, no artifact.</p>
     </div>
     <p id="launch-error" class="error" hidden></p>
   </section>
 
   <!-- Live run -->
   <section class="panel">
+    <p class="station">№ 02 · The oven</p>
     <div class="map-head">
       <h2>Watch it run</h2>
       <p class="muted" id="watching">Launch a container above, or click a recent run.</p>
     </div>
 
     <div class="lifecycle" id="lifecycle">
-      <span class="node stage" data-stage="0">PROVISIONING<small>Fargate finds capacity, attaches an ENI</small></span>
+      <span class="node stage" data-stage="0">PROVISIONING<small>the oven fires: Fargate finds capacity, attaches an ENI</small></span>
       <span class="arr">→</span>
-      <span class="node stage" data-stage="1">PENDING<small>pulling the image from ECR</small></span>
+      <span class="node stage" data-stage="1">PENDING<small>proofing: the image pulls from ECR</small></span>
       <span class="arr">→</span>
-      <span class="node stage" data-stage="2">RUNNING<small>your job, logging to CloudWatch</small></span>
+      <span class="node stage" data-stage="2">RUNNING<small>in the oven: your job, logging to CloudWatch</small></span>
       <span class="arr">→</span>
-      <span class="node stage" data-stage="3">DEPROVISIONING<small>tearing the ENI down</small></span>
+      <span class="node stage" data-stage="3">DEPROVISIONING<small>cooling rack: the ENI tears down</small></span>
       <span class="arr">→</span>
-      <span class="node stage" data-stage="4">STOPPED<small>exit code recorded</small></span>
+      <span class="node stage" data-stage="4">STOPPED<small>out: exit code recorded</small></span>
     </div>
 
-    <div class="term" id="term"><p class="term-empty" id="term-empty">— container stdout will stream here —</p><pre id="term-log"></pre></div>
+    <div class="term" id="term"><p class="term-empty" id="term-empty">container stdout will stream here once the oven is lit</p><pre id="term-log"></pre></div>
 
     <div class="result" id="result" hidden>
       <span class="badge" id="result-exit"></span>
@@ -77,10 +96,12 @@
 
   <!-- Image pipeline -->
   <section class="panel">
+    <p class="station">№ 03 · The recipe</p>
     <h2>The image pipeline</h2>
-    <p class="muted">The image those tasks run was itself built in AWS: the app source is zipped to S3,
-    CodeBuild docker-builds it (there is deliberately no Docker on the dev machine), and pushes to
-    ECR, where basic vulnerability scanning runs on every push. This panel reads all of it live.</p>
+    <p class="muted">The image those tasks run is the recipe, and even the recipe was made in AWS:
+    there is deliberately no Docker on the dev machine, so the app source is zipped to S3,
+    CodeBuild docker-builds it, and pushes to ECR, where the health inspection (basic
+    vulnerability scanning) runs on every push. This panel reads all of it live.</p>
 
     <div class="pipe">
       <span class="node">app/ source<small>Dockerfile + Node job → S3 zip</small></span>
@@ -97,46 +118,56 @@
     <div id="scan-counts" class="scan-counts"></div>
   </section>
 
+  <figure class="interlude">
+    <img src="/img/shelves.webp" alt="Loaves of bread resting on the wooden shelves of an old bakery cabinet" loading="lazy" width="1600" height="900">
+    <figcaption>The day's bakes go on the shelf. Every run and its report is kept for 48 hours,
+    then cleared for tomorrow. Photo: Clark Young, Unsplash.</figcaption>
+  </figure>
+
   <!-- Recent runs -->
   <section class="panel">
+    <p class="station">№ 04 · The shelf</p>
     <h2>Recent runs</h2>
-    <p class="muted">Yours, other visitors', and the one EventBridge Scheduler launches every morning
-    (the "scheduled batch job" pattern). Records and report artifacts expire after 48 hours. Click a
-    run to load its logs.</p>
+    <p class="muted">Yours, other visitors', and the batch EventBridge Scheduler bakes every
+    morning (the "scheduled batch job" pattern). Records and report artifacts expire after 48
+    hours. Click a run to load its logs.</p>
     <div id="feed" class="feed"><p class="muted">Loading…</p></div>
   </section>
 
   <section class="panel">
+    <p class="station">№ 05 · The fine print</p>
     <h2>What this plank proves</h2>
     <ul class="proof">
       <li><strong>Containers without the idle bill:</strong> no ECS service, no ALB, no EKS control
-      plane ($73/mo) — tasks exist only while they run, so the environment idles at ~$0 yet is live
-      right now. The classic fit for batch jobs, report generation, and queue workers.</li>
-      <li><strong>A real image pipeline:</strong> source → CodeBuild → ECR with scan-on-push
-      vulnerability findings surfaced above, and a lifecycle policy pruning old images.</li>
+      plane at $73/mo. Tasks exist only while they run, so the environment idles at ~$0 yet is live
+      right now. A cold oven costs nothing. The classic fit for batch jobs, report generation, and
+      queue workers.</li>
+      <li><strong>A real image pipeline:</strong> source to CodeBuild to ECR, with scan-on-push
+      vulnerability findings surfaced above and a lifecycle policy pruning old images.</li>
       <li><strong>Task IAM roles done right:</strong> the <em>execution role</em> (pull image, write
-      logs) is separate from the <em>task role</em>, which can do exactly one thing — write the
+      logs) is separate from the <em>task role</em>, which can do exactly one thing: write the
       finished report under <code>artifacts/</code>. The report's footer is written by that role.</li>
-      <li><strong>Observable by default:</strong> stdout → awslogs → CloudWatch, tailed live above;
+      <li><strong>Observable by default:</strong> stdout to awslogs to CloudWatch, tailed live above;
       lifecycle state from <code>DescribeTasks</code>; final state persisted by an EventBridge
       task-state-change rule even if nobody's watching.</li>
       <li><strong>No NAT tax:</strong> tasks get a public IP in a public subnet with a no-ingress
-      security group — the documented pattern for internet-reachable AWS APIs without a $32/mo NAT
+      security group, the documented pattern for internet-reachable AWS APIs without a $32/mo NAT
       gateway.</li>
-      <li><strong>Failure is part of the demo:</strong> the failing job shows exactly what operators
-      get — exit code, stopped reason, and logs up to the fault.</li>
+      <li><strong>Failure is part of the demo:</strong> the burnt batch shows exactly what operators
+      get. An exit code, a stopped reason, and logs up to the fault.</li>
     </ul>
   </section>
 
 </main>
 
 <footer>
+  <div class="bricks bricks-foot" aria-hidden="true"></div>
   <div class="wrap foot-grid">
     <div>
       <p class="foot-brand">Alpenglow Batch Works</p>
       <p class="foot-desc">A demonstration of scale-to-zero container operations: ECS Fargate
-      run-task, a CodeBuild→ECR image pipeline with vulnerability scanning, and task-role
-      least privilege — idling at ~$0.</p>
+      run-task, a CodeBuild to ECR image pipeline with vulnerability scanning, and task-role
+      least privilege, idling at ~$0.</p>
     </div>
     <div>
       <p class="foot-head">Environment</p>
@@ -144,6 +175,8 @@
         <li>AWS: ECS Fargate · ECR · CodeBuild · EventBridge Scheduler · Lambda · DynamoDB</li>
         <li>Infrastructure as code: Terraform</li>
         <li>Runs and artifacts expire after 48h</li>
+        <li>Photography: <a href="https://unsplash.com/@yasinonus">Yasin Onuş</a> and
+        <a href="https://unsplash.com/@cbyoung">Clark Young</a> on Unsplash</li>
       </ul>
     </div>
     <div>
@@ -155,7 +188,7 @@
       </ul>
     </div>
   </div>
-  <div class="foot-bar">Fictional demo built by Planetek — not affiliated with any real government agency.</div>
+  <div class="foot-bar">Fictional demo built by Planetek. Not affiliated with any real government agency.</div>
 </footer>
 
 <script type="module" src="/app.js"></script>

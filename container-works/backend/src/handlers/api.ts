@@ -55,7 +55,7 @@ async function claimDailySlot(): Promise<number> {
     return res.Attributes?.launches ?? 1;
   } catch (err: any) {
     if (err.name === 'ConditionalCheckFailedException') {
-      throw new HttpError(429, `Daily launch limit reached (${DAILY_LIMIT}/day across all visitors) — resets at 00:00 UTC`);
+      throw new HttpError(429, `Daily launch limit reached (${DAILY_LIMIT}/day across all visitors); resets at 00:00 UTC`);
     }
     throw err;
   }
@@ -68,7 +68,7 @@ async function postRun(event: ApiEvent) {
   const inflight = await inflightTaskIds();
   if (inflight.length >= MAX_CONCURRENT) {
     return json(409, {
-      message: 'A container is already running — watch that one instead (one task at a time keeps this demo pocket-change).',
+      message: 'A container is already running. Watch that one instead: one task at a time keeps this demo pocket-change.',
       runId: inflight[0],
     });
   }
@@ -106,7 +106,7 @@ async function postRun(event: ApiEvent) {
   const failure = (res.failures ?? [])[0];
   if (failure || !res.tasks?.length) {
     console.error('RunTask failure', failure);
-    throw new HttpError(502, `Fargate declined the launch: ${failure?.reason ?? 'unknown'} — try again in a minute`);
+    throw new HttpError(502, `Fargate declined the launch: ${failure?.reason ?? 'unknown'}; try again in a minute`);
   }
 
   const run = normalizeTask(res.tasks[0])!;

@@ -47,8 +47,25 @@ scheduled run. CodeBuild stays inside the always-free 100 build-min/month.
 ## Make targets
 
 `make deploy` (bundle + apply + publish) · `make image` (CodeBuild → ECR; needed
-once after first deploy, then after any `app/` change) · `make verify` (26-check
+once after first deploy, then after any `app/` change) · `make verify` (29-check
 live E2E suite incl. failure path) · `make publish` · `make destroy`.
+
+## Design
+
+"The bakehouse." Before it meant compute, a batch was a baking: one oven load
+of bread, and the plank leans all the way in. The oven (Fargate) fires only
+when a batch goes in and is stone cold between bakes; image pull is proofing,
+scan-on-push is the health inspection, the EventBridge morning run is the
+daily bake, and the fail job is the burnt batch. Light mode is the bakery at
+ten in the morning (flour, parchment, crust gold); dark mode is the bakehouse
+at four, lit through the oven door (espresso, embers). The log terminal is
+drawn as the oven window, arched with a coal-bed glow, and runs are listed as
+bake tickets with a perforated edge. Brick courses divide hero and footer.
+
+Type: Hepta Slab (display) · Karla (body) · Space Mono (tickets, logs,
+readouts), self-hosted woff2 (the CSP allows no CDNs). Photography, Unsplash
+free license: wood-fired oven hero by [Yasin Onuş](https://unsplash.com/@yasinonus),
+bakery shelves by [Clark Young](https://unsplash.com/@cbyoung).
 
 ## Production deltas (called out on purpose)
 

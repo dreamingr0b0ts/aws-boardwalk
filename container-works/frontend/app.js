@@ -103,7 +103,7 @@ async function loadRuns() {
   const feed = $('feed');
   feed.innerHTML = '';
   if (!body.runs?.length) {
-    feed.innerHTML = '<p class="muted">No runs in the last 48h yet — launch one!</p>';
+    feed.innerHTML = '<p class="muted">No runs in the last 48h yet. Fire the oven!</p>';
     return;
   }
   for (const r of body.runs) feed.appendChild(runRow(r));
@@ -130,7 +130,7 @@ async function launch(job) {
     if (status === 202) {
       watch(body.runId, true);
     } else if (status === 409 && body.runId) {
-      $('watching').textContent = 'Someone else’s container is in flight — watching theirs:';
+      $('watching').textContent = 'Someone else’s container is in flight, so you’re watching theirs:';
       watch(body.runId);
     } else {
       $('launch-error').textContent = body.message ?? `Launch failed (${status})`;
