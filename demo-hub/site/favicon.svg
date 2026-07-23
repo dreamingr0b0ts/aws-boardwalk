@@ -1,12 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <defs>
-    <linearGradient id="glow" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#ee7351"/>
-      <stop offset="1" stop-color="#c4401f"/>
-    </linearGradient>
-  </defs>
-  <rect width="64" height="64" rx="14" fill="#16302e"/>
-  <path d="M8 46 22 22l8 12 6-8 12 20z" fill="url(#glow)"/>
-  <path d="M22 22l5 7-3 4-8 13H8z" fill="#f59e83" opacity=".55"/>
-  <circle cx="48" cy="16" r="5" fill="#fde5dc"/>
+  <rect width="64" height="64" rx="14" fill="#0b1f1e"/>
+  <circle cx="32" cy="21" r="17" fill="#f5b04c" opacity=".16"/>
+  <circle cx="32" cy="21" r="12" fill="#f5b04c" opacity=".22"/>
+  <circle cx="32" cy="21" r="8.5" fill="#f7bb5e"/>
+  <circle cx="29.5" cy="18.5" r="2.6" fill="#fde3b3"/>
+  <rect x="30.4" y="29" width="3.2" height="20" rx="1.2" fill="#9fb5af"/>
+  <path d="M12 52h40" stroke="#2f615c" stroke-width="3" stroke-linecap="round"/>
+  <path d="M16 57.5h32" stroke="#24504b" stroke-width="3" stroke-linecap="round"/>
 </svg>

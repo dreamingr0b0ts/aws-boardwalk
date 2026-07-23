@@ -5,52 +5,99 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Planetek · AWS Boardwalk · live demonstration environments</title>
 <meta name="description" content="A portfolio of live, walkable AWS environments built by Planetek: web, APIs, events, data, AI, document intelligence, security, networking, and DevOps. All infrastructure-as-code, all free-tier-first.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="The AWS Boardwalk · Planetek">
+<meta property="og:description" content="Twelve live, walkable AWS environments: web, APIs, events, data, AI, documents, security, networking, and DevOps. All infrastructure as code, all free-tier-first.">
+<meta property="og:url" content="https://demos.planetek.org/">
+<meta property="og:image" content="https://demos.planetek.org/og.jpg">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="preload" as="image" href="/boardwalk-night.webp" fetchpriority="high">
+<link rel="preload" as="font" type="font/woff2" href="/fonts/josefin-sans-latin-700-normal.woff2" crossorigin>
+<link rel="preload" as="font" type="font/woff2" href="/fonts/mulish-latin-400-normal.woff2" crossorigin>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <style>
+  /* The pier at lamplight. The hub is the boardwalk itself: dark mode is the
+     lamp-lit pier at night, light mode is the promenade at first light. Each
+     environment card is a door along the pier, painted in the accent color of
+     the identity that lives behind it. */
+  @font-face { font-family: "Josefin Sans"; font-style: normal; font-weight: 600; font-display: swap;
+    src: url("/fonts/josefin-sans-latin-600-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Josefin Sans"; font-style: normal; font-weight: 700; font-display: swap;
+    src: url("/fonts/josefin-sans-latin-700-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Mulish"; font-style: normal; font-weight: 400; font-display: swap;
+    src: url("/fonts/mulish-latin-400-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Mulish"; font-style: normal; font-weight: 700; font-display: swap;
+    src: url("/fonts/mulish-latin-700-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Red Hat Mono"; font-style: normal; font-weight: 400; font-display: swap;
+    src: url("/fonts/red-hat-mono-latin-400-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Red Hat Mono"; font-style: normal; font-weight: 600; font-display: swap;
+    src: url("/fonts/red-hat-mono-latin-600-normal.woff2") format("woff2"); }
+
   :root {
-    --bg: #fafaf9;
-    --surface: #ffffff;
-    --border: #e7e5e4;
-    --ink: #1c1917;
-    --ink-2: #57534e;
-    --ink-3: #78716c;
+    --display: "Josefin Sans", ui-sans-serif, system-ui, sans-serif;
+    --body: "Mulish", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "Red Hat Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+    --bg: #f5f1e6;            /* sun-bleached deck, never plain white */
+    --surface: #fcfaf3;
+    --border: #e2dbc7;
+    --ink: #211f18;
+    --ink-2: #575244;
+    --ink-3: #7d7767;
     --pine: #16302e;
     --pine-deep: #0b1f1e;
     --pine-mid: #2f615c;
     --pine-soft: #dcebe8;
-    --glow: #e4532f;
-    --glow-soft: #fde5dc;
-    --live-bg: #ecfdf5; --live-ink: #047857; --live-ring: #a7f3d0;
-    --next-bg: #fef4f0; --next-ink: #c4401f; --next-ring: #fac5b4;
+    --glow: #e4532f;          /* alpenglow, the brand ember */
+    --glow-soft: #fbe3da;
+    --lamp: #a06913;          /* lamp amber, text-safe on paper */
+    --lamp-bright: #f5b04c;   /* the lit globe itself */
+    --deck-board: #e9e1cb;
+    --deck-gap: #cfc5a8;
+    --deck-edge: #bfb494;
+    --live-bg: #fdf3df; --live-ink: #8a5c10; --live-ring: #ead2a2;
+    --next-ink: #7d7767; --next-ring: #d4cdb9;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #0c0a09;
-      --surface: #1c1917;
-      --border: #292524;
-      --ink: #f5f5f4;
-      --ink-2: #d6d3d1;
-      --ink-3: #a8a29e;
+      --bg: #0a100f;          /* pine-black water under the pier */
+      --surface: #131f1d;
+      --border: #263733;
+      --ink: #eef3f1;
+      --ink-2: #c3cfcb;
+      --ink-3: #93a39e;
       --pine-soft: #16302e;
+      --glow: #ef6743;
       --glow-soft: rgba(228, 83, 47, .16);
-      --live-bg: rgba(5,150,105,.15); --live-ink: #34d399; --live-ring: rgba(52,211,153,.35);
-      --next-bg: rgba(228,83,47,.14); --next-ink: #f59e83; --next-ring: rgba(245,158,131,.35);
+      --lamp: #f0b95e;
+      --deck-board: #1c2b28;
+      --deck-gap: #0c1513;
+      --deck-edge: #31443f;
+      --live-bg: rgba(245,176,76,.12); --live-ink: #f2c377; --live-ring: rgba(245,176,76,.32);
+      --next-ink: #93a39e; --next-ring: #31443f;
     }
   }
   * { box-sizing: border-box; margin: 0; }
   body {
     background: var(--bg); color: var(--ink);
-    font: 16px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    font: 16px/1.58 var(--body);
     -webkit-font-smoothing: antialiased;
   }
   .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
 
+  /* ---- the deck: boards and gaps, closes the hero and tops the footer ---- */
+  .deck { height: 14px; border-top: 1px solid var(--deck-edge); border-bottom: 1px solid var(--deck-edge);
+    background:
+      repeating-linear-gradient(90deg, var(--deck-gap) 0 3px, var(--deck-board) 3px 92px),
+      var(--deck-board); }
+
   header.hero { background: linear-gradient(180deg, var(--pine-deep), var(--pine)); color: #f2f7f6; overflow: hidden; position: relative; }
-  .hero-inner { padding: 72px 0 96px; position: relative; z-index: 1; }
+  .hero-inner { padding: 72px 20px 96px; position: relative; z-index: 1; }
   /* ---- photographic backdrop (self-hosted 32KB WebP, preloaded) ----
      Photo: Christian Lue via Unsplash (unsplash.com/photos/yLZPjCsY6H8),
-     Unsplash License — free commercial use, no attribution required.
+     Unsplash License: free commercial use, no attribution required.
      A boardwalk at night for the AWS Boardwalk: lamp-lit pier, fog, amber
      glow. The pine veil keeps the text column readable; the slow zoom is
      the only motion and prefers-reduced-motion turns it off. */
@@ -64,54 +111,91 @@
   @media (max-width: 720px) { .hero-veil { background:
     linear-gradient(180deg, rgba(11,31,30,.94) 0%, rgba(11,31,30,.86) 55%, rgba(11,31,30,.6) 100%); } }
   @media (prefers-reduced-motion: reduce) { .hero-photo { animation: none; } }
-  .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: #f59e83; }
-  h1 { font-size: clamp(34px, 6vw, 52px); line-height: 1.05; margin-top: 12px; font-weight: 800; }
-  .hero p.lede { margin-top: 16px; max-width: 620px; font-size: 18px; color: #b9d6d1; }
+  .eyebrow { font: 600 11px/1.4 var(--mono); letter-spacing: .22em; text-transform: uppercase; color: var(--lamp-bright); }
+  h1 { font-family: var(--display); font-weight: 700; text-transform: uppercase; letter-spacing: .045em;
+    font-size: clamp(34px, 6vw, 54px); line-height: 1.04; margin-top: 14px; }
+  .hero p.lede { margin-top: 16px; max-width: 620px; font-size: 18px; color: #bcd8d2; }
   .hero-actions { margin-top: 28px; display: flex; gap: 12px; flex-wrap: wrap; }
-  .btn { display: inline-block; padding: 10px 18px; border-radius: 10px; font-weight: 700; font-size: 14px; text-decoration: none; }
-  .btn-glow { background: var(--glow); color: #fff; box-shadow: 0 8px 24px rgba(228,83,47,.3); }
+  .btn { display: inline-block; padding: 11px 18px 10px; border-radius: 10px; font-weight: 700; font-size: 14px; text-decoration: none; font-family: var(--body); }
+  .btn-glow { background: var(--glow); color: #fff;
+    box-shadow: 0 8px 24px rgba(228,83,47,.32), 0 0 48px rgba(245,176,76,.18); }
   .btn-ghost { border: 1px solid rgba(185,214,209,.5); color: #f2f7f6; }
   .btn:hover { filter: brightness(1.1); }
-  .hero-meta { margin-top: 32px; display: flex; gap: 24px; flex-wrap: wrap; font-size: 13px; color: #8db9b3; }
-  .hero-meta strong { display: block; color: #fff; font-size: 15px; }
+  .hero-meta { margin-top: 34px; display: flex; gap: 26px; flex-wrap: wrap;
+    font: 400 12px/1.5 var(--mono); color: #8db9b3; }
+  .hero-meta strong { display: block; color: #fff; font-size: 15px; font-family: var(--body); font-weight: 700; }
 
   main { padding: 56px 0 24px; }
-  h2 { font-size: 24px; font-weight: 800; }
+  h2 { font-family: var(--display); font-weight: 700; text-transform: uppercase; letter-spacing: .05em; font-size: 21px; }
 
-  .grid { margin-top: 28px; display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+  .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); }
+  /* Each card is a door on the promenade; --door is the paint color of the
+     identity behind it (permits pine, assistant nocturne, vault wax, ...). */
   .card {
+    position: relative; overflow: hidden;
     background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
-    padding: 22px; display: flex; flex-direction: column; gap: 10px;
+    padding: 24px 22px 22px; display: flex; flex-direction: column; gap: 10px;
     transition: border-color .15s ease, transform .15s ease, box-shadow .15s ease;
   }
-  .card:hover { border-color: var(--pine-mid); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(11,31,30,.08); }
+  .card::before { content: ""; position: absolute; top: 0; left: 16px; right: 16px; height: 3px;
+    background: var(--door); border-radius: 0 0 3px 3px; opacity: .85; }
+  .card:hover { border-color: color-mix(in srgb, var(--door) 55%, var(--border)); transform: translateY(-2px);
+    box-shadow: 0 10px 24px color-mix(in srgb, var(--door) 16%, transparent); }
+  .door-web       { --door: #e4532f; }  /* town hall counter: alpenglow */
+  .door-network   { --door: #3e79ae; }  /* drafting room: Prussian */
+  .door-models    { --door: #2fbf71; }  /* signal bench: phosphor */
+  .door-assistant { --door: #7d79e6; }  /* records office: nocturne violet */
+  .door-documents { --door: #b28a44; }  /* records annex: brass */
+  .door-data      { --door: #2e8fc4; }  /* lake survey: bathymetric blue */
+  .door-api       { --door: #2f9e77; }  /* city exchange: jade */
+  .door-events    { --door: #e8a13d; }  /* switchyard: signal amber */
+  .door-containers{ --door: #a5642f; }  /* bakehouse: crust and espresso */
+  .door-ops       { --door: #c9302a; }  /* mountain patrol: patrol red */
+  .door-security  { --door: #d2691f; }  /* fire lookout: ember */
+  .door-registry  { --door: #a83a49; }  /* county vault: sealing wax */
   .card-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-  .num { font-size: 12px; font-weight: 800; color: var(--ink-3); letter-spacing: .08em; }
-  .chip { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em;
-          padding: 3px 10px; border-radius: 999px; border: 1px solid; }
-  /* Every environment is live; the chip now tells you the one thing that
-     differs — whether the heavy stack is always-on or deploys on demand. */
+  .num { font: 600 10.5px/1.4 var(--mono); color: var(--ink-3); letter-spacing: .12em; text-transform: uppercase;
+    display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+  .num::before { content: ""; flex: none; width: 9px; height: 9px; border-radius: 50%;
+    background: var(--door); box-shadow: 0 0 0 3px color-mix(in srgb, var(--door) 18%, transparent); }
+  .chip { font: 600 10px/1.5 var(--mono); text-transform: uppercase; letter-spacing: .08em;
+          padding: 3px 10px; border-radius: 999px; border: 1px solid; white-space: nowrap;
+          display: inline-flex; align-items: center; gap: 6px; }
+  .chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; }
+  /* Every environment is live; the chip tells you whether its lamp burns all
+     night (always-on) or is lit when you arrive (deploys on demand). */
   .chip.live { background: var(--live-bg); color: var(--live-ink); border-color: var(--live-ring); }
-  .chip.ondemand { background: var(--next-bg); color: var(--next-ink); border-color: var(--next-ring); }
-  .card h3 { font-size: 17px; font-weight: 800; }
+  .chip.live::before { background: currentColor; box-shadow: 0 0 7px 1px currentColor; }
+  .chip.ondemand { background: transparent; color: var(--next-ink); border-color: var(--next-ring); }
+  .chip.ondemand::before { border: 1.5px solid currentColor; width: 5px; height: 5px; }
+  .card h3 { font-family: var(--display); font-weight: 700; font-size: 19px; letter-spacing: .01em; }
   .card p { font-size: 14px; color: var(--ink-2); flex: 1; }
-  .stack { font-size: 12px; color: var(--ink-3); }
-  .card-links { display: flex; gap: 14px; padding-top: 6px; border-top: 1px solid var(--border); }
+  .stack { font: 400 11.5px/1.6 var(--mono); color: var(--ink-3); }
+  .card-links { display: flex; gap: 14px; padding-top: 8px; border-top: 1px solid var(--border); flex-wrap: wrap; }
   .card-links a { font-size: 14px; font-weight: 700; color: var(--glow); text-decoration: none; }
   .card-links a.quiet { color: var(--pine-mid); }
   @media (prefers-color-scheme: dark) { .card-links a.quiet { color: #8db9b3; } }
   .card-links a:hover { text-decoration: underline; }
 
-  .principles { margin-top: 56px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 26px; }
-  .principles ul { margin: 14px 0 0; padding: 0; list-style: none; display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+  /* ---- first light on the promenade ---- */
+  .interlude { margin-top: 56px; }
+  .interlude img { width: 100%; height: clamp(200px, 30vw, 320px); object-fit: cover; object-position: 50% 62%;
+    border-radius: 14px; border: 1px solid var(--border); display: block; }
+  .interlude figcaption { margin-top: 10px; font: 400 12px/1.6 var(--mono); color: var(--ink-3); }
+
+  .principles { margin-top: 56px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    padding: 26px; box-shadow: inset 0 0 0 4px var(--bg), inset 0 0 0 5px var(--border); }
+  .plate { font: 600 10.5px/1.4 var(--mono); letter-spacing: .18em; text-transform: uppercase; color: var(--lamp); margin-bottom: 10px; }
+  .principles ul { margin: 16px 0 0; padding: 0; list-style: none; display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); }
   .principles li { font-size: 14px; color: var(--ink-2); padding-left: 22px; position: relative; }
-  .principles li::before { content: "⛰"; position: absolute; left: 0; }
+  .principles li::before { content: ""; position: absolute; left: 2px; top: .42em; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--lamp-bright); box-shadow: 0 0 8px 1px color-mix(in srgb, var(--lamp-bright) 65%, transparent); }
 
   /* Boardwalk-standard footer (modeled on the permits site) */
-  footer { margin-top: 64px; background: var(--pine-deep); color: #b9d6d1; font-size: 13px; }
+  footer { background: var(--pine-deep); color: #b9d6d1; font-size: 13px; }
   .foot-grid { display: grid; gap: 28px; padding: 34px 20px 28px; }
   @media (min-width: 640px) { .foot-grid { grid-template-columns: repeat(3, 1fr); } }
-  .foot-brand { font-weight: 800; color: #fff; font-size: 14px; margin: 0; }
+  .foot-brand { font-family: var(--display); font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #fff; font-size: 15px; margin: 0; }
   .foot-desc { margin: 8px 0 0; font-size: 12px; line-height: 1.6; color: #8db9b3; }
   .foot-head { font-weight: 700; color: #fff; margin: 0; }
   .foot-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; }
@@ -128,8 +212,8 @@
   <div class="wrap hero-inner">
     <p class="eyebrow">Planetek · Portfolio of working environments</p>
     <h1>The AWS Boardwalk</h1>
-    <p class="lede">Not slides — systems. Each plank below is a real, deployed AWS environment you can walk through:
-    infrastructure-as-code, production security patterns, and free-tier-first architecture that idles at next to nothing.</p>
+    <p class="lede">Not slides. Systems. Each plank below is a real, deployed AWS environment you can walk through:
+    infrastructure as code, production security patterns, and free-tier-first architecture that idles at next to nothing.</p>
     <div class="hero-actions">
       <a class="btn btn-glow" href="#planks">Walk the boardwalk ↓</a>
       <a class="btn btn-ghost" href="https://github.com/dreamingr0b0ts/aws-boardwalk">Read the code</a>
@@ -141,12 +225,13 @@
     </div>
   </div>
 </header>
+<div class="deck" aria-hidden="true"></div>
 
 <main class="wrap">
-  <div class="grid" id="planks">
-    <article class="card">
+  <div class="grid" id="planks" style="margin-top:0">
+    <article class="card door-web">
       <!-- plank 1 -->
-      <div class="card-top"><span class="num">WEB</span><span class="chip live">always-on</span></div>
+      <div class="card-top"><span class="num">Web</span><span class="chip live">always-on</span></div>
       <h3>Modern Web Application</h3>
       <p>Alpenglow Permits: a citizen permit portal with real sign-up, role-based access (guest / resident / staff),
       a live data tier, transparency dashboards, and a nightly self-reset.</p>
@@ -157,9 +242,9 @@
       </div>
     </article>
 
-    <article class="card">
+    <article class="card door-network">
       <!-- plank 9 -->
-      <div class="card-top"><span class="num">NETWORK</span><span class="chip ondemand">on-demand</span></div>
+      <div class="card-top"><span class="num">Network</span><span class="chip ondemand">on-demand</span></div>
       <h3>Network Architecture</h3>
       <p>A textbook multi-AZ VPC, proven live: tiered subnets, security-group layering, NACLs, gateway
       endpoints (the no-NAT cost pattern), and flow logs, every reachable <em>and</em> unreachable path
@@ -172,9 +257,9 @@
       </div>
     </article>
 
-    <article class="card">
+    <article class="card door-models">
       <!-- plank 12 -->
-      <div class="card-top"><span class="num">FOUNDATION MODELS</span><span class="chip live">always-on</span></div>
+      <div class="card-top"><span class="num">Foundation Models</span><span class="chip live">always-on</span></div>
       <h3>Model Workbench</h3>
       <p>One prompt, four foundation models from four vendors (Anthropic, Amazon, Meta, Mistral)
       side by side through the single Bedrock Converse API, with measured latency, tokens, and cost per
@@ -187,9 +272,9 @@
       </div>
     </article>
 
-    <article class="card">
+    <article class="card door-assistant">
       <!-- plank 6 -->
-      <div class="card-top"><span class="num">GENERATIVE AI</span><span class="chip live">always-on</span></div>
+      <div class="card-top"><span class="num">Generative AI</span><span class="chip live">always-on</span></div>
       <h3>Generative AI (RAG)</h3>
       <p>A retrieval-augmented assistant over a swappable document corpus: citation-grounded answers, prompt
       guardrails, conversation audit logs, a human-feedback loop, plus hard per-user + global daily cost caps
@@ -201,9 +286,9 @@
       </div>
     </article>
 
-    <article class="card">
+    <article class="card door-documents">
       <!-- plank 7 -->
-      <div class="card-top"><span class="num">DOCUMENTS</span><span class="chip live">always-on</span></div>
+      <div class="card-top"><span class="num">Documents</span><span class="chip live">always-on</span></div>
       <h3>Intelligent Document Processing</h3>
       <p>Drop any PDF or image: Textract OCR and form extraction, Comprehend entities and PII flags, Bedrock
       auto-classification, and a searchable, faceted metadata index, every document carrying its own
@@ -216,9 +301,9 @@
       </div>
     </article>
 
-    <article class="card">
+    <article class="card door-data">
       <!-- plank 5 -->
-      <div class="card-top"><span class="num">DATA</span><span class="chip live">always-on</span></div>
+      <div class="card-top"><span class="num">Data</span><span class="chip live">always-on</span></div>
       <h3>Data Lake &amp; Analytics</h3>
       <p>A serverless lake over 3.1M real Colorado business registrations: raw JSONL and curated partitioned
       Parquet zones, a Glue catalog, and live Athena SQL you can run yourself, with Athena's own
@@ -230,7 +315,7 @@
       </div>
     </article>
 
-    <article class="card">
+    <article class="card door-api">
       <!-- plank 2 -->
       <div class="card-top"><span class="num">API</span><span class="chip live">always-on</span></div>
       <h3>API &amp; Microservices</h3>
@@ -245,9 +330,9 @@
       </div>
     </article>
 
-    <article class="card">
+    <article class="card door-events">
       <!-- plank 3 -->
-      <div class="card-top"><span class="num">EVENTS</span><span class="chip live">always-on</span></div>
+      <div class="card-top"><span class="num">Events</span><span class="chip live">always-on</span></div>
       <h3>Event-Driven &amp; Messaging</h3>
       <p>A live event mesh you can poke: submit a 311-style request and watch it fan out through EventBridge
       rules to department queues, SNS pub/sub, and a Step Functions escalation, with a poison-message
@@ -259,9 +344,9 @@
       </div>
     </article>
 
-    <article class="card">
+    <article class="card door-containers">
       <!-- plank 4 -->
-      <div class="card-top"><span class="num">CONTAINERS</span><span class="chip live">always-on</span></div>
+      <div class="card-top"><span class="num">Containers</span><span class="chip live">always-on</span></div>
       <h3>Containers (scale-to-zero)</h3>
       <p>Press a button and a real Docker container launches on ECS Fargate just for you. Watch it provision,
       pull, run, and exit with live logs, then read the report it uploads to S3. Image built in AWS by
@@ -273,9 +358,9 @@
       </div>
     </article>
 
-    <article class="card">
+    <article class="card door-ops">
       <!-- plank 10 -->
-      <div class="card-top"><span class="num">DEVOPS &amp; SRE</span><span class="chip live">always-on</span></div>
+      <div class="card-top"><span class="num">DevOps &amp; SRE</span><span class="chip live">always-on</span></div>
       <h3>DevOps &amp; SRE</h3>
       <p>The meta-environment that ships the others: GitHub Actions with OIDC (no stored keys), Terraform plan/apply
       gates, Checkov + Trivy scanning on every PR, one CloudWatch pane over every plank, and an executable
@@ -287,9 +372,9 @@
       </div>
     </article>
 
-    <article class="card">
+    <article class="card door-security">
       <!-- plank 8 -->
-      <div class="card-top"><span class="num">SECURITY</span><span class="chip ondemand">on-demand</span></div>
+      <div class="card-top"><span class="num">Security</span><span class="chip ondemand">on-demand</span></div>
       <h3>Security &amp; Governance</h3>
       <p>The deploy-demo-teardown plank: GuardDuty, Security Hub, a NIST 800-53 rev 5 Config conformance
       pack, KMS-encrypted CloudTrail, and a permission-boundary proof. Daily-billing services deploy for
@@ -301,9 +386,9 @@
       </div>
     </article>
 
-    <article class="card">
+    <article class="card door-registry">
       <!-- plank 11 -->
-      <div class="card-top"><span class="num">DATABASE</span><span class="chip ondemand">on-demand</span></div>
+      <div class="card-top"><span class="num">Database</span><span class="chip ondemand">on-demand</span></div>
       <h3>Relational Registry</h3>
       <p>Aurora Serverless v2 PostgreSQL that genuinely scales to zero, reached only through the RDS
       Data API: no NAT, no open database port. Live exhibits: watch it wake from 0 ACU, engine-enforced
@@ -318,7 +403,15 @@
 
   </div>
 
+  <!-- Photo: Ahmet Yüksek via Unsplash (unsplash.com/photos/yo2oAL5txkk),
+       Unsplash License: free commercial use, no attribution required. -->
+  <figure class="interlude">
+    <img src="/promenade-first-light.webp" alt="A lamp-lined lakeside promenade at first light, mountains behind" loading="lazy" decoding="async">
+    <figcaption>First light on the promenade. Seeded demo data resets overnight, so every door opens again by morning.</figcaption>
+  </figure>
+
   <section class="principles">
+    <p class="plate">Pier notice</p>
     <h2>How the boardwalk is built</h2>
     <ul>
       <li>Every environment is Terraform end-to-end: one command up, one command down.</li>
@@ -329,6 +422,7 @@
   </section>
 </main>
 
+<div class="deck" style="margin-top:64px" aria-hidden="true"></div>
 <footer>
   <div class="wrap foot-grid">
     <div>
@@ -349,6 +443,7 @@
       <ul class="foot-list">
         <li><a href="https://github.com/dreamingr0b0ts/aws-boardwalk">Github</a></li>
         <li><a href="https://planetek.org">planetek.org</a></li>
+        <li>Photos: Christian Lue, Ahmet Yüksek (Unsplash)</li>
       </ul>
     </div>
   </div>
