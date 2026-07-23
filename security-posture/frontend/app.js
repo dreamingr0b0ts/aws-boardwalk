@@ -26,16 +26,16 @@ const fmtWhen = (iso) => {
 function renderStatus(status) {
   const badge = $("status-badge");
   const live = status?.deployed === true;
-  badge.textContent = live ? "stack live" : "torn down";
+  badge.textContent = live ? "tower staffed · stack live" : "off season · torn down";
   badge.className = `badge ${live ? "live" : "down"}`;
   $("stat-status").textContent = live ? "LIVE" : "torn down";
   $("status-text").innerHTML = live
-    ? "The full security stack is deployed and billing — GuardDuty, Security Hub, and the Config " +
-      "conformance pack are evaluating this account right now. The evidence below is refreshable live."
+    ? "The tower is staffed: GuardDuty, Security Hub, and the Config conformance pack are " +
+      "evaluating this account right now, and the evidence below is refreshable live."
     : status
       ? `The daily-billing stack was destroyed ${fmtWhen(status.updatedAt)} after its last demo window. ` +
-        "The evidence report below is the persisted output of that cycle — redeployable in ~15 minutes."
-      : "No demo cycle has run yet. The first <code>make demo</code> will deploy the stack and generate evidence.";
+        "The evidence report below is the persisted logbook of that cycle, redeployable in about 15 minutes."
+      : "No demo cycle has run yet. The first <code>make demo</code> will staff the tower and generate evidence.";
   if (live) $("node-report").classList.add("live");
 }
 
@@ -97,7 +97,7 @@ function renderEvidence(ev) {
   );
   $("ev-sh-note").textContent =
     "AWS Foundational Security Best Practices control findings across the whole demo account. " +
-    "Checks keep landing for a couple of hours after each deploy, so early reports run lighter.";
+    "Checks keep arriving at dispatch for a couple of hours after each deploy, so early reports run lighter.";
 
   // nist conformance pack
   const cf = ev.config ?? { rules: {} };
@@ -134,10 +134,10 @@ function renderEvidence(ev) {
     const note = document.createElement("td");
     note.className = "note";
     note.textContent =
-      sim.allowedByBoundary === false
-        ? "granted by the role's policy, blocked by the boundary"
-        : sim.decision === "allowed"
-          ? "inside both the policy and the boundary"
+      sim.decision === "allowed"
+        ? "inside both the policy and the boundary"
+        : sim.grantedByPolicy
+          ? "granted by the role's policy, blocked by the boundary"
           : "granted by nothing";
     tr.append(action, decision, note);
     tbody.appendChild(tr);

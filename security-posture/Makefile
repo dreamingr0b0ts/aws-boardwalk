@@ -54,7 +54,7 @@ demo: init-demo
 	$(MAKE) report
 	$(MAKE) write-status DEPLOYED=true
 	@echo ""
-	@echo "demo stack LIVE — evidence at $$($(TF) output -raw site_url)"
+	@echo "demo stack LIVE: evidence at $$($(TF) output -raw site_url)"
 	@echo "re-run 'make report' in ~30-60 min for fuller Security Hub/Config coverage,"
 	@echo "and 'make teardown' when the demo window is over (it bills daily until then)."
 
@@ -71,7 +71,7 @@ teardown:
 	-$(MAKE) report
 	$(TFD) destroy -auto-approve $(DEMO_VARS)
 	$(MAKE) write-status DEPLOYED=false
-	@echo "security stack torn down — the evidence report remains on the site."
+	@echo "security stack torn down. The evidence report remains on the site."
 
 ## Internal: status.json drives the page's LIVE / torn-down banner.
 write-status:
@@ -83,5 +83,5 @@ write-status:
 
 status:
 	@$(TFD) state list 2>/dev/null | grep -q . \
-	  && echo "demo stack: DEPLOYED (billing daily — 'make teardown' when done)" \
+	  && echo "demo stack: DEPLOYED (billing daily; 'make teardown' when done)" \
 	  || echo "demo stack: torn down (idle ≈ \$$0)"

@@ -4,8 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Alpenglow Security Posture · Planetek AWS Boardwalk</title>
-<meta name="description" content="A deploy-demo-teardown security and governance environment: CloudTrail with KMS-encrypted logs, GuardDuty, Security Hub, an AWS Config NIST 800-53 conformance pack, IAM permission boundaries — and an auto-generated findings-to-evidence report that outlives the stack. Plank 8 of the Planetek AWS Boardwalk.">
+<meta name="description" content="A deploy-demo-teardown security and governance environment: CloudTrail with KMS-encrypted logs, GuardDuty, Security Hub, an AWS Config NIST 800-53 conformance pack, IAM permission boundaries, and an auto-generated findings-to-evidence report that outlives the stack. Plank 8 of the Planetek AWS Boardwalk.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Alpenglow Security Posture · the boardwalk's fire lookout">
+<meta property="og:description" content="GuardDuty, Security Hub, AWS Config with a NIST 800-53 conformance pack, and KMS-encrypted CloudTrail, staffed for demo windows and torn down after. The findings-to-evidence report stays behind.">
+<meta property="og:url" content="https://security.demos.planetek.org/">
+<meta property="og:image" content="https://security.demos.planetek.org/img/og.jpg">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
@@ -14,9 +22,12 @@
   <div class="wrap">
     <p class="eyebrow">Planetek · AWS Boardwalk · Plank 8</p>
     <h1>Alpenglow Security Posture</h1>
-    <p class="lede">The plank that is deliberately <em>not</em> always on: GuardDuty, Security Hub,
-    AWS Config, and CloudTrail bill by the day, so this stack deploys for demo windows and tears
-    down after. What persists is the part that matters — an auto-generated
+    <p class="hero-plate">Alpenglow Ranger District · the fire lookout</p>
+    <p class="lede">Every forest that matters keeps a lookout: one tower with a clear view, a logbook,
+    and standing orders to report what it sees. This plank is that tower, and it is deliberately
+    <em>not</em> always on. GuardDuty, Security Hub, AWS Config, and CloudTrail bill by the day, so
+    the stack is staffed for demo windows and shuttered after, the way a lookout runs for fire
+    season and closes for winter. What stays behind is the part an auditor actually wants: a
     <strong>findings-to-evidence report</strong>, rebuilt from live AWS APIs on every cycle and
     served below even while the stack itself is gone.</p>
     <div class="hero-meta">
@@ -32,60 +43,68 @@
 
   <!-- Status banner -->
   <section class="panel" id="status-panel">
+    <p class="plate">Log 01 · Season status</p>
     <div class="status-row">
       <span class="badge" id="status-badge">checking…</span>
       <p class="muted" id="status-text">Reading <code>/evidence/status.json</code>…</p>
     </div>
-    <p class="muted small">One command each way: <code>make demo</code> deploys the full stack and
-    generates fresh evidence in about 15 minutes; <code>make teardown</code> destroys every
-    daily-billing resource and leaves this page serving the final report. Between windows the
-    environment idles at ~$0 — the same discipline the rest of the boardwalk runs on.</p>
+    <p class="muted small">One command each way: <code>make demo</code> staffs the tower, deploying
+    the full stack and generating fresh evidence in about 15 minutes; <code>make teardown</code>
+    strikes every daily-billing resource and leaves this page serving the final report. Between
+    windows the environment idles at ~$0, the same discipline the rest of the boardwalk runs on.</p>
   </section>
+
+  <div class="brace" aria-hidden="true"></div>
 
   <!-- Architecture -->
   <section class="panel">
+    <p class="plate">Log 02 · The watch</p>
     <h2>What deploys during a demo window</h2>
     <p class="muted">Terraform stands up the whole account-hardening reference in one apply:</p>
 
     <div class="pipe">
-      <span class="node">CloudTrail<small>multi-region · log-file validation · KMS-encrypted S3</small></span>
-      <span class="node">GuardDuty<small>threat detection, seeded with AWS sample findings</small></span>
-      <span class="node">AWS Config<small>records every resource · NIST 800-53 rev 5 pack, 130 rules</small></span>
+      <span class="node">CloudTrail<small>the tower logbook: every event in ink · multi-region · tamper-evident · KMS-encrypted</small></span>
+      <span class="node">GuardDuty<small>the smoke watch, seeded with AWS sample findings as practice smokes</small></span>
+      <span class="node">AWS Config<small>records every resource · NIST 800-53 rev 5 pack, 130 rules: the station inspection</small></span>
       <span class="arr">→</span>
-      <span class="node hub">Security Hub<small>one pane: FSBP checks + GuardDuty findings</small></span>
+      <span class="node hub">Security Hub<small>district dispatch: the one desk every sighting and inspection reaches</small></span>
       <span class="arr">→</span>
-      <span class="node lit-when-live" id="node-report">Evidence Lambda<small>findings → evidence.json + evidence.html</small></span>
+      <span class="node lit-when-live" id="node-report">Evidence Lambda<small>findings to evidence.json + evidence.html</small></span>
       <span class="arr">→</span>
-      <span class="node done">This page<small>report survives teardown</small></span>
+      <span class="node done">This page<small>the filed report survives teardown</small></span>
     </div>
 
-    <p class="muted small" style="margin-top:14px">Alongside the pipeline: a customer-managed KMS key
-    with automatic rotation encrypting the audit trail, and an IAM <strong>permissions boundary</strong>
-    exhibit — a role whose policy grants more than its boundary allows, proven neutered via
-    <code>iam:SimulatePrincipalPolicy</code> in the report below.</p>
+    <p class="muted small pipe-note">Alongside the pipeline: a customer-managed KMS key with
+    automatic rotation sealing the audit trail, and an IAM <strong>permissions boundary</strong>
+    exhibit. That role's policy grants more than its boundary allows, and the report below proves
+    it neutered via <code>iam:SimulatePrincipalPolicy</code>. Standing orders hold: the watch may
+    read the record, never rewrite it.</p>
   </section>
+
+  <div class="brace" aria-hidden="true"></div>
 
   <!-- Evidence report -->
   <section class="panel">
+    <p class="plate">Log 03 · The evidence</p>
     <div class="map-head">
       <h2>Latest evidence report</h2>
       <p class="muted" id="evidence-when">–</p>
     </div>
-    <p id="evidence-empty" class="muted" hidden>No evidence has been generated yet — the first
+    <p id="evidence-empty" class="muted" hidden>No evidence has been generated yet. The first
     <code>make demo</code> cycle will populate this section.</p>
 
     <div id="evidence-body" hidden>
       <div class="ev-grid">
         <div class="ev-card">
-          <h3>Audit trail</h3>
+          <h3>Audit trail · CloudTrail</h3>
           <ul class="fact" id="ev-cloudtrail"></ul>
         </div>
         <div class="ev-card">
-          <h3>Encryption</h3>
+          <h3>Encryption · KMS</h3>
           <ul class="fact" id="ev-kms"></ul>
         </div>
         <div class="ev-card">
-          <h3>Threat detection <span class="tag">sample findings</span></h3>
+          <h3>Threat detection · GuardDuty <span class="tag">sample findings</span></h3>
           <div class="scan-counts" id="ev-gd"></div>
         </div>
         <div class="ev-card">
@@ -99,37 +118,46 @@
           <div class="scan-counts" id="ev-nist"></div>
         </div>
         <div class="ev-card wide">
-          <h3>Permissions boundary — simulated proof</h3>
+          <h3>Permissions boundary · simulated proof</h3>
           <table class="sim" id="ev-boundary"><thead><tr><th>Action</th><th>Decision</th><th></th></tr></thead><tbody></tbody></table>
         </div>
       </div>
 
-      <div class="launch-row" style="margin-top:18px">
+      <div class="launch-row">
         <a class="btn-link" href="/evidence/evidence.html" target="_blank" rel="noopener">Open the standalone evidence report ↗</a>
         <a class="btn-link secondary" href="/evidence/evidence.json" target="_blank" rel="noopener">Raw evidence.json ↗</a>
       </div>
     </div>
   </section>
 
+  <figure class="interlude">
+    <img src="/img/smoke-1600.webp" width="1600" height="640" loading="lazy"
+         alt="Smoke-hazed mountain ridgelines receding into a dim sky">
+    <figcaption>Reading the haze. A lookout's craft is telling weather from smoke;
+    GuardDuty's is telling noise from threat. Smoke-dimmed ridgelines photographed by
+    Haley Truong.</figcaption>
+  </figure>
+
   <!-- Proof -->
   <section class="panel">
+    <p class="plate">Log 04 · Why it matters</p>
     <h2>What this plank proves</h2>
     <ul class="proof">
       <li><strong>Compliance automation, not compliance paperwork:</strong> the NIST 800-53 rev 5
       conformance pack evaluates 130 managed Config rules against the live account, and the evidence
-      report is generated from API results — the same findings-to-evidence motion an ATO package
+      report is generated from API results. That is the findings-to-evidence motion an ATO package
       needs, automated end to end.</li>
-      <li><strong>The full native security stack, wired together:</strong> CloudTrail → KMS-encrypted,
-      integrity-validated audit logs; GuardDuty detections and Config evaluations aggregating into
-      Security Hub as the single pane.</li>
+      <li><strong>The full native security stack, wired together:</strong> CloudTrail writing
+      KMS-encrypted, integrity-validated audit logs; GuardDuty detections and Config evaluations
+      aggregating into Security Hub as the single pane.</li>
       <li><strong>Least privilege beyond policies:</strong> a permissions boundary exhibit proves the
-      ceiling holds even when an attached policy over-grants — verified by IAM's own policy
+      ceiling holds even when an attached policy over-grants, verified by IAM's own policy
       simulator, not by assertion.</li>
       <li><strong>Cost-honest architecture:</strong> these services bill daily, so the plank is
-      deploy-demo-teardown by design — one command up, one command down, evidence persisted between
+      deploy-demo-teardown by design. One command up, one command down, evidence persisted between
       windows. Knowing <em>when not to leave something running</em> is part of the skillset.</li>
       <li><strong>Real checks against a real estate:</strong> Security Hub and Config evaluate the
-      whole demo account — including the nine always-on planks — so passes and failures above are
+      whole demo account, including the nine always-on planks, so passes and failures above are
       genuine posture, not a staged fixture.</li>
     </ul>
   </section>
@@ -141,8 +169,10 @@
     <div>
       <p class="foot-brand">Alpenglow Security Posture</p>
       <p class="foot-desc">A demonstration of security &amp; governance automation: CloudTrail, KMS,
-      GuardDuty, Security Hub, a NIST 800-53 conformance pack, and permission boundaries — deployed
+      GuardDuty, Security Hub, a NIST 800-53 conformance pack, and permission boundaries, deployed
       on demand, torn down after, evidence persisted.</p>
+      <p class="foot-desc credits">Photographs: Daniel Akselrod (Mt Rainier fire lookout) and
+      Haley Truong (smoky Rockies), Unsplash free license.</p>
     </div>
     <div>
       <p class="foot-head">Environment</p>
@@ -161,7 +191,7 @@
       </ul>
     </div>
   </div>
-  <div class="foot-bar">Fictional demo built by Planetek — not affiliated with any real government agency.</div>
+  <div class="foot-bar">Fictional demo built by Planetek. Not affiliated with any real government agency.</div>
 </footer>
 
 <script type="module" src="/app.js"></script>

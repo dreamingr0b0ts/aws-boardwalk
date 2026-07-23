@@ -173,13 +173,16 @@ async function collectBoundary() {
   return {
     role: roleName,
     boundaryPolicy: Role?.PermissionsBoundary?.PermissionsBoundaryArn ?? null,
+    // grantedByPolicy is exhibit config, not simulator output: the simulator
+    // reports allowedByBoundary=false for BOTH deny cases, so the page needs
+    // to know which denials the role's own policy would have granted.
     simulations: [
       // granted by policy AND inside the boundary → allowed
-      await simulate("s3:GetObject", `${SITE_BUCKET_ARN}/evidence/status.json`),
+      { ...(await simulate("s3:GetObject", `${SITE_BUCKET_ARN}/evidence/status.json`)), grantedByPolicy: true },
       // granted by the role's own policy but OUTSIDE the boundary → implicitDeny
-      await simulate("s3:PutObject", `${SITE_BUCKET_ARN}/evidence/status.json`),
+      { ...(await simulate("s3:PutObject", `${SITE_BUCKET_ARN}/evidence/status.json`)), grantedByPolicy: true },
       // granted by nothing → implicitDeny
-      await simulate("iam:CreateUser", "*"),
+      { ...(await simulate("iam:CreateUser", "*")), grantedByPolicy: false },
     ],
   };
 }
@@ -197,26 +200,36 @@ function renderHtml(ev) {
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Security Posture Evidence Report · ${esc(ev.generatedAt)}</title>
 <style>
-  body{font:15px/1.55 ui-sans-serif,system-ui,sans-serif;color:#1c1917;max-width:860px;margin:0 auto;padding:32px 24px}
-  h1{font-size:26px;margin:0}h2{font-size:18px;margin:32px 0 6px;border-bottom:2px solid #16302e;padding-bottom:4px}
-  .meta{color:#57534e;font-size:13px;margin-top:6px}
-  .note{background:#fef4f0;border:1px solid #fac5b4;border-radius:8px;padding:10px 14px;font-size:13px;margin:18px 0}
-  table{border-collapse:collapse;width:100%;margin-top:10px;font-size:14px}
-  th,td{text-align:left;padding:6px 10px;border:1px solid #e7e5e4;vertical-align:top}
-  th{background:#f5f5f4;font-weight:600;width:40%}
-  .pill{display:inline-block;padding:1px 9px;border-radius:999px;font-size:12px;font-weight:700}
-  .ok{background:#ecfdf5;color:#047857}.bad{background:#fef2f2;color:#b91c1c}.warn{background:#fffbeb;color:#b45309}
+  @font-face{font-family:"Oswald";src:url("https://security.demos.planetek.org/fonts/oswald-latin-600-normal.woff2") format("woff2");font-weight:600;font-display:swap}
+  @font-face{font-family:"Public Sans";src:url("https://security.demos.planetek.org/fonts/public-sans-latin-400-normal.woff2") format("woff2");font-weight:400;font-display:swap}
+  @font-face{font-family:"Public Sans";src:url("https://security.demos.planetek.org/fonts/public-sans-latin-600-normal.woff2") format("woff2");font-weight:600;font-display:swap}
+  @font-face{font-family:"Chivo Mono";src:url("https://security.demos.planetek.org/fonts/chivo-mono-latin-400-normal.woff2") format("woff2");font-weight:400;font-display:swap}
+  body{font:15px/1.55 "Public Sans",ui-sans-serif,system-ui,sans-serif;color:#251e12;background:#f2edde;max-width:880px;margin:0 auto;padding:36px 26px}
+  .letterhead{font:600 11px/1 "Oswald",sans-serif;letter-spacing:.22em;text-transform:uppercase;color:#7a5c39;margin:0 0 10px}
+  h1{font:600 30px/1.1 "Oswald",sans-serif;letter-spacing:.02em;text-transform:uppercase;margin:0}
+  h2{font:600 15px/1.3 "Oswald",sans-serif;letter-spacing:.09em;text-transform:uppercase;color:#3e2f1c;margin:34px 0 6px;border-bottom:2px solid #3e2f1c;padding-bottom:5px}
+  .meta{color:#56503f;font-size:13px;margin-top:8px}
+  code{font-family:"Chivo Mono",ui-monospace,monospace;font-size:.86em;background:#ece5cf;padding:1px 5px;border-radius:4px}
+  .note{background:#f7efd6;border:1px solid #ddd3ba;border-left:4px solid #9a6a1d;border-radius:6px;padding:10px 14px;font-size:13px;margin:20px 0}
+  table{border-collapse:collapse;width:100%;margin-top:10px;font-size:14px;background:#faf7ec}
+  th,td{text-align:left;padding:7px 10px;border:1px solid #ddd3ba;vertical-align:top}
+  th{background:#ece5cf;font-weight:600;width:40%}
+  .pill{display:inline-block;padding:2px 9px;border-radius:4px;font:700 11.5px/1.5 "Chivo Mono",monospace;text-transform:uppercase;letter-spacing:.05em}
+  .ok{background:#e6f0e0;color:#2e6b3a}.bad{background:#f9e7e1;color:#a83226}.warn{background:#f7efd6;color:#8a6410}
   ul{margin:8px 0;padding-left:22px;font-size:13px;column-count:2;column-gap:28px}
-  footer{margin-top:36px;color:#78716c;font-size:12px;border-top:1px solid #e7e5e4;padding-top:12px}
-  @media print{body{padding:0}}
+  footer{margin-top:38px;color:#7d745d;font-size:12px;border-top:1px solid #ddd3ba;padding-top:12px}
+  a{color:#a83c18}
+  @media print{body{padding:0;background:#fff}}
 </style></head><body>
+<p class="letterhead">Alpenglow Ranger District · The Fire Lookout · Season Report</p>
 <h1>Security Posture Evidence Report</h1>
 <p class="meta">City of Alpenglow demo account · region us-east-1 · generated ${esc(ev.generatedAt)} by the <code>sec-evidence-report</code> Lambda (plank 8, Planetek AWS Boardwalk)</p>
 <div class="note"><strong>Demo scope:</strong> the GuardDuty findings below are AWS-generated <em>sample</em> findings
-(titles prefixed “[SAMPLE]”) created to exercise the detection→aggregation→evidence pipeline. Security Hub and
-Config results are real evaluations of this live AWS account, including its nine always-on demo environments.</div>
+(titles prefixed “[SAMPLE]”), the practice smokes that exercise the detection→aggregation→evidence pipeline.
+Security Hub and Config results are real evaluations of this live AWS account, including its nine always-on
+demo environments.</div>
 
-<h2>1 · Audit trail — CloudTrail</h2>
+<h2>1 · Audit trail: CloudTrail</h2>
 <table>${rows([
     ["Trail", `<code>${esc(ev.cloudtrail.name)}</code>`],
     ["Logging now", yn(ev.cloudtrail.logging)],
@@ -226,7 +239,7 @@ Config results are real evaluations of this live AWS account, including its nine
     ["Latest log delivery", esc(ev.cloudtrail.latestDeliveryAt ?? "pending first delivery")],
   ])}</table>
 
-<h2>2 · Encryption — KMS</h2>
+<h2>2 · Encryption: KMS</h2>
 <table>${rows([
     ["Key", `<code>${esc(ev.kms.alias)}</code>`],
     ["Customer-managed", yn(ev.kms.customerManaged)],
@@ -234,7 +247,7 @@ Config results are real evaluations of this live AWS account, including its nine
     ["Key state", esc(ev.kms.keyState)],
   ])}</table>
 
-<h2>3 · Threat detection — GuardDuty</h2>
+<h2>3 · Threat detection: GuardDuty</h2>
 <table>${rows([
     ["Active findings (sample)", String(gd.total)],
     ["High severity", `<span class="pill bad">${gd.bySeverity.HIGH}</span>`],
@@ -242,7 +255,7 @@ Config results are real evaluations of this live AWS account, including its nine
     ["Low severity", `<span class="pill ok">${gd.bySeverity.LOW}</span>`],
   ])}</table>
 
-<h2>4 · Posture management — Security Hub (AWS Foundational Security Best Practices)</h2>
+<h2>4 · Posture management: Security Hub (AWS Foundational Security Best Practices)</h2>
 <table>${rows([
     ["Standard status", esc(sh.standards.map((s) => s.status).join(", ") || "n/a")],
     ["Control findings evaluated", String(shTotal) + (sh.truncated ? " (truncated at 3,000)" : "")],
@@ -251,12 +264,12 @@ Config results are real evaluations of this live AWS account, including its nine
     ["Warning / not available", `${sh.compliance.WARNING} / ${sh.compliance.NOT_AVAILABLE}`],
     ["Failed by severity", `crit ${sh.failedSeverity.CRITICAL} · high ${sh.failedSeverity.HIGH} · med ${sh.failedSeverity.MEDIUM} · low ${sh.failedSeverity.LOW}`],
   ])}</table>
-${sh.topFailedControls.length ? `<p class="meta">Top failed controls:</p><ul>${sh.topFailedControls.map((c) => `<li><code>${esc(c.id)}</code> — ${esc(c.title)} (${c.count})</li>`).join("")}</ul>` : ""}
+${sh.topFailedControls.length ? `<p class="meta">Top failed controls:</p><ul>${sh.topFailedControls.map((c) => `<li><code>${esc(c.id)}</code> · ${esc(c.title)} (${c.count})</li>`).join("")}</ul>` : ""}
 
-<h2>5 · Compliance automation — AWS Config, NIST 800-53 rev 5</h2>
+<h2>5 · Compliance automation: AWS Config, NIST 800-53 rev 5</h2>
 <table>${rows([
     ["Configuration recorder", ev.config.recorderOn ? "recording" : "stopped"],
-    ["Conformance pack", `<code>${esc(cf.conformancePack)}</code> — ${esc(cf.framework)}`],
+    ["Conformance pack", `<code>${esc(cf.conformancePack)}</code> · ${esc(cf.framework)}`],
     ["Rules evaluated", String(cf.totalRules)],
     ["Compliant", `<span class="pill ok">${cf.rules.COMPLIANT}</span>`],
     ["Non-compliant", `<span class="pill bad">${cf.rules.NON_COMPLIANT}</span>`],
@@ -264,15 +277,15 @@ ${sh.topFailedControls.length ? `<p class="meta">Top failed controls:</p><ul>${s
   ])}</table>
 ${cf.noncompliantRules.length ? `<p class="meta">Non-compliant rules:</p><ul>${cf.noncompliantRules.map((r) => `<li><code>${esc(r)}</code></li>`).join("")}</ul>` : ""}
 
-<h2>6 · Least privilege — IAM permissions boundary (simulated proof)</h2>
+<h2>6 · Least privilege: IAM permissions boundary (simulated proof)</h2>
 <p class="meta">Role <code>${esc(bd.role)}</code> carries boundary <code>${esc(bd.boundaryPolicy ?? "none")}</code>.
-Effective permissions are the intersection of its policy and the boundary — proven below with
-<code>iam:SimulatePrincipalPolicy</code>, not assertion.</p>
+Effective permissions are the intersection of its policy and the boundary, proven below with
+<code>iam:SimulatePrincipalPolicy</code>, not assertion. Standing orders hold: the watch may read the record, never rewrite it.</p>
 <table><tr><th style="width:40%">Action simulated</th><td><strong>Decision</strong></td></tr>${bd.simulations.map((s) =>
-    `<tr><th><code>${esc(s.action)}</code></th><td><span class="pill ${s.decision === "allowed" ? "ok" : "bad"}">${esc(s.decision)}</span>${s.allowedByBoundary === false ? " — blocked by the boundary despite being granted by the role's policy" : ""}</td></tr>`).join("")}
+    `<tr><th><code>${esc(s.action)}</code></th><td><span class="pill ${s.decision === "allowed" ? "ok" : "bad"}">${esc(s.decision)}</span>${s.decision === "allowed" ? "" : s.grantedByPolicy ? ", blocked by the boundary despite being granted by the role's policy" : ", granted by neither the policy nor the boundary"}</td></tr>`).join("")}
 </table>
 
-<footer>Generated automatically from live AWS APIs. Planetek AWS Boardwalk plank 8 — Security &amp; Governance
+<footer>Generated automatically from live AWS APIs. Planetek AWS Boardwalk plank 8, Security &amp; Governance
 (deploy-demo-teardown). Fictional demo; not affiliated with any real government agency.
 <a href="https://security.demos.planetek.org">security.demos.planetek.org</a></footer>
 </body></html>`;
