@@ -7,6 +7,9 @@ import { ThemeProvider } from './lib/theme';
 import { loadConfig } from './config';
 import '@fontsource-variable/fraunces';
 import '@fontsource-variable/fraunces/wght-italic.css';
+import '@fontsource-variable/work-sans';
+import '@fontsource/dm-mono/400.css';
+import '@fontsource/dm-mono/500.css';
 import './index.css';
 
 const root = createRoot(document.getElementById('root')!);

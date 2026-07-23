@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
-import { Button, Card, ErrorNote, Field, Input } from '../components/Ui';
+import { Button, Card, ErrorNote, Field, Input, WindowPlate } from '../components/Ui';
 
 export default function Register() {
   const { signUp, confirm, signIn } = useAuth();
@@ -47,7 +47,8 @@ export default function Register() {
   return (
     <div className="mx-auto max-w-md px-4 py-14">
       <Card className="p-6">
-        <h1 className="font-display text-xl font-bold text-pine-950 dark:text-pine-100">Create a resident account</h1>
+        <WindowPlate label="New residents" />
+        <h1 className="mt-3 font-display text-xl font-bold text-pine-950 dark:text-pine-100">Create a resident account</h1>
         <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">
           Real sign-up flow with email verification. Prefer not to? Use the{' '}
           <Link to="/login" className="font-semibold text-pine-700 dark:text-pine-300">

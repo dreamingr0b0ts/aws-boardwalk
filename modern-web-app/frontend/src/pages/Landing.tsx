@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import type { PermitType, StatsResponse } from '../types';
-import { Card, fmtMoney } from '../components/Ui';
+import { Card, Grommet, RidgeBand, WindowPlate, fmtMoney } from '../components/Ui';
 import heroSm from '../assets/hero-alpenglow-800.webp';
 import heroMd from '../assets/hero-alpenglow-1200.webp';
 import heroLg from '../assets/hero-alpenglow-2000.webp';
@@ -36,7 +36,8 @@ function Eyebrow({ children, onDark = false }: { children: ReactNode; onDark?: b
         onDark ? 'text-glow-300' : 'text-glow-600 dark:text-glow-400'
       }`}
     >
-      <span className="h-px w-8 bg-current" aria-hidden />
+      <span className="size-1.5 rotate-45 bg-current" aria-hidden />
+      <span className="-ml-1 h-px w-7 bg-current" aria-hidden />
       {children}
     </p>
   );
@@ -164,21 +165,22 @@ export default function Landing() {
                   ['Open right now', String(stats.current.counts.submitted + stats.current.counts.under_review)],
                 ].map(([label, value]) => (
                   <div key={label} className="rounded-xl bg-pine-950/40 px-5 py-3 ring-1 ring-white/15 backdrop-blur-sm">
-                    <dt className="text-[11px] font-semibold uppercase tracking-wider text-pine-200">{label}</dt>
-                    <dd className="mt-0.5 text-2xl font-bold text-white">{value}</dd>
+                    <dt className="font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-pine-200">{label}</dt>
+                    <dd className="mt-1 font-mono text-2xl font-medium text-white">{value}</dd>
                   </div>
                 ))}
               </dl>
             )}
           </div>
         </div>
+        <RidgeBand className="absolute inset-x-0 bottom-0 h-[5px]" />
       </section>
 
       <section id="catalog" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-16">
         <div className="flex items-end justify-between gap-4">
           <div>
-            <Eyebrow>Permit catalog</Eyebrow>
-            <h2 className="mt-2 font-display text-3xl font-bold text-pine-950 dark:text-pine-100">
+            <WindowPlate n="01" label="Permit catalog" />
+            <h2 className="mt-3 font-display text-3xl font-bold text-pine-950 dark:text-pine-100">
               Everything the city issues
             </h2>
             <p className="mt-2 text-sm text-stone-500 dark:text-stone-400">
@@ -198,8 +200,9 @@ export default function Landing() {
           {types?.map((t) => (
             <Card
               key={t.slug}
-              className="group flex flex-col p-5 transition hover:-translate-y-0.5 hover:border-pine-300 hover:shadow-lg dark:hover:border-pine-600"
+              className="group relative flex flex-col p-5 pt-6 transition hover:-translate-y-0.5 hover:border-pine-300 hover:shadow-lg dark:hover:border-pine-600"
             >
+              <Grommet />
               <span
                 className={`inline-flex items-center gap-1.5 self-start rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide ${CATEGORY_BADGE[t.category] ?? 'bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300'}`}
               >
@@ -209,8 +212,8 @@ export default function Landing() {
               <h3 className="mt-3 font-bold leading-snug text-pine-950 dark:text-pine-100">{t.name}</h3>
               <p className="mt-1.5 line-clamp-3 flex-1 text-sm text-stone-500 dark:text-stone-400">{t.description}</p>
               <div className="mt-4 flex items-center justify-between border-t border-stone-100 pt-3 dark:border-stone-800 text-sm">
-                <span className="font-semibold text-stone-700 dark:text-stone-300">{fmtMoney(t.fee)}</span>
-                <span className="text-stone-500 dark:text-stone-400">~{t.processingDays} days</span>
+                <span className="font-mono text-[13px] font-medium text-stone-700 dark:text-stone-300">{fmtMoney(t.fee)}</span>
+                <span className="font-mono text-xs text-stone-500 dark:text-stone-400">~{t.processingDays} days</span>
               </div>
               <Link
                 to="/apply"
@@ -238,7 +241,7 @@ export default function Landing() {
         <div className="absolute inset-0 -z-10 bg-gradient-to-r from-pine-950/90 via-pine-950/65 to-pine-950/35" aria-hidden />
         <div className="mx-auto max-w-6xl px-4 py-20 sm:py-24">
           <div className="max-w-2xl">
-            <Eyebrow onDark>Transparency by default</Eyebrow>
+            <WindowPlate n="02" label="Transparency" onDark />
             <h2 className="mt-3 font-display text-3xl font-bold leading-tight text-balance sm:text-4xl">
               The permit office <em className="italic text-glow-300">shows its work.</em>
             </h2>
@@ -259,8 +262,8 @@ export default function Landing() {
       <section className="relative overflow-hidden border-b border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900">
         <Contours className="pointer-events-none absolute -right-24 -top-20 size-[30rem] rotate-12 text-pine-800/[0.07] dark:text-pine-200/[0.06]" />
         <div className="relative mx-auto max-w-6xl px-4 py-16">
-          <Eyebrow>Three steps</Eyebrow>
-          <h2 className="mt-2 font-display text-3xl font-bold text-pine-950 dark:text-pine-100">How it works</h2>
+          <WindowPlate n="03" label="Applications counter" />
+          <h2 className="mt-3 font-display text-3xl font-bold text-pine-950 dark:text-pine-100">How it works</h2>
           <div className="mt-10 grid gap-6 sm:grid-cols-3">
             {[
               ['Create an account', 'Sign up with your email, or use the demo accounts on the sign-in page to explore instantly.'],
@@ -268,8 +271,8 @@ export default function Landing() {
               ['Track to decision', 'Watch status change from submitted to under review to decided, with reviewer notes at every step.'],
             ].map(([title, body], i) => (
               <div key={title} className="relative rounded-xl border border-stone-200 bg-white/80 p-6 backdrop-blur-sm dark:border-stone-700 dark:bg-stone-900/80">
-                <span className="absolute -top-4 left-6 flex size-8 items-center justify-center rounded-full bg-gradient-to-br from-glow-500 to-glow-700 text-sm font-bold text-white shadow-md shadow-glow-600/30">
-                  {i + 1}
+                <span className="absolute -top-4 left-6 flex size-8 rotate-45 items-center justify-center rounded-[7px] bg-gradient-to-br from-glow-500 to-glow-700 shadow-md shadow-glow-600/30">
+                  <span className="-rotate-45 font-mono text-sm font-medium text-white">{i + 1}</span>
                 </span>
                 <h3 className="mt-2 font-bold text-pine-950 dark:text-pine-100">{title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-stone-500 dark:text-stone-400">{body}</p>

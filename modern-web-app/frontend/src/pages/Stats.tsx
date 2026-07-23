@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import type { PermitType, StatsResponse } from '../types';
-import { ErrorNote, KpiTile, Spinner } from '../components/Ui';
+import { ErrorNote, KpiTile, Spinner, WindowPlate } from '../components/Ui';
 import { MonthlyTrend, StatusBreakdown, TypeBar } from '../components/Charts';
 
 export default function Stats() {
@@ -32,7 +32,8 @@ export default function Stats() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
-      <h1 className="font-display text-2xl font-bold text-pine-950 dark:text-pine-100">Permit office performance</h1>
+      <WindowPlate n="02" label="Records and performance" />
+      <h1 className="mt-3 font-display text-2xl font-bold text-pine-950 dark:text-pine-100">Permit office performance</h1>
       <p className="mt-1 max-w-2xl text-sm text-stone-500 dark:text-stone-400">
         Published live from the permit system, the same numbers staff see. Transparency is policy in Alpenglow.
       </p>
@@ -52,8 +53,8 @@ export default function Stats() {
         </div>
       </div>
 
-      <p className="mt-6 text-xs text-stone-400">
-        Data is live from DynamoDB via the public API and reseeds nightly as part of the demo cycle.
+      <p className="mt-6 font-mono text-[11px] uppercase tracking-[0.08em] text-stone-400">
+        Live from DynamoDB via the public API · reseeds nightly with the demo cycle
       </p>
     </div>
   );

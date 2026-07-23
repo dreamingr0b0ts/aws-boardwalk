@@ -47,11 +47,16 @@ Same-origin API: the SPA calls `/api/*` on its own hostname — CloudFront route
 
 ## Design
 
-Each boardwalk plank carries its own visual identity; this one is a Colorado mountain-town civic
-portal. Photography-led hero with a layered SVG ridgeline cut, [Fraunces](https://github.com/undercasetype/Fraunces)
-(OFL, self-hosted via Fontsource) as the display face, and a pine/alpenglow palette. The strict CSP
-(`img-src 'self'`, `font-src 'self'`) means every image and font ships from the site bucket — no
-CDNs, no third-party requests.
+Each boardwalk plank carries its own visual identity; this one is "the counter at Town Hall" in a
+Colorado mountain town. Every area of the portal is a numbered service window (Window 01 catalog,
+02 records, 03 applications, 04 my applications, 05 staff), marked with counter-window plates.
+Catalog cards read as job-site permit placards with a brass grommet, statuses render as reviewer
+stamps, the application timeline uses trail-blaze diamonds, and a survey-tick alpenglow ridge band
+closes the hero and tops the footer. Three type voices, all OFL and self-hosted via Fontsource:
+[Fraunces](https://github.com/undercasetype/Fraunces) for display, Work Sans for body, DM Mono for
+tracking IDs, dates, and readouts. Light mode grounds on pine-tinted paper; dark mode grounds on
+spruce night via a retinted neutral scale. The strict CSP (`img-src 'self'`, `font-src 'self'`)
+means every image and font ships from the site bucket — no CDNs, no third-party requests.
 
 Photos are free-license images from Unsplash, resized and self-hosted:
 

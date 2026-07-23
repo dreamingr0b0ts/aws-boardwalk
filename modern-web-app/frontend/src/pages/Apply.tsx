@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { api } from '../lib/api';
 import type { PermitType } from '../types';
-import { Button, Card, ErrorNote, Field, Input, Spinner, Textarea, fmtMoney } from '../components/Ui';
+import { Button, Card, ErrorNote, Field, Grommet, Input, Spinner, Textarea, WindowPlate, fmtMoney } from '../components/Ui';
 
 type Step = 1 | 2 | 3;
 
@@ -46,12 +46,14 @@ export default function Apply() {
   if (submittedId) {
     return (
       <div className="mx-auto max-w-xl px-4 py-16">
-        <Card className="p-8 text-center">
+        <Card className="relative p-8 pt-10 text-center">
+          <Grommet />
           <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-emerald-100 text-2xl dark:bg-emerald-900/50">✓</div>
           <h1 className="mt-4 font-display text-2xl font-bold text-pine-950 dark:text-pine-100">Application submitted</h1>
-          <p className="mt-2 text-stone-500 dark:text-stone-400">
-            Your tracking ID is <span className="font-mono font-semibold text-pine-900">{submittedId}</span>. The
-            permit office will begin review shortly.
+          <p className="mt-4 font-mono text-[10.5px] font-medium uppercase tracking-[0.16em] text-stone-400">Your number</p>
+          <p className="mt-1 font-mono text-xl font-medium text-pine-900 dark:text-pine-100">{submittedId}</p>
+          <p className="mt-3 text-stone-500 dark:text-stone-400">
+            Keep it for your records. The permit office will begin review shortly.
           </p>
           <div className="mt-8 flex justify-center gap-3">
             <Link to={`/applications/${submittedId}`} className="rounded-lg bg-pine-800 px-4 py-2 text-sm font-bold text-white hover:bg-pine-700">
@@ -68,9 +70,10 @@ export default function Apply() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
-      <h1 className="font-display text-2xl font-bold text-pine-950 dark:text-pine-100">New permit application</h1>
+      <WindowPlate n="03" label="Applications counter" />
+      <h1 className="mt-3 font-display text-2xl font-bold text-pine-950 dark:text-pine-100">New permit application</h1>
 
-      <ol className="mt-6 flex gap-2 text-xs font-bold">
+      <ol className="mt-6 flex flex-wrap gap-2 text-xs font-bold">
         {(['Permit type', 'Details', 'Review & submit'] as const).map((label, i) => {
           const n = (i + 1) as Step;
           const state = n === step ? 'bg-pine-800 text-white' : n < step ? 'bg-pine-100 text-pine-800 dark:bg-pine-900/60 dark:text-pine-200' : 'bg-stone-100 text-stone-400 dark:bg-stone-800 dark:text-stone-500';
@@ -98,9 +101,9 @@ export default function Apply() {
                     typeSlug === t.slug ? 'border-glow-500 ring-2 ring-glow-100' : 'border-stone-200 hover:border-pine-300 dark:border-stone-700 dark:hover:border-pine-500'
                   }`}
                 >
-                  <p className="text-xs font-bold uppercase tracking-wide text-stone-400">{t.category}</p>
+                  <p className="font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-stone-400">{t.category}</p>
                   <p className="mt-1 font-bold text-pine-950 dark:text-pine-100">{t.name}</p>
-                  <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">
+                  <p className="mt-1 font-mono text-xs text-stone-500 dark:text-stone-400">
                     {fmtMoney(t.fee)} · ~{t.processingDays} days
                   </p>
                 </button>

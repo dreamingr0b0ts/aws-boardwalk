@@ -4,14 +4,17 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  /* Fraunces (self-hosted via @fontsource-variable, imported in main.tsx) is
-     the display voice of the City of Alpenglow brand; body copy stays on the
-     system sans stack. CSP allows only font-src 'self', so no font CDNs. */
+  /* The counter at Town Hall — three voices, all self-hosted (CSP font-src
+     'self', no CDNs), all imported in main.tsx:
+       Fraunces   — the civic display serif, the lettering on the door
+       Work Sans  — the humanist body voice, the pamphlet rack
+       DM Mono    — the machine voice: tracking IDs, dates, readouts, stamps */
   --font-display: 'Fraunces Variable', ui-serif, Georgia, serif;
+  --font-sans: 'Work Sans Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'DM Mono', ui-monospace, 'SF Mono', Menlo, monospace;
 
   /* Paper — pine-tinted page ground for light mode, so light never reads as
-     unthemed white. The hero RidgeCut must use the same solid (fill-paper)
-     for the cut illusion to hold. */
+     unthemed white. */
   --color-paper: #f5f9f7;
 
   /* Pine — deep evergreen neutrals for structure */
@@ -36,8 +39,40 @@
   --color-glow-500: #e4532f;
   --color-glow-600: #c4401f;
   --color-glow-700: #a33619;
+
+  /* Brass — counter hardware: placard grommets, plate trim */
+  --color-brass-300: #cdb07c;
+  --color-brass-400: #b3925a;
+  --color-brass-600: #866d3f;
+
+  /* Stone, retinted toward spruce. Every neutral in the app runs through this
+     scale, so shifting its hue re-grounds dark mode on spruce-night (instead
+     of neutral gray) and gives light-mode ink a pine cast, with no markup
+     churn. Lightness tracks Tailwind's stock stone steps. */
+  --color-stone-50: #f6f8f7;
+  --color-stone-100: #eef1ef;
+  --color-stone-200: #dfe5e1;
+  --color-stone-300: #c6cfc9;
+  --color-stone-400: #9aa69f;
+  --color-stone-500: #707d75;
+  --color-stone-600: #59665e;
+  --color-stone-700: #46534b;
+  --color-stone-800: #2d3a34;
+  --color-stone-900: #182420;
+  --color-stone-950: #0d1714;
 }
 
 body {
   @apply bg-paper text-stone-800 antialiased dark:bg-stone-950 dark:text-stone-200;
+}
+
+/* Ridge band — the plank's signature strip: alpenglow fading into pine under a
+   survey-tape tick overlay. Closes the hero, tops the footer, underlines KPIs. */
+.ridge-band {
+  background-image: repeating-linear-gradient(
+      90deg,
+      transparent 0 9px,
+      rgba(11, 31, 30, 0.5) 9px 11px
+    ),
+    linear-gradient(90deg, #a33619, #ee7351 45%, #3f7a74);
 }

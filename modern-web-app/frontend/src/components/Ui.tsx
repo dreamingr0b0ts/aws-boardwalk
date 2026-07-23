@@ -40,6 +40,54 @@ export function Card({ children, className = '' }: { children: ReactNode; classN
   );
 }
 
+/**
+ * Counter-window plate — every area of the portal is a numbered service window
+ * at the Town Hall counter: 01 catalog, 02 records, 03 applications, 04 my
+ * applications, 05 staff. `n` empty gives an unnumbered plate (front desk).
+ */
+export function WindowPlate({ n, label, onDark = false }: { n?: string; label: string; onDark?: boolean }) {
+  return (
+    <p
+      className={`inline-flex items-stretch overflow-hidden rounded-[5px] border text-[10.5px] font-medium uppercase leading-none tracking-[0.16em] ${
+        onDark ? 'border-white/30' : 'border-pine-800/35 dark:border-pine-200/30'
+      }`}
+    >
+      <span
+        className={`flex items-center gap-1 px-2.5 py-1.5 font-mono ${
+          onDark ? 'bg-white/15 text-glow-200' : 'bg-pine-800 text-pine-50 dark:bg-pine-300 dark:text-pine-950'
+        }`}
+      >
+        {n ? `Window ${n}` : 'Front desk'}
+      </span>
+      <span
+        className={`flex items-center px-2.5 py-1.5 font-sans font-bold ${
+          onDark ? 'text-white' : 'text-pine-900 dark:text-pine-100'
+        }`}
+      >
+        {label}
+      </span>
+    </p>
+  );
+}
+
+/** Signature strip: alpenglow-to-pine gradient under survey-tape ticks. */
+export function RidgeBand({ className = 'h-[5px]' }: { className?: string }) {
+  return <div aria-hidden className={`ridge-band ${className}`} />;
+}
+
+/**
+ * Brass grommet — the punched eyelet of a permit placard posted at the job
+ * site. Parent must be `relative`; the hole shows the page ground through it.
+ */
+export function Grommet() {
+  return (
+    <span
+      aria-hidden
+      className="pointer-events-none absolute left-1/2 top-2 size-3 -translate-x-1/2 rounded-full border-[3.5px] border-brass-400 bg-paper shadow-inner dark:border-brass-600 dark:bg-stone-950"
+    />
+  );
+}
+
 export function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
     <label className="block">
@@ -61,20 +109,23 @@ export function Textarea(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return <textarea className={`${INPUT_CLASS} min-h-28`} {...props} />;
 }
 
+/* Status reads as the reviewer's stamp on the application: square-cornered,
+   mono, letterspaced, bordered like an ink stamp rather than a web pill. */
 const STATUS_STYLES: Record<AppStatus, string> = {
   submitted:
-    'bg-stone-100 text-stone-700 ring-stone-300 dark:bg-stone-800 dark:text-stone-300 dark:ring-stone-600',
+    'bg-stone-100 text-stone-700 border-stone-400/70 dark:bg-stone-800 dark:text-stone-300 dark:border-stone-500',
   under_review:
-    'bg-amber-50 text-amber-800 ring-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:ring-amber-800',
+    'bg-amber-50 text-amber-800 border-amber-500/60 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700',
   approved:
-    'bg-emerald-50 text-emerald-800 ring-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:ring-emerald-800',
-  denied: 'bg-rose-50 text-rose-800 ring-rose-300 dark:bg-rose-950/60 dark:text-rose-300 dark:ring-rose-800',
+    'bg-emerald-50 text-emerald-800 border-emerald-600/50 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-700',
+  denied:
+    'bg-rose-50 text-rose-800 border-rose-500/60 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-700',
 };
 
 export function StatusChip({ status }: { status: AppStatus }) {
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${STATUS_STYLES[status]}`}
+      className={`inline-flex items-center rounded-[4px] border px-2 py-[3px] font-mono text-[10.5px] font-medium uppercase leading-none tracking-[0.12em] ${STATUS_STYLES[status]}`}
     >
       {STATUS_LABEL[status]}
     </span>
@@ -154,10 +205,17 @@ export function Modal({
 
 export function KpiTile({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <Card className="px-5 py-4">
-      <p className="text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-stone-400">{label}</p>
-      <p className="mt-1 text-3xl font-bold text-pine-900 dark:text-pine-100">{value}</p>
-      {sub && <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">{sub}</p>}
+    <Card className="overflow-hidden">
+      <RidgeBand className="h-[3px]" />
+      <div className="px-5 pb-4 pt-3.5">
+        <p className="font-mono text-[10.5px] font-medium uppercase tracking-[0.14em] text-stone-500 dark:text-stone-400">
+          {label}
+        </p>
+        <p className="mt-1.5 font-mono text-[1.75rem] font-medium leading-none text-pine-900 dark:text-pine-100">
+          {value}
+        </p>
+        {sub && <p className="mt-1.5 text-xs text-stone-500 dark:text-stone-400">{sub}</p>}
+      </div>
     </Card>
   );
 }

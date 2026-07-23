@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { api } from '../lib/api';
 import type { Application, AppEvent, AppStatus } from '../types';
 import { STATUS_LABEL } from '../types';
-import { Card, ErrorNote, Spinner, StatusChip, fmtDate } from '../components/Ui';
+import { Card, ErrorNote, Spinner, StatusChip, WindowPlate, fmtDate } from '../components/Ui';
 
 const DOT: Record<AppStatus, string> = {
   submitted: 'bg-stone-400',
@@ -46,7 +46,8 @@ export default function AppDetail() {
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl font-bold text-pine-950 dark:text-pine-100">{app.typeName}</h1>
+          <WindowPlate n="04" label="Application record" />
+          <h1 className="mt-3 font-display text-2xl font-bold text-pine-950 dark:text-pine-100">{app.typeName}</h1>
           <p className="mt-1 font-mono text-sm text-stone-500 dark:text-stone-400">{app.id}</p>
         </div>
         <StatusChip status={app.status} />
@@ -67,7 +68,7 @@ export default function AppDetail() {
 
       <div className="mt-6 grid gap-6 md:grid-cols-5">
         <Card className="p-6 md:col-span-3">
-          <h2 className="text-sm font-bold uppercase tracking-wide text-stone-500 dark:text-stone-400">Application details</h2>
+          <h2 className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-stone-500 dark:text-stone-400">Application details</h2>
           <dl className="mt-4 space-y-4 text-sm">
             {(
               [
@@ -87,14 +88,14 @@ export default function AppDetail() {
         </Card>
 
         <Card className="p-6 md:col-span-2">
-          <h2 className="text-sm font-bold uppercase tracking-wide text-stone-500 dark:text-stone-400">Timeline</h2>
+          <h2 className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-stone-500 dark:text-stone-400">Record of actions</h2>
           <ol className="mt-4 space-y-0">
             {events.map((ev, i) => (
               <li key={`${ev.at}-${i}`} className="relative pb-6 pl-6 last:pb-0">
                 {i < events.length - 1 && <span className="absolute left-[5px] top-3 h-full w-px bg-stone-200 dark:bg-stone-700" />}
-                <span className={`absolute left-0 top-1.5 size-2.5 rounded-full ${DOT[ev.status]}`} />
+                <span className={`absolute left-0 top-1.5 size-2.5 rotate-45 rounded-[2px] ${DOT[ev.status]}`} />
                 <p className="text-sm font-bold text-pine-950 dark:text-pine-100">{STATUS_LABEL[ev.status]}</p>
-                <p className="text-xs text-stone-400">
+                <p className="font-mono text-[11px] text-stone-400">
                   {fmtDate(ev.at)} · {ev.actor}
                 </p>
                 {ev.note && <p className="mt-1 text-sm text-stone-600 dark:text-stone-300">{ev.note}</p>}

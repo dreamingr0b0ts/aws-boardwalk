@@ -1,6 +1,7 @@
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { useTheme } from '../lib/theme';
+import { RidgeBand } from './Ui';
 
 export function Mountain({ className }: { className?: string }) {
   return (
@@ -66,8 +67,8 @@ export default function Layout() {
             <Mountain className="size-9" />
             <span className="leading-tight">
               <span className="block font-display text-base font-bold text-pine-900 dark:text-pine-100">Alpenglow Permits</span>
-              <span className="block text-[11px] text-stone-500 dark:text-stone-400">
-                City of Alpenglow, Colorado · Demo
+              <span className="block font-mono text-[10px] uppercase tracking-[0.08em] text-stone-500 dark:text-stone-400">
+                City of Alpenglow, CO · Elev 8,750 ft · Demo
               </span>
             </span>
           </Link>
@@ -131,13 +132,16 @@ export default function Layout() {
       </main>
 
       <footer className="mt-16 bg-pine-950 text-pine-100">
-        <div className="h-1 bg-gradient-to-r from-glow-700 via-glow-400 to-pine-500" aria-hidden />
+        <RidgeBand />
         <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:grid-cols-3">
           <div>
             <div className="flex items-center gap-2">
               <Mountain className="size-7" />
-              <span className="font-bold text-white">Alpenglow Permits</span>
+              <span className="font-display font-bold text-white">Alpenglow Permits</span>
             </div>
+            <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.14em] text-pine-300">
+              Town Hall counter · Windows 01 to 05 · Elev 8,750 ft
+            </p>
             <p className="mt-3 text-xs leading-relaxed text-pine-200">
               A demonstration of a production-patterned serverless web application: static delivery, real
               authentication, role-based access, and a live data tier, idling at ~$0.

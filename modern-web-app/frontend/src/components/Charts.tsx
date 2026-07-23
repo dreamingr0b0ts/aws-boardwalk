@@ -36,16 +36,18 @@ export const STATUS_COLOR: Record<AppStatus, string> = {
   denied: '#e11d48',
 };
 
-/** Surface-dependent chart chrome (never carries data identity). */
+/** Surface-dependent chart chrome (never carries data identity). Hexes track
+    the spruce-tinted stone scale in index.css — card surfaces are stone-900
+    dark / white light, so chrome sits one step off those. */
 function useChrome() {
   const { dark } = useTheme();
   return {
-    grid: dark ? '#292524' : '#eeece9', // one step off the card surface, solid hairline
-    tick: { fontSize: 12, fill: dark ? '#a8a29e' : '#78716c' },
-    axisLabel: dark ? '#d6d3d1' : '#57534e',
-    ring: dark ? '#1c1917' : '#fcfcfb', // 2px surface ring on markers
-    cursor: dark ? '#57534e' : '#d6d3d1',
-    cursorFill: dark ? '#292524' : '#f5f5f4',
+    grid: dark ? '#26332e' : '#e9eeeb', // one step off the card surface, solid hairline
+    tick: { fontSize: 12, fill: dark ? '#9aa69f' : '#707d75' },
+    axisLabel: dark ? '#dfe5e1' : '#59665e',
+    ring: dark ? '#182420' : '#ffffff', // 2px surface ring on markers
+    cursor: dark ? '#59665e' : '#c6cfc9',
+    cursorFill: dark ? '#26332e' : '#f0f4f1',
   };
 }
 

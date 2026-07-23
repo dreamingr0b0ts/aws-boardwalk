@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
-import { Button, Card, ErrorNote, Field, Input } from '../components/Ui';
+import { Button, Card, ErrorNote, Field, Input, WindowPlate } from '../components/Ui';
 import { Mountain } from '../components/Layout';
 import loginAspens from '../assets/login-aspens-800.webp';
 
@@ -46,7 +46,7 @@ export default function Login() {
             <Mountain className="relative size-10" />
             <div className="relative">
               <p className="font-display text-lg font-bold text-white">Sign in</p>
-              <p className="text-xs text-pine-100">Alpenglow Permits resident & staff portal</p>
+              <p className="font-mono text-[10px] uppercase tracking-[0.1em] text-pine-100">Resident & staff portal</p>
             </div>
           </div>
           <form onSubmit={submit} className="space-y-4 px-6 py-6">
@@ -85,22 +85,22 @@ export default function Login() {
       </div>
 
       <div className="flex-1">
-        <h2 className="text-sm font-bold uppercase tracking-wide text-stone-500 dark:text-stone-400">Demo accounts · walk right in</h2>
+        <WindowPlate label="Demo accounts" />
         <div className="mt-3 space-y-3">
           {DEMO_ACCOUNTS.map((acct) => (
             <Card key={acct.email} className="p-5">
               <div className="flex items-start justify-between gap-4">
-                <div>
+                <div className="min-w-0">
                   <p className="font-bold text-pine-950 dark:text-pine-100">{acct.role}</p>
                   <p className="mt-0.5 text-xs text-stone-500 dark:text-stone-400">{acct.blurb}</p>
                   <dl className="mt-3 space-y-1 font-mono text-xs text-stone-600 dark:text-stone-300">
                     <div className="flex gap-2">
                       <dt className="w-16 shrink-0 font-sans font-semibold text-stone-400">email</dt>
-                      <dd>{acct.email}</dd>
+                      <dd className="break-all">{acct.email}</dd>
                     </div>
                     <div className="flex gap-2">
                       <dt className="w-16 shrink-0 font-sans font-semibold text-stone-400">password</dt>
-                      <dd>{acct.password}</dd>
+                      <dd className="break-all">{acct.password}</dd>
                     </div>
                   </dl>
                 </div>

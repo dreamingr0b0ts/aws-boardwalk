@@ -14,6 +14,7 @@ import {
   Spinner,
   StatusChip,
   Textarea,
+  WindowPlate,
   fmtDate,
   fmtMoney,
 } from '../components/Ui';
@@ -31,7 +32,8 @@ export default function Admin() {
     <div className="mx-auto max-w-6xl px-4 py-10">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="font-display text-2xl font-bold text-pine-950 dark:text-pine-100">Permit office</h1>
+          <WindowPlate n="05" label="Staff console" />
+          <h1 className="mt-3 font-display text-2xl font-bold text-pine-950 dark:text-pine-100">Permit office</h1>
           <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">Staff console: review queue, performance, and catalog.</p>
         </div>
         <div className="flex rounded-lg border border-stone-300 bg-white p-1 dark:border-stone-700 dark:bg-stone-900">
@@ -118,7 +120,7 @@ function QueueTab() {
           <Card className="overflow-x-auto">
             <table className="w-full min-w-[640px] text-sm">
               <thead>
-                <tr className="border-b border-stone-200 dark:border-stone-800 text-left text-xs font-bold uppercase tracking-wide text-stone-400">
+                <tr className="border-b border-stone-200 dark:border-stone-800 text-left font-mono text-[10.5px] font-medium uppercase tracking-[0.12em] text-stone-400">
                   <th className="px-4 py-3">ID</th>
                   <th className="px-4 py-3">Applicant</th>
                   <th className="px-4 py-3">Type</th>
@@ -133,7 +135,7 @@ function QueueTab() {
                     <td className="px-4 py-3 font-mono text-xs text-stone-500 dark:text-stone-400">{app.id}</td>
                     <td className="px-4 py-3 font-semibold text-stone-700 dark:text-stone-300">{app.applicantName}</td>
                     <td className="px-4 py-3 text-stone-600 dark:text-stone-400">{app.typeName}</td>
-                    <td className="px-4 py-3 text-stone-500 dark:text-stone-400">{fmtDate(app.submittedAt)}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-stone-500 dark:text-stone-400">{fmtDate(app.submittedAt)}</td>
                     <td className="px-4 py-3">
                       <StatusChip status={app.status} />
                     </td>
@@ -315,7 +317,7 @@ function TypesTab() {
           <Card className="overflow-x-auto">
             <table className="w-full min-w-[640px] text-sm">
               <thead>
-                <tr className="border-b border-stone-200 dark:border-stone-800 text-left text-xs font-bold uppercase tracking-wide text-stone-400">
+                <tr className="border-b border-stone-200 dark:border-stone-800 text-left font-mono text-[10.5px] font-medium uppercase tracking-[0.12em] text-stone-400">
                   <th className="px-4 py-3">Permit</th>
                   <th className="px-4 py-3">Category</th>
                   <th className="px-4 py-3">Fee</th>
