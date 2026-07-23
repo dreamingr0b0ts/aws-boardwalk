@@ -76,9 +76,7 @@
   .hero-meta strong { display: block; color: #fff; font-size: 15px; }
 
   main { padding: 56px 0 24px; }
-  .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
   h2 { font-size: 24px; font-weight: 800; }
-  .section-head p { color: var(--ink-3); font-size: 14px; }
 
   .grid { margin-top: 28px; display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
   .card {
@@ -145,12 +143,7 @@
 </header>
 
 <main class="wrap">
-  <div class="section-head" id="planks">
-    <h2>The planks</h2>
-    <p>Every card is a live environment. Walk in.</p>
-  </div>
-
-  <div class="grid">
+  <div class="grid" id="planks">
     <article class="card">
       <!-- plank 1 -->
       <div class="card-top"><span class="num">WEB</span><span class="chip live">always-on</span></div>
@@ -165,16 +158,17 @@
     </article>
 
     <article class="card">
-      <!-- plank 6 -->
-      <div class="card-top"><span class="num">GENERATIVE AI</span><span class="chip live">always-on</span></div>
-      <h3>Generative AI (RAG)</h3>
-      <p>A retrieval-augmented assistant over a swappable document corpus: citation-grounded answers, prompt
-      guardrails, conversation audit logs, a human-feedback loop, plus hard per-user + global daily cost caps
-      behind a Cognito gate (access provided during demos).</p>
-      <span class="stack">Bedrock · Lambda · API Gateway · S3 · DynamoDB · Cognito</span>
+      <!-- plank 9 -->
+      <div class="card-top"><span class="num">NETWORK</span><span class="chip ondemand">on-demand</span></div>
+      <h3>Network Architecture</h3>
+      <p>A textbook multi-AZ VPC, proven live: tiered subnets, security-group layering, NACLs, gateway
+      endpoints (the no-NAT cost pattern), and flow logs, every reachable <em>and</em> unreachable path
+      verified by Reachability Analyzer and probes run on the instances. Deploys on demand; the evidence
+      report stays up in between.</p>
+      <span class="stack">VPC · Reachability Analyzer · PrivateLink · SSM · Flow Logs</span>
       <div class="card-links">
-        <a href="https://assistant.demos.planetek.org">Open the assistant</a>
-        <a class="quiet" href="https://github.com/dreamingr0b0ts/aws-boardwalk/tree/main/genai-assistant">Code &amp; architecture</a>
+        <a href="https://network.demos.planetek.org">See the evidence report</a>
+        <a class="quiet" href="https://github.com/dreamingr0b0ts/aws-boardwalk/tree/main/network-blueprint">Code &amp; architecture</a>
       </div>
     </article>
 
@@ -190,6 +184,20 @@
       <div class="card-links">
         <a href="https://models.demos.planetek.org">Compare the models</a>
         <a class="quiet" href="https://github.com/dreamingr0b0ts/aws-boardwalk/tree/main/model-workbench">Code &amp; architecture</a>
+      </div>
+    </article>
+
+    <article class="card">
+      <!-- plank 6 -->
+      <div class="card-top"><span class="num">GENERATIVE AI</span><span class="chip live">always-on</span></div>
+      <h3>Generative AI (RAG)</h3>
+      <p>A retrieval-augmented assistant over a swappable document corpus: citation-grounded answers, prompt
+      guardrails, conversation audit logs, a human-feedback loop, plus hard per-user + global daily cost caps
+      behind a Cognito gate (access provided during demos).</p>
+      <span class="stack">Bedrock · Lambda · API Gateway · S3 · DynamoDB · Cognito</span>
+      <div class="card-links">
+        <a href="https://assistant.demos.planetek.org">Open the assistant</a>
+        <a class="quiet" href="https://github.com/dreamingr0b0ts/aws-boardwalk/tree/main/genai-assistant">Code &amp; architecture</a>
       </div>
     </article>
 
@@ -308,20 +316,6 @@
       </div>
     </article>
 
-    <article class="card">
-      <!-- plank 9 -->
-      <div class="card-top"><span class="num">NETWORK</span><span class="chip ondemand">on-demand</span></div>
-      <h3>Network Architecture</h3>
-      <p>A textbook multi-AZ VPC, proven live: tiered subnets, security-group layering, NACLs, gateway
-      endpoints (the no-NAT cost pattern), and flow logs, every reachable <em>and</em> unreachable path
-      verified by Reachability Analyzer and probes run on the instances. Deploys on demand; the evidence
-      report stays up in between.</p>
-      <span class="stack">VPC · Reachability Analyzer · PrivateLink · SSM · Flow Logs</span>
-      <div class="card-links">
-        <a href="https://network.demos.planetek.org">See the evidence report</a>
-        <a class="quiet" href="https://github.com/dreamingr0b0ts/aws-boardwalk/tree/main/network-blueprint">Code &amp; architecture</a>
-      </div>
-    </article>
   </div>
 
   <section class="principles">
