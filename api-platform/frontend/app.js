@@ -1,5 +1,5 @@
 // Docs page for the Alpenglow Developer API. Everything renders from
-// /openapi.json — the same spec Terraform imports into API Gateway — plus
+// /openapi.json (the same spec Terraform imports into API Gateway) plus
 // /config.json ({ demoKey }, written at publish time, never committed).
 // No frameworks, no CDNs: the page only talks to its own origin.
 
@@ -97,7 +97,7 @@ const DEMOS = {
     const result = await runRequest({ method: 'GET', path: '/v2/permits?limit=3' });
     return [
       exchangePane(`GET /v2/permits?limit=3\n(no x-api-key header)`, result),
-      h('p', { class: 'muted' }, 'API Gateway rejected this before any Lambda ran — the permits service never saw the request.'),
+      h('p', { class: 'muted' }, 'API Gateway rejected this before any Lambda ran. The permits service never saw the request: the operator refused the call at the board.'),
     ];
   },
 
@@ -123,7 +123,7 @@ const DEMOS = {
     });
     return [
       exchangePane(`GET /v1/permits?limit=2\nx-api-key: ${short(state.demoKey)}`, result),
-      h('p', { class: 'muted' }, 'v1 still answers (integrations keep working) but every response carries Deprecation and Sunset headers plus a Link to its v2 successor — deprecation as a contract, not a surprise.'),
+      h('p', { class: 'muted' }, 'v1 still answers (integrations keep working) but every response carries Deprecation and Sunset headers plus a Link to its v2 successor. Deprecation as a contract, not a surprise.'),
     ];
   },
 
@@ -156,7 +156,7 @@ const DEMOS = {
       ),
       h('p', { class: 'muted' }, throttled
         ? 'The demo usage plan (2 req/s, burst 5) absorbed what it could and throttled the rest at the gateway. A partner-tier key gets 25 req/s and 50 burst against the identical API.'
-        : 'All 30 slipped inside the burst window this time — run it again and the token bucket will start pushing back.'),
+        : 'All 30 slipped inside the burst window this time. Run it again and the token bucket will start pushing back.'),
     ];
   },
 };
@@ -245,7 +245,7 @@ function paramsTable(op, schema) {
           h('td', {}, schemaLabel(prop)),
           h('td', {}, [
             required.includes(name) ? 'required' : 'optional',
-            resolveRef(prop).description ? ` — ${resolveRef(prop).description}` : '',
+            resolveRef(prop).description ? ` · ${resolveRef(prop).description}` : '',
             resolveRef(prop).pattern ? ` (pattern ${resolveRef(prop).pattern})` : '',
           ].join('')),
         )),

@@ -62,6 +62,32 @@ walls the keyless routes, and idle cost is ~$0.
 make deploy    # bundle handlers, terraform apply, publish docs, seed catalogs
 make publish   # docs site + rendered openapi.json + config.json (demo key from state)
 make seed      # idempotent re-seed of the three service catalogs
-make verify    # 30 end-to-end checks against the live URL
+make verify    # 35 end-to-end checks against the live URL
 make destroy
 ```
+
+## Design
+
+Plank identity: **"the city exchange"** — the API gateway as Alpenglow's
+telephone switchboard. The board answers, refuses, and meters every call
+before an office picks up, which is an API gateway's whole job: the no-key
+403 is the operator refusing a call, a 429 is the busy signal, the demo tier
+is the party line and the partner tier a private trunk, and the v1
+Deprecation/Sunset headers are the old exchange being retired with notices
+posted while calls still connect.
+
+- **Palette**: ebonite black-brown board, copper cords and hairlines, jade
+  indicator lamps for held calls, amber for busy signals. Light mode is the
+  exchange room by day (warm plaster, stamped line-number plates); dark mode
+  is the night board. Code blocks stay ebonite in both schemes.
+- **Type**: Jost (Futura-flavored, 1930s exchange signage) for display and
+  body; JetBrains Mono for the operator's log, readouts, and code. Static
+  woff2 vendored in `frontend/fonts/` (the CSP allows no font CDNs).
+- **Motifs**: a jack-strip of copper sockets closes the hero and tops the
+  footer; sections carry stamped "Line 01…05" plates; status lines and the
+  burst demo render as indicator lamps; architecture nodes get jack rings.
+- **Photos** (free Unsplash licenses, self-hosted webp): hero is Dave
+  Meckler's patch-cord jack field at the Georgetown Steam Plant, Seattle;
+  the interlude is the Smithsonian Institution's Telephone and Telegraph
+  Office in the North Tower of the United States National Museum (public
+  domain). Credits in the footer.

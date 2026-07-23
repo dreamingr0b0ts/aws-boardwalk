@@ -12,7 +12,7 @@ info:
     business licenses, and parks & facilities, each served by its own
     microservice. v2 is current; v1 still works but answers with
     Deprecation/Sunset headers pointing at its successor. All endpoints except
-    /v2/status and /v1/ping require an x-api-key header — the shared demo key
+    /v2/status and /v1/ping require an x-api-key header; the shared demo key
     is printed at https://api.demos.planetek.org.
   contact:
     name: Planetek
@@ -20,11 +20,11 @@ info:
 
 tags:
   - name: permits
-    description: "Permits service — building/electrical/plumbing/etc. permit records, plus inspection requests (the only write surface: schema-validated by the gateway, auto-expiring after 24h)."
+    description: "Permits service: building/electrical/plumbing/etc. permit records, plus inspection requests (the only write surface: schema-validated by the gateway, auto-expiring after 24h)."
   - name: licenses
-    description: "Licenses service — active and historical business licenses."
+    description: "Licenses service: active and historical business licenses."
   - name: facilities
-    description: "Facilities service — parks, trails, rec centers, libraries, pools, and their hours. v2-only: it launched after the v1 deprecation."
+    description: "Facilities service: parks, trails, rec centers, libraries, pools, and their hours. v2-only, since it launched after the v1 deprecation."
   - name: platform
     description: "Keyless platform endpoints: live status and a mock-integration ping."
 
@@ -36,7 +36,7 @@ x-amazon-apigateway-request-validators:
     validateRequestParameters: false
 
 # Friendly JSON for the failure modes the docs page demonstrates: missing key,
-# schema-invalid body, throttle, quota — plus unmatched paths remapped from
+# schema-invalid body, throttle, quota, plus unmatched paths remapped from
 # API Gateway's confusing default 403 to an honest 404.
 x-amazon-apigateway-gateway-responses:
   INVALID_API_KEY:
@@ -65,7 +65,7 @@ paths:
     get:
       tags: [platform]
       summary: Ping (mock integration)
-      description: Answered entirely by an API Gateway mock integration — no compute behind it at all.
+      description: Answered entirely by an API Gateway mock integration. No compute behind it at all.
       responses:
         "200":
           description: Pong.
@@ -244,7 +244,7 @@ paths:
       tags: [permits]
       summary: Request an inspection
       description: >-
-        The write surface — and the request-validation exhibit. API Gateway
+        The write surface, and the request-validation exhibit. API Gateway
         checks the body against the InspectionRequest model (required fields,
         enums, formats, no unknown properties) and rejects invalid payloads
         with a 400 before any Lambda runs. Created records expire
@@ -269,7 +269,7 @@ paths:
                 properties:
                   data: { $ref: "#/components/schemas/Inspection" }
         "400":
-          description: Body failed gateway schema validation — the Lambda never ran.
+          description: Body failed gateway schema validation. The Lambda never ran.
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
@@ -482,7 +482,7 @@ components:
 
     InspectionRequest:
       type: object
-      description: Enforced by API Gateway's request validator — not by application code.
+      description: Enforced by API Gateway's request validator, not by application code.
       required: [type, preferredDate, contactEmail]
       additionalProperties: false
       properties:

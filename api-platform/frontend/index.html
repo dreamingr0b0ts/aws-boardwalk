@@ -4,20 +4,39 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Alpenglow Developer API · Planetek AWS Boardwalk</title>
-<meta name="description" content="A documented public REST API with versioned endpoints, API keys and usage plans, gateway request validation, and per-service Lambda microservices — the docs page renders live from the same OpenAPI spec that deploys the gateway. Plank 2 of the Planetek AWS Boardwalk.">
+<meta name="description" content="A documented public REST API with versioned endpoints, API keys and usage plans, and gateway request validation. The docs page renders live from the same OpenAPI spec that deploys the gateway. Plank 2 of the Planetek AWS Boardwalk.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="City of Alpenglow Developer API">
+<meta property="og:description" content="The city exchange: a working public REST API with versioned endpoints, keyed usage plans, and gateway request validation, documented live from its own OpenAPI spec.">
+<meta property="og:url" content="https://api.demos.planetek.org/">
+<meta property="og:image" content="https://api.demos.planetek.org/og.jpg">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preload" as="font" type="font/woff2" href="/fonts/jost-latin-400-normal.woff2" crossorigin>
+<link rel="preload" as="font" type="font/woff2" href="/fonts/jost-latin-600-normal.woff2" crossorigin>
+<link rel="preload" as="font" type="font/woff2" href="/fonts/jetbrains-mono-latin-400-normal.woff2" crossorigin>
 <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
 
 <header class="hero">
+  <div class="hero-photo">
+    <picture>
+      <source media="(max-width: 700px)" srcset="/img/hero-mobile.webp">
+      <img src="/img/hero.webp" alt="Patch cords plugged into the numbered jack field of an antique telephone switchboard" fetchpriority="high">
+    </picture>
+  </div>
   <div class="wrap">
     <p class="eyebrow">Planetek · AWS Boardwalk · Plank 2</p>
+    <p class="identity">The city exchange · <b>every call goes through the board</b></p>
     <h1>City of Alpenglow Developer API</h1>
-    <p class="lede">A working public REST API, governed the way integrators expect: versioned
-    endpoints with an honest deprecation story, API keys on usage plans with throttles and daily
-    quotas, request bodies validated by the gateway before any code runs — and this documentation
-    is rendered live from the same OpenAPI spec that deploys the gateway itself.</p>
+    <p class="lede">A working public REST API, governed the way integrators expect. Endpoints are
+    versioned with an honest retirement story, API keys ride usage plans with throttles and daily
+    quotas, and the gateway validates request bodies before any code runs. Like the old city
+    exchange, <strong>the switchboard answers, refuses, and meters every call before an office ever
+    picks up.</strong> These docs render live from the same OpenAPI spec that deploys the gateway itself.</p>
     <div class="hero-meta" id="hero-meta">
       <div><strong id="stat-status">–</strong>platform status</div>
       <div><strong id="stat-permits">–</strong>permit records</div>
@@ -26,15 +45,17 @@
     </div>
   </div>
 </header>
+<div class="jackstrip" role="presentation"></div>
 
 <main class="wrap">
 
   <section class="panel">
-    <h2>Start here</h2>
+    <h2><span class="plate">Line 01</span> Start here</h2>
     <p class="muted">Every endpoint except <code>/v2/status</code> and <code>/v1/ping</code> wants an
-    <code>x-api-key</code> header. This shared <strong>demo-tier key</strong> is public by design —
-    nothing behind it costs real money, and its usage plan (2 req/s, 2,500 requests/day) is the
-    guardrail. Partner-tier keys with higher limits exist but aren't published.</p>
+    <code>x-api-key</code> header. This shared <strong>demo-tier key</strong> is the party line:
+    public by design, because nothing behind it costs real money, and its usage plan (2 requests per
+    second, 2,500 a day) is the guardrail. Partner-tier keys with higher limits exist but are never
+    published.</p>
 
     <div class="keybox">
       <span class="keylabel">demo key</span>
@@ -44,62 +65,80 @@
 
     <pre class="code" id="quickstart">loading…</pre>
     <p class="muted">The full machine-readable contract is at
-    <a href="/openapi.json">/openapi.json</a> — the same file Terraform imports into API Gateway,
-    so these docs cannot drift from the deployed API.</p>
+    <a href="/openapi.json">/openapi.json</a>, the same file Terraform imports into API Gateway.
+    These docs cannot drift from the deployed API.</p>
   </section>
 
   <section class="panel">
-    <h2>See the governance work</h2>
+    <h2><span class="plate">Line 02</span> See the governance work</h2>
     <p class="muted">Four failure-path demos, live against the real gateway. Each shows the exact
-    request sent and the response that came back — including the ones where API Gateway answers
+    request sent and the response that came back, including the ones where the switchboard answers
     before any application code runs.</p>
     <div class="demo-grid">
       <button type="button" class="demo-btn" data-demo="nokey">
         <strong>Call without a key</strong>
-        <span>GET /v2/permits with no x-api-key → the gateway's 403, not the Lambda's</span>
+        <span>GET /v2/permits with no x-api-key. The gateway's 403, not the Lambda's.</span>
       </button>
       <button type="button" class="demo-btn" data-demo="badbody">
         <strong>Send an invalid body</strong>
-        <span>POST an inspection request that violates the JSON-schema model → gateway 400 with the validator's message</span>
+        <span>POST an inspection request that violates the JSON-schema model. Gateway 400 with the validator's message.</span>
       </button>
       <button type="button" class="demo-btn" data-demo="deprecated">
         <strong>Call a deprecated version</strong>
-        <span>GET /v1/permits still works — but answers with Deprecation, Sunset, and successor-version Link headers</span>
+        <span>GET /v1/permits still works, but answers with Deprecation, Sunset, and successor-version Link headers.</span>
       </button>
       <button type="button" class="demo-btn" data-demo="burst">
         <strong>Burst past the throttle</strong>
-        <span>30 parallel calls on the demo key (2 req/s, burst 5) → watch usage-plan 429s appear</span>
+        <span>30 parallel calls on the demo key (2 req/s, burst 5). Watch the busy signals appear.</span>
       </button>
     </div>
     <div id="demo-out" class="demo-out" hidden></div>
   </section>
 
+  <div class="interlude">
+    <figure>
+      <img src="/img/exchange-office.webp" alt="A telephone and telegraph office around 1900: two operators at desks, one seated at a small switchboard" loading="lazy">
+      <figcaption>The Telephone and Telegraph Office, North Tower of the United States National
+      Museum. Smithsonian Institution, public domain, via Unsplash.</figcaption>
+    </figure>
+    <div class="interlude-note">
+      <h3>Why an exchange?</h3>
+      <p>Before dial service, an operator sat between every caller and every line: she answered,
+      checked who you were, refused calls that made no sense, and connected the rest. That is an
+      API gateway's whole job. The board answers first; the offices behind it only ever hear
+      well-formed, authorized, rate-limited calls.</p>
+    </div>
+  </div>
+
   <section class="panel">
-    <h2>API reference</h2>
-    <p class="muted">Rendered in your browser from <a href="/openapi.json">/openapi.json</a>.
-    Every operation has a live <em>try it</em> console — requests go same-origin to the gateway with
+    <h2><span class="plate">Line 03</span> API reference</h2>
+    <p class="muted">The directory, rendered in your browser from <a href="/openapi.json">/openapi.json</a>.
+    Every operation has a live <em>try it</em> console. Requests go same-origin to the gateway with
     the demo key attached.</p>
     <div id="reference"><p class="muted">loading spec…</p></div>
   </section>
 
   <section class="panel">
-    <h2>Usage plans</h2>
+    <h2><span class="plate">Line 04</span> Usage plans</h2>
+    <p class="muted">Two tiers meter the same board: the shared party line every visitor uses, and
+    private trunks issued per integrator.</p>
     <div class="plans">
       <table>
         <thead><tr><th>Plan</th><th>Steady rate</th><th>Burst</th><th>Daily quota</th><th>Key distribution</th></tr></thead>
         <tbody>
-          <tr><td><strong>demo</strong></td><td>2 req/s</td><td>5</td><td>2,500</td><td>Printed above — shared by every visitor</td></tr>
-          <tr><td><strong>partner</strong></td><td>25 req/s</td><td>50</td><td>50,000</td><td>Issued per integrator, never published</td></tr>
+          <tr><td><strong>demo</strong> (the party line)</td><td>2 req/s</td><td>5</td><td>2,500</td><td>Printed above, shared by every visitor</td></tr>
+          <tr><td><strong>partner</strong> (a private trunk)</td><td>25 req/s</td><td>50</td><td>50,000</td><td>Issued per integrator, never published</td></tr>
         </tbody>
       </table>
     </div>
-    <p class="muted">Both plans meter the same API — the key you present decides your limits. Exceed
-    the rate and the gateway answers <code>429 throttled</code>; exhaust the quota and it answers
-    <code>429 quota_exceeded</code> until midnight UTC. Application code never sees those requests.</p>
+    <p class="muted">Both plans meter the same API; the key you present decides your limits. Exceed
+    the rate and the gateway answers <code>429 throttled</code>, the busy signal. Exhaust the quota
+    and it answers <code>429 quota_exceeded</code> until midnight UTC. Application code never sees
+    those requests.</p>
   </section>
 
   <section class="panel">
-    <h2>How it's built</h2>
+    <h2><span class="plate">Line 05</span> How it's built</h2>
     <div class="arch">
       <div class="arch-row">
         <span class="node">openapi.yaml<small>single source of truth</small></span>
@@ -116,19 +155,20 @@
       </div>
     </div>
     <p class="muted">Each microservice is its own Lambda with an IAM role fenced to its own DynamoDB
-    table — the permits service cannot read a license record even by bug. The docs site is S3 +
+    table: the permits service cannot read a license record even by bug. The docs site is S3 +
     CloudFront; the API is served same-origin under <code>/v1/*</code> and <code>/v2/*</code>, so
     there is no CORS surface at all. Idle cost of the whole plank: ~$0.</p>
   </section>
 
 </main>
 
+<div class="jackstrip" role="presentation"></div>
 <footer>
-  <div class="wrap foot-grid">
+  <div class="foot-grid">
     <div>
       <p class="foot-brand">Alpenglow Developer API</p>
       <p class="foot-desc">A demonstration of API design and governance: versioning with a real
-      deprecation story, usage plans, gateway-level validation, and microservice boundaries — idling
+      deprecation story, usage plans, gateway-level validation, and microservice boundaries, idling
       at ~$0.</p>
     </div>
     <div>
@@ -148,7 +188,10 @@
       </ul>
     </div>
   </div>
-  <div class="foot-bar">Fictional demo built by Planetek — not affiliated with any real government agency.</div>
+  <div class="foot-bar">Fictional demo built by Planetek. Not affiliated with any real government agency.
+    <div class="foot-credit">Switchboard photograph by Dave Meckler on Unsplash (Georgetown Steam
+    Plant, Seattle). Exchange office photograph from the Smithsonian Institution, public domain, via Unsplash.</div>
+  </div>
 </footer>
 
 <script type="module" src="/app.js"></script>

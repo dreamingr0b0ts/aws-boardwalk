@@ -1,7 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="14" fill="#16302e"/>
-  <text x="10" y="44" font-family="ui-monospace,Menlo,monospace" font-size="30" font-weight="800" fill="#dcebe8">{</text>
-  <circle cx="32" cy="24" r="4.5" fill="#e4532f"/>
-  <circle cx="32" cy="40" r="4.5" fill="#dcebe8"/>
-  <text x="40" y="44" font-family="ui-monospace,Menlo,monospace" font-size="30" font-weight="800" fill="#dcebe8">}</text>
+  <!-- the night board: three copper jacks, one lit jade lamp -->
+  <rect width="64" height="64" rx="14" fill="#171210"/>
+  <rect x="2" y="2" width="60" height="60" rx="12" fill="none" stroke="#c8763a" stroke-opacity=".5" stroke-width="3"/>
+  <circle cx="22" cy="22" r="7" fill="#0e0b09" stroke="#c8763a" stroke-width="4.5"/>
+  <circle cx="42" cy="22" r="7" fill="#0e0b09" stroke="#c8763a" stroke-width="4.5"/>
+  <circle cx="22" cy="42" r="7" fill="#0e0b09" stroke="#c8763a" stroke-width="4.5"/>
+  <circle cx="42" cy="42" r="11" fill="#4fbd90" opacity=".35"/>
+  <circle cx="42" cy="42" r="7.5" fill="#4fbd90"/>
 </svg>
