@@ -24,11 +24,11 @@ publish:
 ## Start the heartbeat canary for a demo window (~$0.35/day while running)
 canary-start:
 	aws synthetics start-canary --name "$$($(TF) output -raw canary_name)"
-	@echo "canary running — remember 'make canary-stop' after the demo"
+	@echo "canary running: remember 'make canary-stop' after the demo"
 
 canary-stop:
 	aws synthetics stop-canary --name "$$($(TF) output -raw canary_name)"
-	@echo "canary stopped — idle cost back to ~\$$0"
+	@echo "canary stopped: idle cost back to ~\$$0"
 
 ## Execute the backup/restore drill and print the RTO/RPO report
 drill:

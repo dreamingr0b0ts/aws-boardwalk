@@ -3,129 +3,260 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Planetek · Boardwalk Ops — CI/CD, observability & resilience</title>
+<title>Planetek · Boardwalk Ops · CI/CD, observability &amp; resilience</title>
 <meta name="description" content="The meta-environment that builds and watches the AWS Boardwalk: GitHub Actions with OIDC (no stored keys), Terraform plan/apply gates, security scanning, CloudWatch observability, and an executable backup/restore runbook with measured RTO/RPO.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Boardwalk Ops · the environment that builds the others">
+<meta property="og:description" content="Keyless CI/CD, gated Terraform applies, security scanning, one lookout over every plank, and a timed backup/restore drill. The AWS Boardwalk's ski patrol.">
+<meta property="og:url" content="https://ops.demos.planetek.org/">
+<meta property="og:image" content="https://ops.demos.planetek.org/og.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#eef3f7">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0f16">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <style>
+  @font-face { font-family: 'Archivo'; src: url('/fonts/archivo-latin-400-normal.woff2') format('woff2');
+               font-weight: 400; font-style: normal; font-display: swap; }
+  @font-face { font-family: 'Archivo'; src: url('/fonts/archivo-latin-600-normal.woff2') format('woff2');
+               font-weight: 600; font-style: normal; font-display: swap; }
+  @font-face { font-family: 'Archivo'; src: url('/fonts/archivo-latin-800-normal.woff2') format('woff2');
+               font-weight: 800; font-style: normal; font-display: swap; }
+  @font-face { font-family: 'Archivo'; src: url('/fonts/archivo-latin-900-normal.woff2') format('woff2');
+               font-weight: 900; font-style: normal; font-display: swap; }
+  @font-face { font-family: 'Martian Mono'; src: url('/fonts/martian-mono-latin-400-normal.woff2') format('woff2');
+               font-weight: 400; font-style: normal; font-display: swap; }
+  @font-face { font-family: 'Martian Mono'; src: url('/fonts/martian-mono-latin-700-normal.woff2') format('woff2');
+               font-weight: 700; font-style: normal; font-display: swap; }
+
   :root {
-    --bg: #fafaf9;
-    --surface: #ffffff;
-    --border: #e7e5e4;
-    --ink: #1c1917;
-    --ink-2: #57534e;
-    --ink-3: #78716c;
-    --pine: #16302e;
-    --pine-deep: #0b1f1e;
-    --pine-mid: #2f615c;
-    --pine-soft: #dcebe8;
-    --glow: #e4532f;
-    --live-bg: #ecfdf5; --live-ink: #047857; --live-ring: #a7f3d0;
-    --fail-bg: #fef2f2; --fail-ink: #b91c1c; --fail-ring: #fecaca;
-    --plan-bg: #f5f5f4; --plan-ink: #78716c; --plan-ring: #d6d3d1;
+    /* bluebird morning: glacial paper, cold ink, patrol red */
+    --bg: #edf2f7;
+    --surface: #fafcfe;
+    --border: #d3dde7;
+    --ink: #131e29;
+    --ink-2: #43556a;
+    --ink-3: #67798c;
+    --red: #c22a25;
+    --red-deep: #9e1f1c;
+    --red-ink: #b3261f;
+    --amber: #b96a15;
+    --night: #0d1521;
+    --night-2: #16202e;
+    --snow-line: #c3d2df;
+    --rope: #c22a25;
+    --trail-green: #1a7f4b;
+    --trail-blue: #2368a2;
+    --trail-black: #131e29;
+    --chip-bg: #e2e9f0;
+    --live-bg: #e3f4ea; --live-ink: #14683d; --live-ring: #a7d9bd;
+    --fail-bg: #fbeae9; --fail-ink: #a32721; --fail-ring: #efb8b5;
+    --plan-bg: #e2e9f0; --plan-ink: #67798c; --plan-ring: #c3d2df;
+    --hero-ink: #f2f6fa;
+    --hero-ink-2: #c0cedd;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #0c0a09;
-      --surface: #1c1917;
-      --border: #292524;
-      --ink: #f5f5f4;
-      --ink-2: #d6d3d1;
-      --ink-3: #a8a29e;
-      --pine-soft: #16302e;
-      --live-bg: rgba(5,150,105,.15); --live-ink: #34d399; --live-ring: rgba(52,211,153,.35);
-      --fail-bg: rgba(185,28,28,.15); --fail-ink: #f87171; --fail-ring: rgba(248,113,113,.35);
-      --plan-bg: #292524; --plan-ink: #a8a29e; --plan-ring: #44403c;
+      /* predawn grooming shift: cold steel, headlamp red */
+      --bg: #0a0f16;
+      --surface: #121a24;
+      --border: #223042;
+      --ink: #e8eef4;
+      --ink-2: #b4c2d1;
+      --ink-3: #8095aa;
+      --red: #e2554e;
+      --red-deep: #c23e38;
+      --red-ink: #f0837d;
+      --amber: #e9a960;
+      --night: #070b11;
+      --night-2: #0e1520;
+      --snow-line: #2c3d51;
+      --rope: #e2554e;
+      --trail-green: #45c684;
+      --trail-blue: #64a9e0;
+      --trail-black: #e8eef4;
+      --chip-bg: #1a2432;
+      --live-bg: rgba(52,180,110,.14); --live-ink: #52d494; --live-ring: rgba(82,212,148,.35);
+      --fail-bg: rgba(226,85,78,.14); --fail-ink: #f0837d; --fail-ring: rgba(240,131,125,.35);
+      --plan-bg: #1a2432; --plan-ink: #8095aa; --plan-ring: #2c3d51;
     }
   }
+
   * { box-sizing: border-box; margin: 0; }
   body {
     background: var(--bg); color: var(--ink);
-    font: 16px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    font: 16px/1.58 'Archivo', ui-sans-serif, system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
-  .wrap { max-width: 980px; margin: 0 auto; padding: 0 20px; }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 0 20px; }
+  .mono { font-family: 'Martian Mono', ui-monospace, monospace; }
 
-  header.hero { background: linear-gradient(180deg, var(--pine-deep), var(--pine)); color: #f2f7f6; }
-  .hero-inner { padding: 64px 0 40px; }
-  .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: #f59e83; }
-  h1 { font-size: clamp(30px, 5vw, 44px); line-height: 1.08; margin-top: 12px; font-weight: 800; }
-  .hero p.lede { margin-top: 14px; max-width: 640px; font-size: 17px; color: #b9d6d1; }
-  .hero-meta { margin-top: 28px; display: flex; gap: 24px; flex-wrap: wrap; font-size: 13px; color: #8db9b3; }
-  .hero-meta strong { display: block; color: #fff; font-size: 15px; }
+  /* ---- hero: the boundary sign ---- */
+  header.hero {
+    position: relative; color: var(--hero-ink); overflow: hidden;
+    background: var(--night);
+  }
+  .hero-photo { position: absolute; inset: 0; }
+  .hero-photo img { width: 100%; height: 100%; object-fit: cover; object-position: 68% 40%; }
+  .hero-scrim { position: absolute; inset: 0;
+    background: linear-gradient(100deg, rgba(9,14,22,.94) 0%, rgba(9,14,22,.86) 34%, rgba(11,17,26,.45) 62%, rgba(11,17,26,.18) 100%); }
+  @media (max-width: 640px) {
+    .hero-photo img { object-position: 50% 82%; }
+    .hero-scrim { background: linear-gradient(180deg, rgba(9,14,22,.95) 0%, rgba(9,14,22,.9) 52%, rgba(11,17,26,.62) 100%); }
+  }
+  .hero-inner { position: relative; padding: 74px 0 54px; }
+  .eyebrow { font-family: 'Martian Mono', ui-monospace, monospace; font-size: 10.5px; font-weight: 700;
+             letter-spacing: .22em; text-transform: uppercase; color: #ff9d92; }
+  h1 { font-size: clamp(31px, 5.2vw, 50px); line-height: 1.04; margin-top: 14px; font-weight: 900;
+       letter-spacing: -.015em; max-width: 13em; text-wrap: balance; }
+  .hero p.lede { margin-top: 16px; max-width: 600px; font-size: 16.5px; color: var(--hero-ink-2); }
+  .hero p.lede strong { color: var(--hero-ink); font-weight: 600; }
+  .hero-meta { margin-top: 32px; display: flex; gap: 0; flex-wrap: wrap;
+               border: 1px solid rgba(195,210,223,.28); border-radius: 10px; overflow: hidden;
+               background: rgba(7,11,17,.55); backdrop-filter: blur(3px); max-width: 640px; }
+  .hero-meta > div { flex: 1 1 150px; padding: 13px 18px; border-right: 1px solid rgba(195,210,223,.18); }
+  .hero-meta > div:last-child { border-right: none; }
+  .hero-meta strong { display: block; color: #fff; font-size: 17px; font-weight: 800; }
+  .hero-meta span { font-family: 'Martian Mono', ui-monospace, monospace; font-size: 9.5px;
+                    letter-spacing: .14em; text-transform: uppercase; color: #93a8bd; }
 
-  main { padding: 48px 0 24px; display: grid; gap: 24px; }
-  section.panel { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 26px; }
-  h2 { font-size: 20px; font-weight: 800; }
-  .sub { margin-top: 4px; color: var(--ink-3); font-size: 14px; }
+  /* ---- rope line divider ---- */
+  .rope-line { height: 16px; position: relative; background:
+      repeating-linear-gradient(90deg, var(--rope) 0 4px, transparent 4px 104px),
+      repeating-linear-gradient(90deg, var(--rope) 0 16px, transparent 16px 27px) 50% 50% / 100% 2px no-repeat; }
+  header.hero .rope-line { position: relative; background:
+      repeating-linear-gradient(90deg, #e2554e 0 4px, transparent 4px 104px),
+      repeating-linear-gradient(90deg, #e2554e 0 16px, transparent 16px 27px) 50% 50% / 100% 2px no-repeat; }
+
+  main { padding: 50px 0 26px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 26px; }
+  section.panel { background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+                  padding: 26px; box-shadow: 0 1px 2px rgba(13,21,33,.05); }
+
+  .plate { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .plate .sign { font-family: 'Martian Mono', ui-monospace, monospace; font-size: 10px; font-weight: 700;
+                 letter-spacing: .18em; text-transform: uppercase; color: var(--ink-3); }
+  .marker { width: 13px; height: 13px; flex: none; }
+  .marker.green { border-radius: 50%; background: var(--trail-green); }
+  .marker.blue { border-radius: 2px; background: var(--trail-blue); }
+  .marker.black { border-radius: 2px; background: var(--trail-black); transform: rotate(45deg) scale(.92); }
+  .plate .rule { flex: 1; height: 1px; background: var(--border); }
+
+  h2 { font-size: 21px; font-weight: 800; letter-spacing: -.01em; }
+  .sub { margin-top: 5px; color: var(--ink-3); font-size: 14px; max-width: 68ch; }
   .panel p { margin-top: 12px; font-size: 14.5px; color: var(--ink-2); max-width: 72ch; }
   .badges { margin-top: 16px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
   .badges img { height: 20px; }
-  a { color: var(--glow); font-weight: 600; text-decoration: none; }
-  a:hover { text-decoration: underline; }
+  a { color: var(--red-ink); font-weight: 600; text-decoration: none; }
+  a:hover { text-decoration: underline; text-underline-offset: 2px; }
 
-  .flow { margin-top: 18px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; font-size: 13px; font-weight: 700; }
-  .flow .stage { background: var(--plan-bg); border: 1px solid var(--plan-ring); color: var(--ink-2); border-radius: 999px; padding: 5px 14px; }
-  .flow .stage.gate { background: var(--pine-soft); border-color: var(--pine-mid); color: var(--pine-mid); }
-  @media (prefers-color-scheme: dark) { .flow .stage.gate { color: #8db9b3; } }
-  .flow .arrow { color: var(--ink-3); }
+  /* pipeline = gates down the run */
+  .flow { margin-top: 18px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+          font-size: 12.5px; font-weight: 600; }
+  .flow .stage { background: var(--chip-bg); border: 1px solid var(--plan-ring); color: var(--ink-2);
+                 border-radius: 7px; padding: 5px 12px; }
+  .flow .stage em { font-style: normal; color: var(--ink-3); font-weight: 400; }
+  .flow .stage.gate { background: var(--fail-bg); border-color: var(--fail-ring); color: var(--fail-ink);
+                      font-weight: 700; }
+  .flow .stage.open { background: var(--live-bg); border-color: var(--live-ring); color: var(--live-ink);
+                      font-weight: 700; }
+  .flow .arrow { color: var(--snow-line); font-weight: 400; }
 
-  ul.facts { margin: 14px 0 0; padding: 0; list-style: none; display: grid; gap: 9px; }
-  ul.facts li { font-size: 14px; color: var(--ink-2); padding-left: 22px; position: relative; }
-  ul.facts li::before { content: "⛰"; position: absolute; left: 0; }
-  ul.facts code { font: 12.5px ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--plan-bg); border-radius: 5px; padding: 1px 6px; }
+  ul.facts { margin: 16px 0 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+  ul.facts li { font-size: 14px; color: var(--ink-2); padding-left: 24px; position: relative; max-width: 78ch; }
+  ul.facts li::before { content: ""; position: absolute; left: 2px; top: .42em; width: 9px; height: 9px; }
+  section.run-green ul.facts li::before { border-radius: 50%; background: var(--trail-green); }
+  section.run-blue ul.facts li::before { border-radius: 1.5px; background: var(--trail-blue); }
+  section.run-black ul.facts li::before { border-radius: 1.5px; background: var(--trail-black);
+                                          transform: rotate(45deg) scale(.95); }
+  ul.facts code { font: 11.5px 'Martian Mono', ui-monospace, monospace; background: var(--chip-bg);
+                  border-radius: 5px; padding: 2px 6px; }
 
-  .report { margin-top: 16px; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  /* ---- interlude: grooming shift ---- */
+  figure.interlude { margin: 6px 0; border-radius: 14px; overflow: hidden; border: 1px solid var(--border);
+                     background: var(--night-2); }
+  figure.interlude img { display: block; width: 100%; height: auto; }
+  figure.interlude figcaption { padding: 13px 18px; font-size: 12.5px; color: var(--ink-3);
+    font-family: 'Martian Mono', ui-monospace, monospace; letter-spacing: .01em; line-height: 1.6; }
+
+  /* ---- drill record card ---- */
+  .report { margin-top: 18px; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .report-band { display: flex; align-items: center; gap: 10px; padding: 9px 16px;
+                 background: var(--red); color: #fff; }
+  @media (prefers-color-scheme: dark) { .report-band { background: var(--red-deep); } }
+  .report-band .dia { width: 10px; height: 10px; background: #fff; transform: rotate(45deg); flex: none; }
+  .report-band span { font-family: 'Martian Mono', ui-monospace, monospace; font-size: 10px; font-weight: 700;
+                      letter-spacing: .22em; text-transform: uppercase; }
   .report-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;
-                 padding: 12px 16px; background: var(--plan-bg); font-size: 13px; color: var(--ink-3); }
-  .chip { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em;
-          padding: 3px 10px; border-radius: 999px; border: 1px solid; }
+                 padding: 12px 16px; background: var(--chip-bg); font-size: 13px; color: var(--ink-3); }
+  .report-head code { font: 11.5px 'Martian Mono', ui-monospace, monospace; }
+  .chip { font-family: 'Martian Mono', ui-monospace, monospace; font-size: 10px; font-weight: 700;
+          text-transform: uppercase; letter-spacing: .1em; padding: 4px 11px; border-radius: 999px; border: 1px solid; }
   .chip.pass { background: var(--live-bg); color: var(--live-ink); border-color: var(--live-ring); }
   .chip.fail { background: var(--fail-bg); color: var(--fail-ink); border-color: var(--fail-ring); }
   .chip.idle { background: var(--plan-bg); color: var(--plan-ink); border-color: var(--plan-ring); }
   .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
   .stat { padding: 16px; border-top: 1px solid var(--border); }
   .stat + .stat { border-left: 1px solid var(--border); }
-  .stat .k { font-size: 12px; text-transform: uppercase; letter-spacing: .07em; color: var(--ink-3); font-weight: 700; }
-  .stat .v { margin-top: 4px; font-size: 22px; font-weight: 800; }
+  .stat .k { font-family: 'Martian Mono', ui-monospace, monospace; font-size: 9.5px; text-transform: uppercase;
+             letter-spacing: .12em; color: var(--ink-3); font-weight: 700; }
+  .stat .v { margin-top: 6px; font-size: 23px; font-weight: 800; font-variant-numeric: tabular-nums; }
   .stat .d { font-size: 12px; color: var(--ink-3); }
   @media (max-width: 640px) { .stat + .stat { border-left: none; } }
 
-  /* Boardwalk-standard footer (modeled on the permits site) */
-  footer { margin-top: 48px; background: var(--pine-deep); color: #b9d6d1; font-size: 13px; }
-  .foot-grid { display: grid; gap: 28px; padding: 34px 20px 28px; }
+  /* ---- footer: the patrol hut ---- */
+  footer { margin-top: 50px; background: var(--night); color: #aebfd1; font-size: 13px; }
+  footer .rope-line { background:
+      repeating-linear-gradient(90deg, #e2554e 0 4px, transparent 4px 104px),
+      repeating-linear-gradient(90deg, #e2554e 0 16px, transparent 16px 27px) 50% 50% / 100% 2px no-repeat; }
+  .foot-grid { display: grid; gap: 28px; padding: 36px 20px 28px; }
   @media (min-width: 640px) { .foot-grid { grid-template-columns: repeat(3, 1fr); } }
   .foot-brand { font-weight: 800; color: #fff; font-size: 14px; margin: 0; }
-  .foot-desc { margin: 8px 0 0; font-size: 12px; line-height: 1.6; color: #8db9b3; }
-  .foot-head { font-weight: 700; color: #fff; margin: 0; }
-  .foot-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; }
-  .foot-list a { color: #b9d6d1; font-weight: 400; text-decoration: none; }
+  .foot-desc { margin: 8px 0 0; font-size: 12px; line-height: 1.6; color: #8095aa; }
+  .foot-head { font-family: 'Martian Mono', ui-monospace, monospace; font-size: 10px; font-weight: 700;
+               letter-spacing: .18em; text-transform: uppercase; color: #d5e0eb; margin: 0; }
+  .foot-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 5px; }
+  .foot-list a { color: #aebfd1; font-weight: 400; text-decoration: none; }
   .foot-list a:hover { color: #fff; text-decoration: underline; text-underline-offset: 2px; }
-  .foot-bar { border-top: 1px solid rgba(185, 214, 209, .18); padding: 14px 20px; text-align: center; font-size: 12px; color: #8db9b3; }
+  .foot-bar { border-top: 1px solid rgba(174,191,209,.16); padding: 14px 20px; text-align: center;
+              font-size: 11.5px; color: #8095aa; }
 </style>
 </head>
 <body>
 
 <header class="hero">
+  <div class="hero-photo">
+    <picture>
+      <source media="(max-width: 640px)" srcset="/img/hero-boundary-m.webp">
+      <img src="/img/hero-boundary.webp" alt="Red ski area boundary sign above a snow-covered valley: no patrol services or avalanche reduction beyond this point" fetchpriority="high">
+    </picture>
+    <div class="hero-scrim"></div>
+  </div>
   <div class="wrap hero-inner">
-    <p class="eyebrow">Planetek · Boardwalk plank 10 — DevOps &amp; SRE</p>
+    <p class="eyebrow">Alpenglow Mountain Patrol · Boardwalk plank 10 · DevOps &amp; SRE</p>
     <h1>The environment that builds the others</h1>
-    <p class="lede">Every plank on the boardwalk ships through this pipeline and is watched by this
-    tooling: keyless CI/CD, gated Terraform applies, security scanning on every change, one
-    observability pane, and a disaster-recovery runbook you can execute — not just read.</p>
+    <p class="lede">This plank is the boardwalk's ski patrol. Every other environment ships through
+    this pipeline and skis inside its boundary: <strong>keyless CI/CD</strong>, gated Terraform
+    applies, security scanning on every change, one lookout over every run, and a rescue drill
+    that gets executed and timed, not just written down.</p>
     <div class="hero-meta">
-      <div><strong>0 stored keys</strong>GitHub → AWS via OIDC</div>
-      <div><strong>2 scanners</strong>Checkov + Trivy on every PR</div>
-      <div><strong>≈ $0/mo</strong>idle cost, on-demand everything</div>
+      <div><strong>0 stored keys</strong><span>GitHub to AWS via OIDC</span></div>
+      <div><strong>2 scanners</strong><span>Checkov + Trivy, every PR</span></div>
+      <div><strong>≈ $0/mo</strong><span>idle cost, on-demand everything</span></div>
     </div>
   </div>
+  <div class="rope-line" aria-hidden="true"></div>
 </header>
 
 <main class="wrap">
 
-  <section class="panel">
-    <h2>CI/CD — plan on pull request, gated apply on main</h2>
-    <p class="sub">GitHub Actions assumes short-lived AWS credentials via OpenID Connect. There are no
-    access keys in the repo, in GitHub secrets, or anywhere else.</p>
+  <section class="panel run-green">
+    <div class="plate"><span class="marker green" aria-hidden="true"></span>
+      <span class="sign">Run 01 · The morning sweep</span><span class="rule" aria-hidden="true"></span></div>
+    <h2>CI/CD: plan on pull request, gated apply on main</h2>
+    <p class="sub">No run opens until patrol has swept it. GitHub Actions assumes short-lived AWS
+    credentials via OpenID Connect; there are no access keys in the repo, in GitHub secrets, or
+    anywhere else.</p>
     <div class="flow">
       <span class="stage">pull request</span><span class="arrow">→</span>
       <span class="stage">fmt · validate</span><span class="arrow">→</span>
@@ -133,7 +264,7 @@
       <span class="stage">terraform plan <em>(read-only role)</em></span><span class="arrow">→</span>
       <span class="stage gate">merge to main</span><span class="arrow">→</span>
       <span class="stage gate">prod environment gate</span><span class="arrow">→</span>
-      <span class="stage">terraform apply</span>
+      <span class="stage open">terraform apply</span>
     </div>
     <div class="badges">
       <a href="https://github.com/dreamingr0b0ts/aws-boardwalk/actions/workflows/terraform.yml"><img
@@ -142,43 +273,63 @@
       <a href="https://github.com/dreamingr0b0ts/aws-boardwalk/actions">all workflow runs →</a>
     </div>
     <ul class="facts">
-      <li>The plan role is <strong>read-only</strong> — a malicious or buggy PR can see drift, never cause it.</li>
+      <li>The plan role is <strong>read-only</strong>. A malicious or buggy PR can see drift, never cause it.</li>
       <li>The apply role is only assumable through the repo's <code>prod</code> environment, and its IAM
-          powers are fenced to plank-prefixed roles — it cannot modify its own permissions.</li>
-      <li>Checkov and Trivy fail the build on infrastructure misconfigurations and vulnerable dependencies.</li>
+          powers are fenced to plank-prefixed roles. Like the boundary sign says: no services beyond
+          this point. It cannot modify its own permissions.</li>
+      <li>Checkov and Trivy fail the build on infrastructure misconfigurations and vulnerable dependencies,
+          the way patrol does control work before the rope drops.</li>
     </ul>
   </section>
 
-  <section class="panel">
-    <h2>Resilience — an executable backup &amp; restore runbook</h2>
-    <p class="sub">A Step Functions state machine snapshots the live permits table, restores it into a
-    scratch table, verifies every item survived, tears the copy down, and publishes the evidence below.</p>
+  <figure class="interlude">
+    <picture>
+      <source media="(max-width: 640px)" srcset="/img/groomers-dusk-m.webp">
+      <img src="/img/groomers-dusk.webp" alt="Two red snow groomers rebuilding a ski slope at dusk under a starry alpine sky" loading="lazy">
+    </picture>
+    <figcaption>Grooming shift. The mountain is rebuilt every night while the town sleeps: every push
+    to main replans and reapplies all twelve planks the same way.</figcaption>
+  </figure>
+
+  <section class="panel run-blue">
+    <div class="plate"><span class="marker blue" aria-hidden="true"></span>
+      <span class="sign">Run 02 · The beacon drill</span><span class="rule" aria-hidden="true"></span></div>
+    <h2>Resilience: an executable backup &amp; restore runbook</h2>
+    <p class="sub">Patrol does not assume the beacons work; they bury one and go find it, against a
+    stopwatch. Same idea here: a Step Functions state machine snapshots the live permits table,
+    restores it into a scratch table, verifies every item survived, tears the copy down, and
+    publishes the timed evidence below.</p>
     <div class="report" id="report">
+      <div class="report-band" aria-hidden="true"><span class="dia"></span><span>Drill record · timed &amp; verified</span></div>
       <div class="report-head">
-        <span id="report-when">No drill report loaded yet — run <code>make drill</code>.</span>
+        <span id="report-when">No drill report loaded yet. Run <code>make drill</code>.</span>
         <span class="chip idle" id="report-chip">awaiting first drill</span>
       </div>
       <div class="stats" id="report-stats" hidden>
-        <div class="stat"><div class="k">RTO (measured)</div><div class="v" id="rto">—</div><div class="d">backup → restore → verified</div></div>
+        <div class="stat"><div class="k">RTO (measured)</div><div class="v" id="rto">—</div><div class="d">backup, restore, verified</div></div>
         <div class="stat"><div class="k">RPO (PITR)</div><div class="v" id="rpo">—</div><div class="d">point-in-time recovery window</div></div>
         <div class="stat"><div class="k">Items verified</div><div class="v" id="items">—</div><div class="d">restored vs. source</div></div>
       </div>
     </div>
     <ul class="facts">
       <li>DynamoDB point-in-time recovery and S3 versioning stay on continuously; the drill proves restores actually work.</li>
-      <li>The scratch table and snapshot are deleted at the end of every run — the drill leaves nothing behind.</li>
+      <li>The scratch table and snapshot are deleted at the end of every run. The drill leaves no tracks.</li>
     </ul>
   </section>
 
-  <section class="panel">
-    <h2>Observability — one pane over every plank</h2>
-    <p>A CloudWatch dashboard tracks CloudFront traffic and error rates, API latency (p95), Lambda errors,
-    DynamoDB capacity, and Bedrock usage across the whole boardwalk. Alarms on API 5xx, chat-Lambda errors,
-    DynamoDB throttling, and canary failures page the operator by email. Lambda and Step Functions run with
-    X-Ray tracing enabled, and a CloudWatch Synthetics canary heartbeats every live plank — started only for
-    demo windows, because an always-on canary is the classic way to pay real money to watch a free site.</p>
+  <section class="panel run-black">
+    <div class="plate"><span class="marker black" aria-hidden="true"></span>
+      <span class="sign">Run 03 · The lookout</span><span class="rule" aria-hidden="true"></span></div>
+    <h2>Observability: one pane over every plank</h2>
+    <p>From the top of the lift you can see every run on the mountain. A CloudWatch dashboard tracks
+    CloudFront traffic and error rates, API latency (p95), Lambda errors, DynamoDB capacity, and
+    Bedrock usage across the whole boardwalk. Alarms on API 5xx, chat-Lambda errors, DynamoDB
+    throttling, and canary failures radio the operator by email. Lambda and Step Functions run with
+    X-Ray tracing enabled, and a CloudWatch Synthetics canary heartbeats every live plank. The canary
+    is started only for demo windows, because an always-on canary is the classic way to pay real
+    money to watch a free site.</p>
     <ul class="facts">
-      <li>Dashboards, alarms, and traces live in the AWS console — this page is the public, read-only view.</li>
+      <li>Dashboards, alarms, and traces live in the AWS console; this page is the public, read-only view.</li>
       <li>Everything here fits the boardwalk's standing rule: idle cost ≈ $0, spend only during demos.</li>
     </ul>
   </section>
@@ -186,30 +337,33 @@
 </main>
 
 <footer>
+  <div class="rope-line" aria-hidden="true"></div>
   <div class="wrap foot-grid">
     <div>
-      <p class="foot-brand">Boardwalk Ops</p>
+      <p class="foot-brand">Boardwalk Ops · Alpenglow Mountain Patrol</p>
       <p class="foot-desc">A demonstration of DevOps and SRE practice: keyless CI/CD, scanned and gated
-      infrastructure changes, observability, and an executable recovery runbook.</p>
+      infrastructure changes, observability, and an executable recovery runbook. The patrol that
+      sweeps, gates, and watches every other plank on the boardwalk.</p>
     </div>
     <div>
       <p class="foot-head">Environment</p>
       <ul class="foot-list">
         <li>AWS: CloudWatch · X-Ray · Synthetics · Step Functions</li>
-        <li>GitHub Actions with OIDC — no stored keys</li>
+        <li>GitHub Actions with OIDC, no stored keys</li>
         <li>Infrastructure as code: Terraform</li>
       </ul>
     </div>
     <div>
       <p class="foot-head">Planetek</p>
       <ul class="foot-list">
-        <li><a href="https://github.com/dreamingr0b0ts/aws-boardwalk">Github</a></li>
+        <li><a href="https://github.com/dreamingr0b0ts/aws-boardwalk">GitHub</a></li>
         <li><a href="https://planetek.org">planetek.org</a></li>
         <li><a href="https://demos.planetek.org">More live environments</a></li>
       </ul>
     </div>
   </div>
-  <div class="foot-bar">Fictional demo built by Planetek — not affiliated with any real government agency.</div>
+  <div class="foot-bar">Fictional demo built by Planetek. Not affiliated with any real government agency
+  or ski area. Photos by Jim Moriarty and Marek Piwnicki on Unsplash.</div>
 </footer>
 
 <script>
