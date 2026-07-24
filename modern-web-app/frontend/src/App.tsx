@@ -1,4 +1,5 @@
-import { Route, Routes } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Route, Routes, useLocation, useNavigationType } from 'react-router-dom';
 import Layout from './components/Layout';
 import { RequireAdmin, RequireAuth } from './components/Guards';
 import Landing from './pages/Landing';
@@ -15,9 +16,26 @@ import VerifyPermit from './pages/VerifyPermit';
 import Admin from './pages/Admin';
 import NotFound from './pages/NotFound';
 
+/**
+ * Route changes land at the top of the page, the way full page loads would.
+ * Back/forward (POP) is left to the browser's own scroll restoration, and
+ * hash-only changes (the landing page's #catalog anchor) never re-trigger
+ * because only pathname is watched.
+ */
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  const navType = useNavigationType();
+  useEffect(() => {
+    if (navType !== 'POP') window.scrollTo(0, 0);
+  }, [pathname, navType]);
+  return null;
+}
+
 export default function App() {
   return (
-    <Routes>
+    <>
+      <ScrollToTop />
+      <Routes>
       <Route element={<Layout />}>
         <Route index element={<Landing />} />
         <Route path="stats" element={<Stats />} />
@@ -45,6 +63,7 @@ export default function App() {
         <Route path="applications/:id/certificate" element={<Certificate />} />
         <Route path="applications/:id/letter" element={<Letter />} />
       </Route>
-    </Routes>
+      </Routes>
+    </>
   );
 }
