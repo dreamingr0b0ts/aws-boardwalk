@@ -66,6 +66,18 @@ body {
   @apply bg-paper text-stone-800 antialiased dark:bg-stone-950 dark:text-stone-200;
 }
 
+/* iOS Safari zooms the viewport when a focused form control is under 16px,
+   and the zoom sticks after the keyboard closes, leaving the layout looking
+   unfitted until the user pinches out. Keep controls at 16px on phones; the
+   important flag outranks the text-sm utility on the elements. */
+@media (max-width: 640px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
 /* Printable documents (permit certificate, decision letter): the sheet is the
    whole page; app chrome and toolbars carry .no-print. */
 @media print {

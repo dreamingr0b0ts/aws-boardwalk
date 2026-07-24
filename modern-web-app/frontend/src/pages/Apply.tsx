@@ -57,6 +57,13 @@ export default function Apply() {
       .catch((e: Error) => setError(e.message));
   }, []);
 
+  // Wizard steps are state changes on one route, so the router-level
+  // ScrollToTop never fires; each step (and the confirmation) starts at the
+  // top the way a page change would.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [step, submittedId]);
+
   const selected = types?.find((t) => t.slug === typeSlug);
 
   async function submit() {
