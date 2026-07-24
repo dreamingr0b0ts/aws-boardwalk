@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useLang } from '../lib/i18n';
@@ -19,6 +19,10 @@ import {
 
 type Step = 1 | 2 | 3;
 
+const ACCEPTED_DOC_TYPES = ['application/pdf', 'image/png', 'image/jpeg'];
+const MAX_DOC_BYTES = 4 * 1024 * 1024;
+const MAX_DOCS = 3;
+
 export default function Apply() {
   const { t: tr } = useLang();
   const preselect = (useLocation().state as { typeSlug?: string } | null)?.typeSlug;
@@ -28,9 +32,24 @@ export default function Apply() {
   const [typeSlug, setTypeSlug] = useState(preselect ?? '');
   const [address, setAddress] = useState('');
   const [description, setDescription] = useState('');
+  const [files, setFiles] = useState<File[]>([]);
+  const [docError, setDocError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [uploadingDocs, setUploadingDocs] = useState(false);
+  const [docWarning, setDocWarning] = useState(false);
+  const [uploadedCount, setUploadedCount] = useState(0);
   const [error, setError] = useState('');
   const [submittedId, setSubmittedId] = useState('');
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  function queueFile(f: File) {
+    setDocError('');
+    if (!ACCEPTED_DOC_TYPES.includes(f.type) || f.size > MAX_DOC_BYTES) {
+      setDocError(tr('apply.docBad'));
+      return;
+    }
+    setFiles((prev) => (prev.length >= MAX_DOCS ? prev : [...prev, f]));
+  }
 
   useEffect(() => {
     void api<{ types: PermitType[] }>('/public/permit-types')
@@ -49,11 +68,42 @@ export default function Apply() {
         auth: true,
         body: { typeSlug, address: address.trim(), description: description.trim() },
       });
+
+      // The record now exists; run the queued documents through the same
+      // presign → S3 POST → confirm path the record page uses. A failed file
+      // never blocks the submission itself.
+      if (files.length > 0) {
+        setUploadingDocs(true);
+        let ok = 0;
+        for (const f of files) {
+          try {
+            const presign = await api<{ attachmentId: string; upload: { url: string; fields: Record<string, string> } }>(
+              `/me/applications/${res.id}/attachments`,
+              { method: 'POST', auth: true, body: { filename: f.name, contentType: f.type } }
+            );
+            const form = new FormData();
+            Object.entries(presign.upload.fields).forEach(([k, v]) => form.append(k, v));
+            form.append('file', f);
+            const up = await fetch(presign.upload.url, { method: 'POST', body: form });
+            if (!up.ok) throw new Error('upload failed');
+            await api(`/me/applications/${res.id}/attachments/${presign.attachmentId}/confirm`, {
+              method: 'POST',
+              auth: true,
+            });
+            ok += 1;
+          } catch {
+            setDocWarning(true);
+          }
+        }
+        setUploadedCount(ok);
+      }
+
       setSubmittedId(res.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Submission failed');
     } finally {
       setBusy(false);
+      setUploadingDocs(false);
     }
   }
 
@@ -69,6 +119,16 @@ export default function Apply() {
           <p className="mt-3 text-stone-500 dark:text-stone-400">
             {tr('apply.doneBody')}
           </p>
+          {uploadedCount > 0 && (
+            <p className="mt-3 text-sm font-semibold text-emerald-800 dark:text-emerald-300">
+              {uploadedCount === 1 ? tr('apply.docsDoneOne') : `${uploadedCount} ${tr('apply.docsDoneMany')}`}
+            </p>
+          )}
+          {docWarning && (
+            <p className="mt-3 rounded-lg border border-amber-500/60 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/50 dark:text-amber-200">
+              {tr('apply.docsWarn')}
+            </p>
+          )}
           <div className="mt-8 flex justify-center gap-3">
             <Link to={`/applications/${submittedId}`} className="rounded-lg bg-pine-800 px-4 py-2 text-sm font-bold text-white hover:bg-pine-700">
               {tr('apply.track')}
@@ -191,6 +251,52 @@ export default function Apply() {
                 placeholder={tr('apply.descPlaceholder')}
               />
             </Field>
+
+            {/* Optional documents, queued locally; they upload right after the
+                record is created so the reviewer sees them on first touch. */}
+            <div className="rounded-lg border border-dashed border-stone-300 px-4 py-4 dark:border-stone-700">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-stone-700 dark:text-stone-300">{tr('detail.docsTitle')}</p>
+                  <p className="mt-0.5 text-xs text-stone-500 dark:text-stone-400">{tr('detail.docsRules')}</p>
+                </div>
+                <input
+                  ref={fileInput}
+                  type="file"
+                  accept="application/pdf,image/png,image/jpeg"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) queueFile(f);
+                    if (fileInput.current) fileInput.current.value = '';
+                  }}
+                />
+                <Button type="button" variant="outline" onClick={() => fileInput.current?.click()} disabled={files.length >= MAX_DOCS}>
+                  {tr('detail.addDoc')}
+                </Button>
+              </div>
+              {docError && <p className="mt-3 text-sm text-rose-700 dark:text-rose-300">{docError}</p>}
+              {files.length > 0 && (
+                <ul className="mt-3 divide-y divide-stone-100 dark:divide-stone-800">
+                  {files.map((f, i) => (
+                    <li key={`${f.name}-${i}`} className="flex items-center gap-3 py-2 text-sm">
+                      <span className="min-w-0 flex-1 truncate font-semibold text-stone-700 dark:text-stone-300">{f.name}</span>
+                      <span className="font-mono text-[11px] text-stone-500 dark:text-stone-400">
+                        {f.size >= 1048576 ? `${(f.size / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(f.size / 1024))} KB`}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setFiles((prev) => prev.filter((_, j) => j !== i))}
+                        className="rounded-md px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-900/40"
+                      >
+                        {tr('apply.remove')}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
             <div className="flex justify-between">
               <Button variant="outline" onClick={() => setStep(1)}>
                 {tr('apply.back')}
@@ -216,6 +322,7 @@ export default function Apply() {
                 [tr('apply.reviewCategory'), selected.category],
                 [tr('apply.reviewAddress'), address],
                 [tr('apply.reviewDesc'), description],
+                [tr('apply.reviewDocs'), files.length > 0 ? files.map((f) => f.name).join(', ') : tr('apply.docsNone')],
                 [tr('apply.reviewProcessing'), `~${selected.processingDays} ${tr('apply.days')}`],
               ] as const
             ).map(([k, v]) => (
@@ -235,7 +342,7 @@ export default function Apply() {
               {tr('apply.back')}
             </Button>
             <Button variant="accent" onClick={() => void submit()} disabled={busy}>
-              {busy ? tr('apply.submitting') : tr('apply.submit')}
+              {uploadingDocs ? tr('apply.uploadingDocs') : busy ? tr('apply.submitting') : tr('apply.submit')}
             </Button>
           </div>
         </Card>

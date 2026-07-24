@@ -194,6 +194,20 @@ const STRINGS: Record<string, { en: string; es: string }> = {
     en: 'Tell the permit office about your project',
     es: 'Cuéntele a la oficina de permisos sobre su proyecto',
   },
+  'apply.remove': { en: 'Remove', es: 'Quitar' },
+  'apply.uploadingDocs': { en: 'Uploading documents…', es: 'Subiendo documentos…' },
+  'apply.reviewDocs': { en: 'Documents', es: 'Documentos' },
+  'apply.docsNone': { en: 'None attached', es: 'Ninguno adjunto' },
+  'apply.docsDoneOne': { en: '1 document received with your application', es: '1 documento recibido con su solicitud' },
+  'apply.docsDoneMany': { en: 'documents received with your application', es: 'documentos recibidos con su solicitud' },
+  'apply.docsWarn': {
+    en: 'One or more documents could not be uploaded. You can add them from the application record.',
+    es: 'No se pudieron subir uno o más documentos. Puede agregarlos desde el expediente de la solicitud.',
+  },
+  'apply.docBad': {
+    en: 'Documents must be PDF, PNG, or JPEG, up to 4 MB.',
+    es: 'Los documentos deben ser PDF, PNG o JPEG, de hasta 4 MB.',
+  },
 
   // --- dashboard -----------------------------------------------------------
   'dash.window': { en: 'My applications', es: 'Mis solicitudes' },
