@@ -15,6 +15,7 @@ import type { AppStatus, CurrentStats, MonthStats } from '../types';
 import { STATUS_LABEL } from '../types';
 import { Card, StatusChip } from './Ui';
 import { useTheme } from '../lib/theme';
+import { useLang } from '../lib/i18n';
 
 // ---------------------------------------------------------------------------
 // Chart kit. Mark palettes validated with the dataviz six-check validator on
@@ -91,7 +92,7 @@ export function LegendChips({ items }: { items: { label: string; color: string; 
         <li key={item.label} className="flex items-center gap-1.5 text-xs text-stone-600 dark:text-stone-300">
           <span className="size-2.5 rounded-full" style={{ backgroundColor: item.color }} aria-hidden />
           <span className="font-semibold">{item.label}</span>
-          {item.value && <span className="text-stone-400 dark:text-stone-500">{item.value}</span>}
+          {item.value && <span className="text-stone-500 dark:text-stone-400">{item.value}</span>}
         </li>
       ))}
     </ul>
@@ -139,16 +140,17 @@ function endDot(seriesColor: string, ring: string) {
 
 export function MonthlyTrend({ monthly }: { monthly: MonthStats[] }) {
   const ui = useChrome();
+  const { t } = useLang();
   const data = monthly.map((m) => ({ ...m, label: monthShort(m.month) }));
   return (
     <ChartCard
-      title="Applications by month"
-      subtitle="Trailing 12 months"
+      title={t('chart.monthlyTitle')}
+      subtitle={t('chart.monthlySub')}
       legend={
         <LegendChips
           items={[
-            { label: 'Received', color: SERIES.received },
-            { label: 'Approved', color: SERIES.approved },
+            { label: t('chart.received'), color: SERIES.received },
+            { label: t('chart.approved'), color: SERIES.approved },
           ]}
         />
       }
@@ -160,7 +162,7 @@ export function MonthlyTrend({ monthly }: { monthly: MonthStats[] }) {
           <YAxis tick={ui.tick} tickLine={false} axisLine={false} allowDecimals={false} />
           <Tooltip content={<ChartTooltip />} cursor={{ stroke: ui.cursor, strokeWidth: 1 }} />
           <Line
-            name="Received"
+            name={t('chart.received')}
             dataKey="received"
             stroke={SERIES.received}
             strokeWidth={2}
@@ -171,7 +173,7 @@ export function MonthlyTrend({ monthly }: { monthly: MonthStats[] }) {
             {...{ dataLength: data.length }}
           />
           <Line
-            name="Approved"
+            name={t('chart.approved')}
             dataKey="approved"
             stroke={SERIES.approved}
             strokeWidth={2}
@@ -195,6 +197,7 @@ export function TypeBar({
   typeNames: Record<string, string>;
 }) {
   const ui = useChrome();
+  const { t } = useLang();
   const totals = new Map<string, number>();
   for (const m of monthly) {
     for (const [slug, n] of Object.entries(m.byType ?? {})) {
@@ -207,7 +210,7 @@ export function TypeBar({
     .slice(0, 8);
 
   return (
-    <ChartCard title="Volume by permit type" subtitle="Trailing 12 months · single measure, one hue">
+    <ChartCard title={t('chart.typeTitle')} subtitle={t('chart.typeSub')}>
       <ResponsiveContainer width="100%" height={data.length * 34 + 16}>
         <BarChart data={data} layout="vertical" margin={{ top: 0, right: 40, bottom: 0, left: 8 }}>
           <XAxis type="number" hide />
@@ -220,7 +223,7 @@ export function TypeBar({
             axisLine={false}
           />
           <Tooltip content={<ChartTooltip />} cursor={{ fill: ui.cursorFill }} />
-          <Bar name="Applications" dataKey="count" fill={SERIES.received} barSize={18} radius={[0, 4, 4, 0]} isAnimationActive={false}>
+          <Bar name={t('chart.applications')} dataKey="count" fill={SERIES.received} barSize={18} radius={[0, 4, 4, 0]} isAnimationActive={false}>
             <LabelList dataKey="count" position="right" style={{ fill: ui.axisLabel, fontSize: 12, fontWeight: 600 }} />
           </Bar>
         </BarChart>
@@ -237,11 +240,12 @@ export function TypeBar({
  * acceptances require), so no hover layer is needed.
  */
 export function StatusBreakdown({ current }: { current: CurrentStats }) {
+  const { t } = useLang();
   const order: AppStatus[] = ['submitted', 'under_review', 'approved', 'denied'];
   const total = order.reduce((sum, s) => sum + (current.counts[s] ?? 0), 0);
 
   return (
-    <ChartCard title="Applications in the system" subtitle={`${total} total, by current status`}>
+    <ChartCard title={t('chart.statusTitle')} subtitle={`${total} ${t('chart.statusSub')}`}>
       <div className="flex h-6 gap-0.5 overflow-hidden rounded-md" role="img" aria-label="Status breakdown bar">
         {order.map((s) => {
           const n = current.counts[s] ?? 0;
@@ -264,7 +268,7 @@ export function StatusBreakdown({ current }: { current: CurrentStats }) {
               <span className="size-2.5 shrink-0 rounded-[3px]" style={{ backgroundColor: STATUS_COLOR[s] }} aria-hidden />
               <StatusChip status={s} />
               <span className="ml-auto font-mono text-sm font-medium text-stone-700 dark:text-stone-200">{n}</span>
-              <span className="w-10 text-right font-mono text-xs text-stone-400 dark:text-stone-500">{share}%</span>
+              <span className="w-10 text-right font-mono text-xs text-stone-500 dark:text-stone-400">{share}%</span>
             </li>
           );
         })}

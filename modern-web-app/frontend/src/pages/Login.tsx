@@ -1,17 +1,19 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
+import { useLang } from '../lib/i18n';
 import { Button, Card, ErrorNote, Field, Input, WindowPlate } from '../components/Ui';
 import { Mountain } from '../components/Layout';
 import loginAspens from '../assets/login-aspens-800.webp';
 
 const DEMO_ACCOUNTS = [
-  { role: 'Staff admin', email: 'admin@demo.planetek.org', password: 'Alpenglow-Admin1!', blurb: 'Review queue, decisions, metrics, catalog' },
-  { role: 'Resident', email: 'citizen@demo.planetek.org', password: 'Alpenglow-Citizen1!', blurb: 'Submit and track applications' },
+  { roleKey: 'login.adminCard', descKey: 'login.adminDesc', email: 'admin@demo.planetek.org', password: 'Alpenglow-Admin1!' },
+  { roleKey: 'login.citizenCard', descKey: 'login.citizenDesc', email: 'citizen@demo.planetek.org', password: 'Alpenglow-Citizen1!' },
 ];
 
 export default function Login() {
   const { signIn } = useAuth();
+  const { t } = useLang();
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as { from?: string } | null)?.from;
@@ -45,13 +47,13 @@ export default function Login() {
             <div className="absolute inset-0 bg-gradient-to-r from-pine-950/90 via-pine-950/70 to-pine-900/40" aria-hidden />
             <Mountain className="relative size-10" />
             <div className="relative">
-              <p className="font-display text-lg font-bold text-white">Sign in</p>
-              <p className="font-mono text-[10px] uppercase tracking-[0.1em] text-pine-100">Resident & staff portal</p>
+              <p className="font-display text-lg font-bold text-white">{t('login.title')}</p>
+              <p className="font-mono text-[10px] uppercase tracking-[0.1em] text-pine-100">{t('login.portal')}</p>
             </div>
           </div>
           <form onSubmit={submit} className="space-y-4 px-6 py-6">
             {error && <ErrorNote message={error} />}
-            <Field label="Email">
+            <Field label={t('login.email')}>
               <Input
                 type="email"
                 autoComplete="username"
@@ -61,7 +63,7 @@ export default function Login() {
                 placeholder="you@example.com"
               />
             </Field>
-            <Field label="Password">
+            <Field label={t('login.password')}>
               <Input
                 type="password"
                 autoComplete="current-password"
@@ -72,12 +74,12 @@ export default function Login() {
               />
             </Field>
             <Button type="submit" disabled={busy} className="w-full">
-              {busy ? 'Signing in…' : 'Sign in'}
+              {busy ? t('login.busy') : t('login.submit')}
             </Button>
             <p className="text-center text-sm text-stone-500 dark:text-stone-400">
-              New here?{' '}
+              {t('login.newHere')}{' '}
               <Link to="/register" className="font-semibold text-pine-700 dark:text-pine-300 hover:text-pine-900">
-                Create an account
+                {t('login.create')}
               </Link>
             </p>
           </form>
@@ -85,21 +87,21 @@ export default function Login() {
       </div>
 
       <div className="flex-1">
-        <WindowPlate label="Demo accounts" />
+        <WindowPlate label={t('login.frontDesk')} />
         <div className="mt-3 space-y-3">
           {DEMO_ACCOUNTS.map((acct) => (
             <Card key={acct.email} className="p-5">
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
-                  <p className="font-bold text-pine-950 dark:text-pine-100">{acct.role}</p>
-                  <p className="mt-0.5 text-xs text-stone-500 dark:text-stone-400">{acct.blurb}</p>
+                  <p className="font-bold text-pine-950 dark:text-pine-100">{t(acct.roleKey)}</p>
+                  <p className="mt-0.5 text-xs text-stone-500 dark:text-stone-400">{t(acct.descKey)}</p>
                   <dl className="mt-3 space-y-1 font-mono text-xs text-stone-600 dark:text-stone-300">
                     <div className="flex gap-2">
-                      <dt className="w-16 shrink-0 font-sans font-semibold text-stone-400">email</dt>
+                      <dt className="w-16 shrink-0 font-sans font-semibold text-stone-500 dark:text-stone-400">email</dt>
                       <dd className="break-all">{acct.email}</dd>
                     </div>
                     <div className="flex gap-2">
-                      <dt className="w-16 shrink-0 font-sans font-semibold text-stone-400">password</dt>
+                      <dt className="w-16 shrink-0 font-sans font-semibold text-stone-500 dark:text-stone-400">password</dt>
                       <dd className="break-all">{acct.password}</dd>
                     </div>
                   </dl>
@@ -112,16 +114,13 @@ export default function Login() {
                     setError('');
                   }}
                 >
-                  Use
+                  {t('login.use')}
                 </Button>
               </div>
             </Card>
           ))}
         </div>
-        <p className="mt-4 text-xs leading-relaxed text-stone-400">
-          These credentials are intentionally public. This is a portfolio demonstration. All accounts and data reset
-          nightly at 3am Mountain.
-        </p>
+        <p className="mt-4 text-xs leading-relaxed text-stone-500 dark:text-stone-400">{t('login.public')}</p>
       </div>
     </div>
   );

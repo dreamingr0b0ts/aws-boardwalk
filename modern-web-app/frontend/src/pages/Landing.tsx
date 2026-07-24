@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
+import { useLang } from '../lib/i18n';
 import type { PermitType, StatsResponse } from '../types';
 import { Card, CategoryBadge, Grommet, RidgeBand, WindowPlate, fmtMoney } from '../components/Ui';
 import heroSm from '../assets/hero-alpenglow-800.webp';
@@ -44,6 +45,7 @@ function Eyebrow({ children, onDark = false }: { children: ReactNode; onDark?: b
 }
 
 export default function Landing() {
+  const { t } = useLang();
   const [types, setTypes] = useState<PermitType[] | null>(null);
   const [stats, setStats] = useState<StatsResponse | null>(null);
 
@@ -74,35 +76,34 @@ export default function Landing() {
 
         <div className="mx-auto max-w-6xl px-4 pb-32 pt-20 sm:pb-40 sm:pt-28">
           <div className="max-w-2xl">
-            <Eyebrow onDark>City of Alpenglow, Colorado</Eyebrow>
+            <Eyebrow onDark>{t('landing.eyebrow')}</Eyebrow>
             <h1 className="mt-4 font-display text-5xl font-black leading-[1.05] tracking-tight text-balance sm:text-6xl">
-              Permits, <em className="italic text-glow-300">without the line.</em>
+              {t('landing.h1a')} <em className="italic text-glow-300">{t('landing.h1b')}</em>
             </h1>
             <p className="mt-5 max-w-xl text-lg leading-relaxed text-pine-100">
-              Apply for city permits online, track every application in real time, and see exactly how the permit
-              office is performing, all in one place.
+              {t('landing.lede')}
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
                 to="/apply"
                 className="rounded-lg bg-glow-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-glow-600/30 transition-colors hover:bg-glow-500"
               >
-                Start an application
+                {t('landing.ctaApply')}
               </Link>
               <a
                 href="#catalog"
                 className="rounded-lg bg-white/10 px-5 py-2.5 text-sm font-bold text-white ring-1 ring-white/30 backdrop-blur-sm transition-colors hover:bg-white/20"
               >
-                Browse permit types
+                {t('landing.ctaBrowse')}
               </a>
             </div>
 
             {stats?.current && (
               <dl className="mt-10 flex flex-wrap gap-3">
                 {[
-                  ['Processed, 12 months', processed12mo?.toLocaleString()],
-                  ['Avg processing time', `${avgDays} days`],
-                  ['Open right now', String(stats.current.counts.submitted + stats.current.counts.under_review)],
+                  [t('landing.kpiProcessed'), processed12mo?.toLocaleString()],
+                  [t('landing.kpiAvg'), `${avgDays} ${t('landing.days')}`],
+                  [t('landing.kpiOpen'), String(stats.current.counts.submitted + stats.current.counts.under_review)],
                 ].map(([label, value]) => (
                   <div key={label} className="rounded-xl bg-pine-950/40 px-5 py-3 ring-1 ring-white/15 backdrop-blur-sm">
                     <dt className="font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-pine-200">{label}</dt>
@@ -119,16 +120,16 @@ export default function Landing() {
       <section id="catalog" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-16">
         <div className="flex items-end justify-between gap-4">
           <div>
-            <WindowPlate n="01" label="Permit catalog" />
+            <WindowPlate n="01" label={t('landing.window01')} />
             <h2 className="mt-3 font-display text-3xl font-bold text-pine-950 dark:text-pine-100">
-              Everything the city issues
+              {t('landing.catalogH2')}
             </h2>
             <p className="mt-2 text-sm text-stone-500 dark:text-stone-400">
-              Fees and typical processing times are published for every permit the city issues.
+              {t('landing.catalogSub')}
             </p>
           </div>
           <Link to="/stats" className="hidden text-sm font-semibold text-pine-700 hover:text-pine-900 dark:text-pine-300 dark:hover:text-pine-100 sm:block">
-            Office performance →
+            {t('landing.officePerf')}
           </Link>
         </div>
 
@@ -137,25 +138,25 @@ export default function Landing() {
             Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="h-44 animate-pulse rounded-xl border border-stone-200 bg-stone-100 dark:border-stone-800 dark:bg-stone-800" />
             ))}
-          {types?.map((t) => (
+          {types?.map((t2) => (
             <Card
-              key={t.slug}
+              key={t2.slug}
               className="group relative flex flex-col p-5 pt-6 transition hover:-translate-y-0.5 hover:border-pine-300 hover:shadow-lg dark:hover:border-pine-600"
             >
               <Grommet />
-              <CategoryBadge category={t.category} />
-              <h3 className="mt-3 font-bold leading-snug text-pine-950 dark:text-pine-100">{t.name}</h3>
-              <p className="mt-1.5 line-clamp-3 flex-1 text-sm text-stone-500 dark:text-stone-400">{t.description}</p>
+              <CategoryBadge category={t2.category} />
+              <h3 className="mt-3 font-bold leading-snug text-pine-950 dark:text-pine-100">{t2.name}</h3>
+              <p className="mt-1.5 line-clamp-3 flex-1 text-sm text-stone-500 dark:text-stone-400">{t2.description}</p>
               <div className="mt-4 flex items-center justify-between border-t border-stone-100 pt-3 dark:border-stone-800 text-sm">
-                <span className="font-mono text-[13px] font-medium text-stone-700 dark:text-stone-300">{fmtMoney(t.fee)}</span>
-                <span className="font-mono text-xs text-stone-500 dark:text-stone-400">~{t.processingDays} days</span>
+                <span className="font-mono text-[13px] font-medium text-stone-700 dark:text-stone-300">{fmtMoney(t2.fee)}</span>
+                <span className="font-mono text-xs text-stone-500 dark:text-stone-400">~{t2.processingDays} {t('landing.daysAbout')}</span>
               </div>
               <Link
                 to="/apply"
-                state={{ typeSlug: t.slug }}
+                state={{ typeSlug: t2.slug }}
                 className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-glow-600 hover:text-glow-700 dark:text-glow-400 dark:hover:text-glow-300"
               >
-                Apply
+                {t('landing.apply')}
                 <span aria-hidden className="transition-transform group-hover:translate-x-0.5">→</span>
               </Link>
             </Card>
@@ -176,19 +177,18 @@ export default function Landing() {
         <div className="absolute inset-0 -z-10 bg-gradient-to-r from-pine-950/90 via-pine-950/65 to-pine-950/35" aria-hidden />
         <div className="mx-auto max-w-6xl px-4 py-20 sm:py-24">
           <div className="max-w-2xl">
-            <WindowPlate n="02" label="Transparency" onDark />
+            <WindowPlate n="02" label={t('landing.window02')} onDark />
             <h2 className="mt-3 font-display text-3xl font-bold leading-tight text-balance sm:text-4xl">
-              The permit office <em className="italic text-glow-300">shows its work.</em>
+              {t('landing.transpH2a')} <em className="italic text-glow-300">{t('landing.transpH2b')}</em>
             </h2>
             <p className="mt-4 max-w-xl leading-relaxed text-pine-100">
-              Every application in this demo feeds a live public dashboard: volumes, decisions, and how long each
-              step really takes. No records request required.
+              {t('landing.transpBody')}
             </p>
             <Link
               to="/stats"
               className="mt-8 inline-flex items-center gap-2 rounded-lg bg-white/10 px-5 py-2.5 text-sm font-bold text-white ring-1 ring-white/25 backdrop-blur-sm transition-colors hover:bg-white/20"
             >
-              See office performance →
+              {t('landing.transpCta')}
             </Link>
           </div>
         </div>
@@ -197,13 +197,13 @@ export default function Landing() {
       <section className="relative overflow-hidden border-b border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900">
         <Contours className="pointer-events-none absolute -right-24 -top-20 size-[30rem] rotate-12 text-pine-800/[0.07] dark:text-pine-200/[0.06]" />
         <div className="relative mx-auto max-w-6xl px-4 py-16">
-          <WindowPlate n="03" label="Applications counter" />
-          <h2 className="mt-3 font-display text-3xl font-bold text-pine-950 dark:text-pine-100">How it works</h2>
+          <WindowPlate n="03" label={t('landing.window03')} />
+          <h2 className="mt-3 font-display text-3xl font-bold text-pine-950 dark:text-pine-100">{t('landing.howH2')}</h2>
           <div className="mt-10 grid gap-6 sm:grid-cols-3">
             {[
-              ['Create an account', 'Sign up with your email, or use the demo accounts on the sign-in page to explore instantly.'],
-              ['Submit your application', 'Pick a permit type, describe the work, and submit. You get a tracking ID immediately.'],
-              ['Track to decision', 'Watch status change from submitted to under review to decided, with reviewer notes at every step.'],
+              [t('landing.how1t'), t('landing.how1b')],
+              [t('landing.how2t'), t('landing.how2b')],
+              [t('landing.how3t'), t('landing.how3b')],
             ].map(([title, body], i) => (
               <div key={title} className="relative rounded-xl border border-stone-200 bg-white/80 p-6 backdrop-blur-sm dark:border-stone-700 dark:bg-stone-900/80">
                 <span className="absolute -top-4 left-6 flex size-8 rotate-45 items-center justify-center rounded-[7px] bg-gradient-to-br from-glow-500 to-glow-700 shadow-md shadow-glow-600/30">

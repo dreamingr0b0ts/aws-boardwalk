@@ -41,6 +41,7 @@ locals {
     "GET /api/public/permit-types"                               = { fn = "public", auth = false }
     "GET /api/public/stats"                                      = { fn = "public", auth = false }
     "GET /api/public/verify/{id}"                                = { fn = "public", auth = false }
+    "GET /api/public/register"                                   = { fn = "public", auth = false }
     "GET /api/me/applications"                                   = { fn = "me", auth = true }
     "POST /api/me/applications"                                  = { fn = "me", auth = true }
     "GET /api/me/applications/{id}"                              = { fn = "me", auth = true }

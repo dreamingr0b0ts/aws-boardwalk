@@ -8,6 +8,7 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Apply from './pages/Apply';
 import AppDetail from './pages/AppDetail';
+import Accessibility from './pages/Accessibility';
 import Certificate from './pages/Certificate';
 import Letter from './pages/Letter';
 import VerifyPermit from './pages/VerifyPermit';
@@ -23,6 +24,7 @@ export default function App() {
         <Route path="login" element={<Login />} />
         <Route path="register" element={<Register />} />
         <Route path="verify/:id" element={<VerifyPermit />} />
+        <Route path="accessibility" element={<Accessibility />} />
 
         <Route element={<RequireAuth />}>
           <Route path="dashboard" element={<Dashboard />} />

@@ -136,7 +136,7 @@ export default function Letter() {
         </div>
 
         <RidgeBand className="mt-10 h-[4px]" />
-        <p className="mt-4 text-[11px] leading-relaxed text-stone-400">
+        <p className="mt-4 text-[11px] leading-relaxed text-stone-500">
           Fictional demonstration document rendered in the browser. Nothing was mailed or emailed; the City of
           Alpenglow is not a real municipality.
         </p>

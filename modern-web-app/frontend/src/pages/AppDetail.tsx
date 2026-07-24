@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api } from '../lib/api';
+import { useLang } from '../lib/i18n';
 import type { Application, AppEvent, AppStatus, Attachment, EventTone, Inspection } from '../types';
-import { STATUS_LABEL } from '../types';
 import { Card, ErrorNote, InspectionChip, Spinner, StatusChip, WindowPlate, fmtDate } from '../components/Ui';
 
 const DOT: Record<AppStatus, string> = {
@@ -47,6 +47,7 @@ function DocIcon({ contentType }: { contentType: string }) {
 }
 
 export default function AppDetail() {
+  const { t } = useLang();
   const { id } = useParams<{ id: string }>();
   const [data, setData] = useState<{ application: Application; events: AppEvent[]; inspections: Inspection[] } | null>(null);
   const [attachments, setAttachments] = useState<Attachment[] | null>(null);
@@ -71,7 +72,7 @@ export default function AppDetail() {
     if (!id) return;
     setUploadError('');
     if (file.size > MAX_UPLOAD_BYTES) {
-      setUploadError('Documents can be up to 4 MB.');
+      setUploadError(t('detail.tooBig'));
       return;
     }
     setUploading(true);
@@ -100,35 +101,35 @@ export default function AppDetail() {
       <div className="mx-auto max-w-3xl px-4 py-10">
         <ErrorNote message={error} />
         <Link to="/dashboard" className="mt-4 inline-block text-sm font-semibold text-pine-700 dark:text-pine-300">
-          ← Back to my applications
+          {t('common.backToDashboard')}
         </Link>
       </div>
     );
   }
-  if (!data) return <Spinner label="Loading application…" />;
+  if (!data) return <Spinner label={t('detail.loading')} />;
 
   const { application: app, events, inspections } = data;
   const open = app.status === 'submitted' || app.status === 'under_review';
   const nextInspection = inspections.filter((x) => x.result === 'scheduled').at(-1);
 
   const inspectionSummary: Record<string, string> = {
-    required: 'The permit office will contact you to schedule the final inspection.',
+    required: t('detail.inspRequired'),
     scheduled: nextInspection
-      ? `Final inspection scheduled for ${fmtDate(`${nextInspection.scheduledFor}T12:00:00Z`)}. Have the work site accessible.`
-      : 'Final inspection scheduled.',
-    failed: 'Correct the items in the inspector\'s note, then the office will schedule a reinspection.',
-    passed: `Final inspection passed${app.closedAt ? ` on ${fmtDate(app.closedAt)}` : ''}. The permit is closed out.`,
+      ? `${t('detail.inspScheduledFor')} ${fmtDate(`${nextInspection.scheduledFor}T12:00:00Z`)}. ${t('detail.inspScheduledTail')}`
+      : t('detail.inspScheduled'),
+    failed: t('detail.inspFailed'),
+    passed: `${t('detail.inspPassedA')}${app.closedAt ? ` ${t('detail.inspPassedOn')} ${fmtDate(app.closedAt)}` : ''}. ${t('detail.inspPassedB')}`,
   };
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
       <Link to="/dashboard" className="text-sm font-semibold text-pine-700 hover:text-pine-900 dark:text-pine-300 dark:hover:text-pine-100">
-        ← My applications
+        {t('common.backToDashboard')}
       </Link>
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <WindowPlate n="04" label="Application record" />
+          <WindowPlate n="04" label={t('detail.window')} />
           <h1 className="mt-3 font-display text-2xl font-bold text-pine-950 dark:text-pine-100">{app.typeName}</h1>
           <p className="mt-1 font-mono text-sm text-stone-500 dark:text-stone-400">{app.id}</p>
         </div>
@@ -146,7 +147,7 @@ export default function AppDetail() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="font-bold">
-                {app.status === 'approved' ? 'Permit approved' : 'Application denied'} · {fmtDate(app.decidedAt)}
+                {app.status === 'approved' ? t('detail.approvedBanner') : t('detail.deniedBanner')} · {fmtDate(app.decidedAt)}
               </p>
               {app.decisionNote && <p className="mt-1">{app.decisionNote}</p>}
             </div>
@@ -156,7 +157,7 @@ export default function AppDetail() {
                   to={`/applications/${app.id}/certificate`}
                   className="rounded-lg bg-emerald-700 px-3.5 py-2 text-sm font-bold text-white hover:bg-emerald-600"
                 >
-                  View permit certificate
+                  {t('detail.viewCert')}
                 </Link>
               )}
               <Link
@@ -167,7 +168,7 @@ export default function AppDetail() {
                     : 'border-rose-600/50 text-rose-800 hover:bg-rose-100 dark:text-rose-200 dark:hover:bg-rose-900/40'
                 }`}
               >
-                View decision letter
+                {t('detail.viewLetter')}
               </Link>
             </div>
           </div>
@@ -178,7 +179,7 @@ export default function AppDetail() {
         <Card className="mt-6 p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-stone-500 dark:text-stone-400">
-              Final inspection
+              {t('detail.inspTitle')}
             </h2>
             <InspectionChip state={app.inspection} />
           </div>
@@ -187,8 +188,8 @@ export default function AppDetail() {
             <ul className="mt-4 divide-y divide-stone-100 dark:divide-stone-800">
               {inspections.map((insp) => (
                 <li key={insp.n} className="flex flex-wrap items-baseline gap-x-4 gap-y-1 py-2.5 text-sm">
-                  <span className="font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-stone-400">
-                    Visit {String(insp.n).padStart(2, '0')}
+                  <span className="font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-stone-500 dark:text-stone-400">
+                    {t('detail.visit')} {String(insp.n).padStart(2, '0')}
                   </span>
                   <span className="text-stone-700 dark:text-stone-300">{fmtDate(`${insp.scheduledFor}T12:00:00Z`)}</span>
                   <span
@@ -212,15 +213,15 @@ export default function AppDetail() {
 
       <div className="mt-6 grid gap-6 md:grid-cols-5">
         <Card className="p-6 md:col-span-3">
-          <h2 className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-stone-500 dark:text-stone-400">Application details</h2>
+          <h2 className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-stone-500 dark:text-stone-400">{t('detail.details')}</h2>
           <dl className="mt-4 space-y-4 text-sm">
             {(
               [
-                ['Category', app.category],
-                ['Project address', app.address],
-                ['Description', app.description],
-                ['Applicant', `${app.applicantName} (${app.applicantEmail})`],
-                ['Submitted', fmtDate(app.submittedAt)],
+                [t('detail.category'), app.category],
+                [t('detail.address'), app.address],
+                [t('detail.description'), app.description],
+                [t('detail.applicant'), `${app.applicantName} (${app.applicantEmail})`],
+                [t('detail.submitted'), fmtDate(app.submittedAt)],
               ] as const
             ).map(([k, v]) => (
               <div key={k}>
@@ -232,14 +233,14 @@ export default function AppDetail() {
         </Card>
 
         <Card className="p-6 md:col-span-2">
-          <h2 className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-stone-500 dark:text-stone-400">Record of actions</h2>
+          <h2 className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-stone-500 dark:text-stone-400">{t('detail.actions')}</h2>
           <ol className="mt-4 space-y-0">
             {events.map((ev, i) => (
               <li key={`${ev.at}-${i}`} className="relative pb-6 pl-6 last:pb-0">
                 {i < events.length - 1 && <span className="absolute left-[5px] top-3 h-full w-px bg-stone-200 dark:bg-stone-700" />}
                 <span className={`absolute left-0 top-1.5 size-2.5 rotate-45 rounded-[2px] ${ev.tone ? TONE_DOT[ev.tone] : DOT[ev.status]}`} />
-                <p className="text-sm font-bold text-pine-950 dark:text-pine-100">{ev.title ?? STATUS_LABEL[ev.status]}</p>
-                <p className="font-mono text-[11px] text-stone-400">
+                <p className="text-sm font-bold text-pine-950 dark:text-pine-100">{ev.title ?? t(`status.${ev.status}`)}</p>
+                <p className="font-mono text-[11px] text-stone-500 dark:text-stone-400">
                   {fmtDate(ev.at)} · {ev.actor}
                 </p>
                 {ev.note && <p className="mt-1 text-sm text-stone-600 dark:text-stone-300">{ev.note}</p>}
@@ -254,10 +255,10 @@ export default function AppDetail() {
       <Card className="mt-6 p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-stone-500 dark:text-stone-400">Supporting documents</h2>
+            <h2 className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-stone-500 dark:text-stone-400">{t('detail.docsTitle')}</h2>
             <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
-              PDF, PNG, or JPEG · up to 4 MB each · 3 per application
-              {!open && ' · the file is closed to new documents once decided'}
+              {t('detail.docsRules')}
+              {!open && t('detail.docsClosed')}
             </p>
           </div>
           {open && (
@@ -277,7 +278,7 @@ export default function AppDetail() {
                 disabled={uploading || (attachments?.length ?? 0) >= 3}
                 className="rounded-lg bg-pine-800 px-4 py-2 text-sm font-bold text-white hover:bg-pine-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-pine-600 dark:hover:bg-pine-500"
               >
-                {uploading ? 'Uploading…' : 'Add a document'}
+                {uploading ? t('detail.uploading') : t('detail.addDoc')}
               </button>
             </div>
           )}
@@ -285,10 +286,10 @@ export default function AppDetail() {
 
         {uploadError && <div className="mt-4"><ErrorNote message={uploadError} /></div>}
 
-        {attachments === null && <p className="mt-4 text-sm text-stone-400">Loading documents…</p>}
+        {attachments === null && <p className="mt-4 text-sm text-stone-500 dark:text-stone-400">{t('detail.docsLoading')}</p>}
         {attachments?.length === 0 && (
-          <p className="mt-4 rounded-lg border border-dashed border-stone-300 px-4 py-6 text-center text-sm text-stone-400 dark:border-stone-700">
-            No documents on file{open ? ' yet. Site plans and drawings help the reviewer decide faster.' : '.'}
+          <p className="mt-4 rounded-lg border border-dashed border-stone-300 px-4 py-6 text-center text-sm text-stone-500 dark:text-stone-400 dark:border-stone-700">
+            {open ? t('detail.docsEmptyOpen') : t('detail.docsEmptyClosed')}
           </p>
         )}
         {attachments && attachments.length > 0 && (
@@ -300,8 +301,8 @@ export default function AppDetail() {
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-semibold text-stone-800 dark:text-stone-200">{att.filename}</span>
-                  <span className="block font-mono text-[11px] text-stone-400">
-                    {fmtBytes(att.size)}{att.uploadedAt ? ` · received ${fmtDate(att.uploadedAt)}` : ''}
+                  <span className="block font-mono text-[11px] text-stone-500 dark:text-stone-400">
+                    {fmtBytes(att.size)}{att.uploadedAt ? ` · ${t('detail.received')} ${fmtDate(att.uploadedAt)}` : ''}
                   </span>
                 </span>
                 <a
@@ -310,7 +311,7 @@ export default function AppDetail() {
                   rel="noreferrer"
                   className="rounded-md px-3 py-1 text-sm font-semibold text-pine-700 hover:bg-pine-50 dark:text-pine-300 dark:hover:bg-pine-900/40"
                 >
-                  View
+                  {t('detail.view')}
                 </a>
               </li>
             ))}

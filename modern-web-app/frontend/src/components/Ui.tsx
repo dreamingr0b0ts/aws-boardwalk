@@ -1,6 +1,6 @@
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, TextareaHTMLAttributes } from 'react';
 import type { AppStatus, InspectionState } from '../types';
-import { INSPECTION_LABEL, STATUS_LABEL } from '../types';
+import { dateLocale, useLang } from '../lib/i18n';
 
 // ---------------------------------------------------------------------------
 // Small shared UI kit — one place for the design language, light and dark.
@@ -211,11 +211,12 @@ const STATUS_STYLES: Record<AppStatus, string> = {
 };
 
 export function StatusChip({ status }: { status: AppStatus }) {
+  const { t } = useLang();
   return (
     <span
       className={`inline-flex items-center rounded-[4px] border px-2 py-[3px] font-mono text-[10.5px] font-medium uppercase leading-none tracking-[0.12em] ${STATUS_STYLES[status]}`}
     >
-      {STATUS_LABEL[status]}
+      {t(`status.${status}`)}
     </span>
   );
 }
@@ -234,11 +235,12 @@ const INSPECTION_STYLES: Record<InspectionState, string> = {
 };
 
 export function InspectionChip({ state }: { state: InspectionState }) {
+  const { t } = useLang();
   return (
     <span
       className={`inline-flex items-center rounded-[4px] border px-1.5 py-[2px] font-mono text-[10px] font-medium uppercase leading-none tracking-[0.1em] ${INSPECTION_STYLES[state]}`}
     >
-      {INSPECTION_LABEL[state]}
+      {t(`insp.${state}`)}
     </span>
   );
 }
@@ -302,7 +304,7 @@ export function Modal({
           <h2 className="text-base font-bold text-stone-800 dark:text-stone-100">{title}</h2>
           <button
             onClick={onClose}
-            className="rounded-md px-2 py-1 text-stone-400 hover:bg-stone-100 hover:text-stone-700 dark:hover:bg-stone-800 dark:hover:text-stone-200"
+            className="rounded-md px-2 py-1 text-stone-500 dark:text-stone-400 hover:bg-stone-100 hover:text-stone-700 dark:hover:bg-stone-800 dark:hover:text-stone-200"
             aria-label="Close"
           >
             ✕
@@ -332,7 +334,7 @@ export function KpiTile({ label, value, sub }: { label: string; value: string; s
 }
 
 export function fmtDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return new Date(iso).toLocaleDateString(dateLocale, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 export function fmtMoney(n: number): string {

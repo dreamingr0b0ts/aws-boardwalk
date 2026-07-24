@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import { AuthProvider } from './lib/auth';
+import { LangProvider } from './lib/i18n';
 import { ThemeProvider } from './lib/theme';
 import { loadConfig } from './config';
 import '@fontsource-variable/fraunces';
@@ -20,9 +21,11 @@ loadConfig()
       <StrictMode>
         <BrowserRouter>
           <ThemeProvider>
-            <AuthProvider>
-              <App />
-            </AuthProvider>
+            <LangProvider>
+              <AuthProvider>
+                <App />
+              </AuthProvider>
+            </LangProvider>
           </ThemeProvider>
         </BrowserRouter>
       </StrictMode>

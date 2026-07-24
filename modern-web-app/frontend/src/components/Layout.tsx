@@ -1,5 +1,6 @@
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
+import { useLang } from '../lib/i18n';
 import { useTheme } from '../lib/theme';
 import NotificationBell from './NotificationBell';
 import { RidgeBand } from './Ui';
@@ -21,13 +22,28 @@ export function Mountain({ className }: { className?: string }) {
   );
 }
 
-function ThemeToggle() {
-  const { dark, toggle } = useTheme();
+function LangToggle() {
+  const { lang, toggle, t } = useLang();
   return (
     <button
       onClick={toggle}
-      aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
-      title={dark ? 'Light mode' : 'Dark mode'}
+      aria-label={t('nav.langLabel')}
+      title={t('nav.langLabel')}
+      className="flex h-9 items-center justify-center rounded-lg border border-stone-300 px-2.5 font-mono text-[11px] font-medium uppercase tracking-[0.1em] text-stone-500 transition-colors hover:border-pine-400 hover:text-pine-800 dark:border-stone-600 dark:text-stone-400 dark:hover:border-pine-400 dark:hover:text-pine-200"
+    >
+      {lang === 'en' ? 'ES' : 'EN'}
+    </button>
+  );
+}
+
+function ThemeToggle() {
+  const { dark, toggle } = useTheme();
+  const { t } = useLang();
+  return (
+    <button
+      onClick={toggle}
+      aria-label={dark ? t('nav.themeToLight') : t('nav.themeToDark')}
+      title={dark ? t('nav.themeToLight') : t('nav.themeToDark')}
       className="flex size-9 items-center justify-center rounded-lg border border-stone-300 text-stone-500 transition-colors hover:border-pine-400 hover:text-pine-800 dark:border-stone-600 dark:text-stone-400 dark:hover:border-pine-400 dark:hover:text-pine-200"
     >
       {dark ? (
@@ -53,14 +69,12 @@ const navLink = ({ isActive }: { isActive: boolean }) =>
 
 export default function Layout() {
   const { user, signOut } = useAuth();
+  const { t } = useLang();
   const navigate = useNavigate();
 
   return (
     <div className="flex min-h-screen flex-col">
-      <div className="bg-pine-950 px-4 py-1.5 text-center text-xs text-pine-100">
-        Fictional demonstration environment. The City of Alpenglow is not a real municipality. Demo data resets
-        nightly.
-      </div>
+      <div className="bg-pine-950 px-4 py-1.5 text-center text-xs text-pine-100">{t('banner.demo')}</div>
 
       <header className="sticky top-0 z-40 border-b border-stone-200 bg-white/95 backdrop-blur dark:border-stone-800 dark:bg-stone-950/95">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
@@ -76,24 +90,25 @@ export default function Layout() {
 
           <nav className="flex flex-1 flex-wrap items-center gap-1">
             <NavLink to="/" end className={navLink}>
-              Permits
+              {t('nav.permits')}
             </NavLink>
             <NavLink to="/stats" className={navLink}>
-              Transparency
+              {t('nav.transparency')}
             </NavLink>
             {user && (
               <NavLink to="/dashboard" className={navLink}>
-                My applications
+                {t('nav.myApplications')}
               </NavLink>
             )}
             {user?.isAdmin && (
               <NavLink to="/admin" className={navLink}>
-                Staff
+                {t('nav.staff')}
               </NavLink>
             )}
           </nav>
 
           <div className="flex items-center gap-3">
+            <LangToggle />
             <ThemeToggle />
             {user && <NotificationBell />}
             {user ? (
@@ -105,7 +120,7 @@ export default function Layout() {
                       user.isAdmin ? 'text-glow-600 dark:text-glow-400' : 'text-pine-600 dark:text-pine-300'
                     }`}
                   >
-                    {user.isAdmin ? 'Staff · admin' : 'Resident'}
+                    {user.isAdmin ? t('nav.staffAdmin') : t('nav.resident')}
                   </span>
                 </span>
                 <button
@@ -114,7 +129,7 @@ export default function Layout() {
                   }}
                   className="rounded-lg border border-stone-300 px-3 py-1.5 text-sm font-semibold text-stone-600 hover:border-pine-400 hover:text-pine-800 dark:border-stone-600 dark:text-stone-300 dark:hover:border-pine-400 dark:hover:text-pine-200"
                 >
-                  Sign out
+                  {t('nav.signOut')}
                 </button>
               </>
             ) : (
@@ -122,7 +137,7 @@ export default function Layout() {
                 to="/login"
                 className="rounded-lg bg-pine-800 px-4 py-1.5 text-sm font-semibold text-white hover:bg-pine-700 dark:bg-pine-600 dark:hover:bg-pine-500"
               >
-                Sign in
+                {t('nav.signIn')}
               </Link>
             )}
           </div>
@@ -141,21 +156,16 @@ export default function Layout() {
               <Mountain className="size-7" />
               <span className="font-display font-bold text-white">Alpenglow Permits</span>
             </div>
-            <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.14em] text-pine-300">
-              Town Hall counter · Windows 01 to 05 · Elev 8,750 ft
-            </p>
-            <p className="mt-3 text-xs leading-relaxed text-pine-200">
-              A demonstration of a production-patterned serverless web application: static delivery, real
-              authentication, role-based access, and a live data tier, idling at ~$0.
-            </p>
+            <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.14em] text-pine-300">{t('footer.counter')}</p>
+            <p className="mt-3 text-xs leading-relaxed text-pine-200">{t('footer.blurb')}</p>
           </div>
           <div className="text-sm">
-            <p className="font-semibold text-white">Environment</p>
+            <p className="font-semibold text-white">{t('footer.environment')}</p>
             <ul className="mt-2 space-y-1 text-pine-200">
               <li>AWS: S3 · CloudFront · Cognito · API Gateway · Lambda · DynamoDB</li>
-              <li>Infrastructure as code: Terraform</li>
-              <li>Demo data reseeds nightly at 3am MT</li>
-              <li>Photography: Unsplash (Daniel Ribar, Alex Moliski, Royce Fonseca)</li>
+              <li>{t('footer.iac')}</li>
+              <li>{t('footer.reseeds')}</li>
+              <li>{t('footer.photography')}</li>
             </ul>
           </div>
           <div className="text-sm">
@@ -179,15 +189,18 @@ export default function Layout() {
                   className="text-pine-200 underline-offset-2 hover:text-white hover:underline"
                   href="https://demos.planetek.org"
                 >
-                  More live environments
+                  {t('footer.moreEnvs')}
                 </a>
+              </li>
+              <li>
+                <Link className="text-pine-200 underline-offset-2 hover:text-white hover:underline" to="/accessibility">
+                  {t('footer.accessibility')}
+                </Link>
               </li>
             </ul>
           </div>
         </div>
-        <div className="border-t border-pine-800 px-4 py-4 text-center text-xs text-pine-300">
-          Fictional demo built by Planetek. Not affiliated with any real government agency.
-        </div>
+        <div className="border-t border-pine-800 px-4 py-4 text-center text-xs text-pine-300">{t('footer.fictional')}</div>
       </footer>
     </div>
   );

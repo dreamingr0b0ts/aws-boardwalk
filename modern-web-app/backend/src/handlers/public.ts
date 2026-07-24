@@ -35,6 +35,38 @@ export const handler = router({
   },
 
   /**
+   * The register of decisions: every decided application, newest first, for
+   * the transparency page's browse + CSV export. Bulk lines omit the holder;
+   * the per-permit verify endpoint (which needs the exact number) carries it.
+   */
+  'GET /api/public/register': async () => {
+    const byStatus = (s: 'approved' | 'denied') =>
+      ddb.send(
+        new QueryCommand({
+          TableName: TABLE,
+          IndexName: 'GSI2',
+          KeyConditionExpression: 'GSI2PK = :pk',
+          ExpressionAttributeValues: { ':pk': `STATUS#${s}` },
+          ScanIndexForward: false,
+          Limit: 100,
+        })
+      );
+    const [approved, denied] = await Promise.all([byStatus('approved'), byStatus('denied')]);
+    const lines = [...(approved.Items ?? []), ...(denied.Items ?? [])]
+      .map((a) => ({
+        id: a.id,
+        typeName: a.typeName,
+        category: a.category,
+        address: a.address,
+        status: a.status,
+        decidedAt: a.decidedAt ?? null,
+        inspection: a.inspection ?? null,
+      }))
+      .sort((x, y) => String(y.decidedAt).localeCompare(String(x.decidedAt)));
+    return json(200, { lines });
+  },
+
+  /**
    * Field verification: the QR code on a printed permit certificate resolves
    * here. Permits are public record, so this needs no sign-in — but it only
    * discloses the register line, never the application narrative. Lookup is

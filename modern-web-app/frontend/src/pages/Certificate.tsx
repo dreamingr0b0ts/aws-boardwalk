@@ -78,7 +78,7 @@ export default function Certificate() {
               City of Alpenglow, Colorado
             </p>
             <p className="font-display text-xl font-bold text-pine-950">Office of Permits and Licensing</p>
-            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-stone-400">
+            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-stone-500">
               Town Hall counter · Windows 01 to 05 · Elev 8,750 ft
             </p>
           </div>
@@ -162,7 +162,7 @@ export default function Certificate() {
           <p className="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-stone-500">
             Post this certificate visibly at the work site until all work is complete
           </p>
-          <p className="mt-2 text-[11px] leading-relaxed text-stone-400">
+          <p className="mt-2 text-[11px] leading-relaxed text-stone-500">
             Fictional demonstration document. The City of Alpenglow is not a real municipality and this
             certificate conveys no authority of any kind.
           </p>

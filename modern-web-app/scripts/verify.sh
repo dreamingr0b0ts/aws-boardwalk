@@ -98,6 +98,8 @@ VERIFIED=$(curl -fsS "$BASE/api/public/verify/$NEW_ID" | jq -r '.record.status')
 [ "$VERIFIED" = "approved" ] && ok "public register verifies the permit (no auth)" || bad "public verify"
 [ "$(code "$BASE/api/public/verify/APP-DOESNOTEXIST")" = "404" ] \
   && ok "unknown permit number → 404" || bad "unknown permit number 404"
+curl -fsS "$BASE/api/public/register" | jq -e '(.lines | length >= 20) and (.lines[0] | has("id") and has("status") and (has("applicantName") | not))' > /dev/null \
+  && ok "register of decisions published (no holder in bulk lines)" || bad "public register"
 curl -fsS -H "Authorization: Bearer $CIT" "$BASE/api/me/notifications" \
   | jq -e --arg id "$NEW_ID" '.notifications | map(.appId) | index($id) != null' > /dev/null \
   && ok "decision rang the citizen's notification bell" || bad "notification delivered"

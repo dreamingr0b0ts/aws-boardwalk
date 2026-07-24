@@ -238,7 +238,7 @@ function InspectionSection({ app, onChanged }: { app: Application; onChanged: ()
         <ul className="mt-3 space-y-1 text-sm">
           {list.map((insp) => (
             <li key={insp.n} className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
-              <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-stone-400">
+              <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-stone-500 dark:text-stone-400">
                 Visit {String(insp.n).padStart(2, '0')}
               </span>
               <span className="text-stone-700 dark:text-stone-300">{fmtDate(`${insp.scheduledFor}T12:00:00Z`)}</span>
@@ -417,8 +417,8 @@ function ReviewModal({
         <div>
           <dt className="font-semibold text-stone-500 dark:text-stone-400">Supporting documents</dt>
           <dd className="mt-1">
-            {attachments === null && <span className="text-stone-400">Checking the file…</span>}
-            {attachments?.length === 0 && <span className="text-stone-400">None submitted</span>}
+            {attachments === null && <span className="text-stone-500 dark:text-stone-400">Checking the file…</span>}
+            {attachments?.length === 0 && <span className="text-stone-500 dark:text-stone-400">None submitted</span>}
             {attachments && attachments.length > 0 && (
               <ul className="space-y-1">
                 {attachments.map((att) => (
@@ -431,7 +431,7 @@ function ReviewModal({
                     >
                       {att.filename}
                     </a>
-                    <span className="ml-2 font-mono text-[11px] text-stone-400">
+                    <span className="ml-2 font-mono text-[11px] text-stone-500 dark:text-stone-400">
                       {att.size ? (att.size >= 1048576 ? `${(att.size / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(att.size / 1024))} KB`) : ''}
                     </span>
                   </li>
@@ -475,11 +475,22 @@ function ReviewModal({
 function MetricsTab() {
   const [metrics, setMetrics] = useState<MetricsResponse | null>(null);
   const [types, setTypes] = useState<PermitType[]>([]);
+  const [openApps, setOpenApps] = useState<Application[] | null>(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
     void api<MetricsResponse>('/admin/metrics', { auth: true }).then(setMetrics).catch((e: Error) => setError(e.message));
     void api<{ types: PermitType[] }>('/admin/permit-types', { auth: true }).then((r) => setTypes(r.types)).catch(() => undefined);
+    void Promise.all([
+      api<{ applications: Application[] }>('/admin/applications?status=submitted', { auth: true }),
+      api<{ applications: Application[] }>('/admin/applications?status=under_review', { auth: true }),
+    ])
+      .then(([a, b]) =>
+        setOpenApps(
+          [...a.applications, ...b.applications].sort((x, y) => x.submittedAt.localeCompare(y.submittedAt))
+        )
+      )
+      .catch(() => setOpenApps([]));
   }, []);
 
   if (error) return <ErrorNote message={error} />;
@@ -489,6 +500,11 @@ function MetricsTab() {
   const received12 = metrics.monthly.reduce((s, m) => s + m.received, 0);
   const approved12 = metrics.monthly.reduce((s, m) => s + m.approved, 0);
   const typeNames = Object.fromEntries(types.map((t) => [t.slug, t.name]));
+  const procDays = Object.fromEntries(types.map((t) => [t.slug, t.processingDays]));
+
+  const daysOpen = (a: Application) => Math.floor((Date.now() - new Date(a.submittedAt).getTime()) / 86400_000);
+  const isOverdue = (a: Application) => daysOpen(a) > (procDays[a.typeSlug] ?? 14);
+  const overdueCount = openApps?.filter(isOverdue).length ?? 0;
 
   return (
     <div className="grid gap-6">
@@ -503,6 +519,54 @@ function MetricsTab() {
         <TypeBar monthly={metrics.monthly} typeNames={typeNames} />
         <StatusBreakdown current={c} />
       </div>
+
+      {/* Queue aging: the open file, oldest first, flagged against each
+          type's published processing time. */}
+      <Card className="p-5">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <div>
+            <h3 className="font-bold text-pine-950 dark:text-pine-100">Queue aging</h3>
+            <p className="mt-0.5 text-xs text-stone-500 dark:text-stone-400">
+              Open applications, oldest first, against each type's published processing time
+            </p>
+          </div>
+          {overdueCount > 0 && (
+            <span className="inline-flex items-center rounded-[4px] border border-rose-500/60 bg-rose-50 px-2 py-[3px] font-mono text-[10.5px] font-medium uppercase leading-none tracking-[0.12em] text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-700">
+              {overdueCount} past published time
+            </span>
+          )}
+        </div>
+        {openApps === null && <p className="mt-4 text-sm text-stone-500 dark:text-stone-400">Loading the open file…</p>}
+        {openApps && openApps.length === 0 && <p className="mt-4 text-sm text-stone-500 dark:text-stone-400">The queue is empty.</p>}
+        {openApps && openApps.length > 0 && (
+          <ul className="mt-4 divide-y divide-stone-100 dark:divide-stone-800">
+            {openApps.slice(0, 10).map((a) => {
+              const d = daysOpen(a);
+              const limit = procDays[a.typeSlug] ?? 14;
+              const over = d > limit;
+              const width = Math.min(100, Math.round((d / Math.max(limit, 1)) * 100));
+              return (
+                <li key={a.id} className="flex flex-wrap items-center gap-x-4 gap-y-1.5 py-2.5">
+                  <span className="w-32 shrink-0 font-mono text-xs text-stone-500 dark:text-stone-400">{a.id}</span>
+                  <span className="min-w-0 flex-1 truncate text-sm font-semibold text-stone-700 dark:text-stone-300">
+                    {a.typeName}
+                  </span>
+                  <span className="hidden h-1.5 w-28 overflow-hidden rounded-full bg-stone-100 dark:bg-stone-800 sm:block" aria-hidden>
+                    <span
+                      className={`block h-full rounded-full ${over ? 'bg-rose-600' : 'bg-pine-500'}`}
+                      style={{ width: `${width}%` }}
+                    />
+                  </span>
+                  <span className={`font-mono text-xs ${over ? 'font-medium text-rose-700 dark:text-rose-300' : 'text-stone-500 dark:text-stone-400'}`}>
+                    {d}/{limit}d
+                  </span>
+                  <StatusChip status={a.status} />
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </Card>
     </div>
   );
 }

@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
+import { useLang } from '../lib/i18n';
 import type { Application } from '../types';
 import { Card, CategoryTile, EmptyState, ErrorNote, InspectionChip, KpiTile, Spinner, StatusChip, WindowPlate, fmtDate } from '../components/Ui';
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { t } = useLang();
   const [apps, setApps] = useState<Application[] | null>(null);
   const [error, setError] = useState('');
 
@@ -20,39 +22,39 @@ export default function Dashboard() {
     <div className="mx-auto max-w-4xl px-4 py-10">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <WindowPlate n="04" label="My applications" />
-          <h1 className="mt-3 font-display text-2xl font-bold text-pine-950 dark:text-pine-100">My applications</h1>
+          <WindowPlate n="04" label={t('dash.window')} />
+          <h1 className="mt-3 font-display text-2xl font-bold text-pine-950 dark:text-pine-100">{t('dash.h1')}</h1>
           <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">
-            Signed in as <span className="font-mono text-[13px]">{user?.email}</span>
+            {t('dash.signedInAs')} <span className="font-mono text-[13px]">{user?.email}</span>
           </p>
         </div>
         <Link
           to="/apply"
           className="rounded-lg bg-glow-600 px-4 py-2 text-sm font-bold text-white hover:bg-glow-500"
         >
-          New application
+          {t('dash.new')}
         </Link>
       </div>
 
       {apps && apps.length > 0 && (
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
           <KpiTile
-            label="Open"
+            label={t('dash.kpiOpen')}
             value={String(apps.filter((a) => a.status === 'submitted' || a.status === 'under_review').length)}
-            sub="submitted or under review"
+            sub={t('dash.kpiOpenSub')}
           />
-          <KpiTile label="Approved" value={String(apps.filter((a) => a.status === 'approved').length)} sub="ready to post at the job site" />
-          <KpiTile label="Denied" value={String(apps.filter((a) => a.status === 'denied').length)} sub="see the reviewer note for why" />
+          <KpiTile label={t('dash.kpiApproved')} value={String(apps.filter((a) => a.status === 'approved').length)} sub={t('dash.kpiApprovedSub')} />
+          <KpiTile label={t('dash.kpiDenied')} value={String(apps.filter((a) => a.status === 'denied').length)} sub={t('dash.kpiDeniedSub')} />
         </div>
       )}
 
       <div className="mt-6 space-y-3">
         {error && <ErrorNote message={error} />}
-        {!error && apps === null && <Spinner label="Loading your applications…" />}
+        {!error && apps === null && <Spinner label={t('dash.loading')} />}
         {apps?.length === 0 && (
-          <EmptyState title="No applications yet">
+          <EmptyState title={t('dash.emptyTitle')}>
             <Link to="/apply" className="font-semibold text-glow-600">
-              Start your first application →
+              {t('dash.emptyCta')}
             </Link>
           </EmptyState>
         )}

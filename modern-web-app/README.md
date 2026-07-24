@@ -17,6 +17,9 @@
 | Public record verification | Printable permit certificate with a QR code that resolves to `/verify/<id>`, checked live against the register with no sign-in |
 | Multi-stage lifecycle | Inspection-required types keep going after approval: schedule, pass or fail, reinspection loop, close-out; the certificate and public register track the standing |
 | Operational hygiene | Nightly automated reset (table, uploads bucket, stranger accounts), API throttling, security headers, PITR |
+| Accessibility | WCAG 2.1 AA target (Colorado HB21-1110): axe-core-clean pages, AA contrast both modes, keyboard operability, `/accessibility` statement |
+| Bilingual chrome | Full EN/ES toggle across every public and resident surface; records data and issued documents stay as filed |
+| Open records | Register of decisions on `/stats`: browse, filter, per-line verify links, CSV export; staff metrics add a queue-aging view against published processing times |
 
 ## The three experiences
 
