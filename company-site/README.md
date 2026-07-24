@@ -37,11 +37,27 @@ the NS cutover, giving DMARC-aligned signatures.
 `make verify` runs the end-to-end suite; `SEND=1 make verify` also sends one
 real test email.
 
-## Hero photo provenance
+## Design
 
-`site/assets/hero-city.webp` — night cityscape by Chi Hung Wong, via Unsplash
-(https://unsplash.com/photos/jODJ4np77W8), downloaded 2026-07-20 through the
-official download endpoint. Unsplash License: free for commercial use, no
-attribution required (credited anyway). Cropped to the upper tower band
-(street-level signage removed), 1920px, WebP q62 ≈ 114 KB, self-hosted to
-satisfy the site's `img-src 'self'` CSP.
+Redesigned 2026-07-23 as "the town at the foot of the boardwalk": planetek.org
+shares one visual language with demos.planetek.org (the hub's "pier at
+lamplight"). Sun-bleached deck paper by day, lamp-lit pine by night, alpenglow
+ember (`#e4532f`) as the brand color. Type: Josefin Sans (uppercase display) +
+Mulish (body) + Red Hat Mono (machine voice), vendored woff2 in `site/fonts/`
+to satisfy the `font-src 'self'` CSP. Signature moves: the hub's deck-board
+divider closes the hero and tops the footer; service cards wear the door paint
+of the live plank they link to; and a full-bleed "twelve doors" band renders
+the whole boardwalk as twelve arched, lamp-lit doors in each plank's accent
+color, each linking to its live environment. No service prices appear on the
+page (owner decision 2026-07-23); credential stats remain.
+
+Photo provenance (Unsplash License, free commercial use, credited in the
+footer anyway; downloaded via the official endpoint, resized with CDN
+transform params, self-hosted for the `img-src 'self'` CSP):
+
+- `site/assets/hero-alpenglow.webp` — alpenglow on a jagged ridge by
+  Royce Fonseca (https://unsplash.com/photos/K5Frw34P1XI), 1920x1200 ≈ 199 KB.
+- `site/assets/dillon-dusk.webp` — dusk over the Tenmile Range, Summit County,
+  Colorado by Tim Arterbury (https://unsplash.com/photos/n-zEC_AypI8),
+  1600x640 ≈ 120 KB.
+- `site/assets/og.jpg` — 1200x630 crop of the hero photo.

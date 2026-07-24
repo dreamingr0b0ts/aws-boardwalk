@@ -29,7 +29,7 @@
         return res.json().catch(function () { return {}; }).then(function (body) {
           if (res.ok && body.ok) {
             form.reset();
-            show("ok", "Thanks — your message is on its way. We'll reply within 24 hours.");
+            show("ok", "Thanks! Your message is on its way. We'll reply within 24 hours.");
           } else {
             show("err", (body.error || "Something went wrong.") +
               " You can also email info@planetek.org directly.");
@@ -37,7 +37,7 @@
         });
       })
       .catch(function () {
-        show("err", "Network error — please email info@planetek.org directly.");
+        show("err", "Network error. Please email info@planetek.org directly.");
       })
       .finally(function () {
         button.disabled = false;

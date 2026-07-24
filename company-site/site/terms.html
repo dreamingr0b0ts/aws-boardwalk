@@ -7,19 +7,31 @@
 <meta name="description" content="Terms of service for the Planetek LLC website.">
 <link rel="canonical" href="https://planetek.org/terms">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <meta name="robots" content="noindex, follow">
 <style>
-  :root { --bg:#fafaf9; --ink:#1c1917; --ink-2:#57534e; --glow:#e4532f; --border:#e7e5e4; }
-  @media (prefers-color-scheme: dark) { :root { --bg:#0c0a09; --ink:#f5f5f4; --ink-2:#d6d3d1; --border:#292524; } }
+  @font-face { font-family: "Josefin Sans"; font-style: normal; font-weight: 700; font-display: swap;
+    src: url("/fonts/josefin-sans-latin-700-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Mulish"; font-style: normal; font-weight: 400; font-display: swap;
+    src: url("/fonts/mulish-latin-400-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Mulish"; font-style: normal; font-weight: 700; font-display: swap;
+    src: url("/fonts/mulish-latin-700-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Red Hat Mono"; font-style: normal; font-weight: 400; font-display: swap;
+    src: url("/fonts/red-hat-mono-latin-400-normal.woff2") format("woff2"); }
+  :root { --bg:#f5f1e6; --ink:#211f18; --ink-2:#575244; --ink-3:#6b6455; --glow:#c4401f; --border:#e2dbc7; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#0a100f; --ink:#eef3f1; --ink-2:#c3cfcb; --ink-3:#93a39e; --glow:#ef6743; --border:#263733; } }
   * { box-sizing:border-box; margin:0; }
-  body { background:var(--bg); color:var(--ink); font:16px/1.6 ui-sans-serif, system-ui, sans-serif; }
+  body { background:var(--bg); color:var(--ink); font:16px/1.6 "Mulish", ui-sans-serif, system-ui, sans-serif; }
   main { max-width:760px; margin:0 auto; padding:56px 20px 80px; }
-  h1 { font-size:32px; font-weight:800; }
-  h2 { font-size:20px; font-weight:800; margin-top:32px; }
+  h1, h2 { font-family:"Josefin Sans", ui-sans-serif, system-ui, sans-serif; font-weight:700;
+    text-transform:uppercase; letter-spacing:.045em; }
+  h1 { font-size:30px; }
+  h2 { font-size:17px; margin-top:32px; }
   p, li { color:var(--ink-2); margin-top:12px; font-size:15px; }
   a { color:var(--glow); }
   .back { display:inline-block; margin-bottom:28px; font-weight:700; text-decoration:none; }
-  .meta { font-size:13px; margin-top:8px; }
+  .meta { font:400 12px/1.6 "Red Hat Mono", ui-monospace, monospace; color:var(--ink-3); margin-top:8px; }
 </style>
 </head>
 <body>
@@ -33,7 +45,7 @@
   you agree to these terms.</p>
 
   <h2>Informational content</h2>
-  <p>Content on this site, including service descriptions, pricing, and statistics, is provided for
+  <p>Content on this site, including service descriptions and statistics, is provided for
   general information and does not constitute a binding offer. All engagements are governed by a
   separately executed agreement or statement of work.</p>
 

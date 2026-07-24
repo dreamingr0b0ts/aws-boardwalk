@@ -4,10 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Managed AWS Services &amp; Cloud Consulting | Planetek LLC</title>
-<meta name="description" content="Planetek LLC designs, builds, secures, and runs AWS environments for growing businesses and government, proven by twelve live demo environments you can walk through. Managed AWS services, federal IT contracting, fractional CTO/CIO leadership, AI training, and web development from Colorado.">
+<meta name="description" content="Managed AWS services and cloud consulting from Colorado: we design, build, secure, and run AWS, proven by twelve live demo environments you can walk through.">
 <link rel="canonical" href="https://planetek.org/">
-<link rel="preload" as="image" href="/assets/hero-city.webp" fetchpriority="high">
+<link rel="preload" as="image" href="/assets/hero-alpenglow.webp" fetchpriority="high">
+<link rel="preload" as="font" type="font/woff2" href="/fonts/josefin-sans-latin-700-normal.woff2" crossorigin>
+<link rel="preload" as="font" type="font/woff2" href="/fonts/mulish-latin-400-normal.woff2" crossorigin>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Planetek LLC">
 <meta property="og:title" content="Managed AWS Services &amp; Cloud Consulting | Planetek LLC">
@@ -71,136 +75,278 @@
 }
 </script>
 <style>
+  /* The town at the foot of the boardwalk. planetek.org shares one visual
+     language with demos.planetek.org: sun-bleached deck paper by day,
+     lamp-lit pine by night, and the alpenglow ember as the brand color.
+     Each service card and door tile is painted in the accent of the live
+     environment behind it. */
+  @font-face { font-family: "Josefin Sans"; font-style: normal; font-weight: 600; font-display: swap;
+    src: url("/fonts/josefin-sans-latin-600-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Josefin Sans"; font-style: normal; font-weight: 700; font-display: swap;
+    src: url("/fonts/josefin-sans-latin-700-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Mulish"; font-style: normal; font-weight: 400; font-display: swap;
+    src: url("/fonts/mulish-latin-400-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Mulish"; font-style: normal; font-weight: 700; font-display: swap;
+    src: url("/fonts/mulish-latin-700-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Red Hat Mono"; font-style: normal; font-weight: 400; font-display: swap;
+    src: url("/fonts/red-hat-mono-latin-400-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Red Hat Mono"; font-style: normal; font-weight: 600; font-display: swap;
+    src: url("/fonts/red-hat-mono-latin-600-normal.woff2") format("woff2"); }
+
   :root {
-    --bg: #fafaf9;
-    --surface: #ffffff;
-    --border: #e7e5e4;
-    --ink: #1c1917;
-    --ink-2: #57534e;
-    --ink-3: #78716c;
-    --navy: #0d1b2a;
-    --navy-deep: #081220;
-    --navy-mid: #1b3a5b;
-    --navy-soft: #dde8f0;
-    --glow: #e4532f;
+    --display: "Josefin Sans", ui-sans-serif, system-ui, sans-serif;
+    --body: "Mulish", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "Red Hat Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+    --bg: #f5f1e6;            /* sun-bleached deck paper, never plain white */
+    --surface: #fcfaf3;
+    --border: #e2dbc7;
+    --ink: #211f18;
+    --ink-2: #575244;
+    --ink-3: #7d7767;
+    --pine: #16302e;
+    --pine-deep: #0b1f1e;
+    --pine-mid: #2f615c;
+    --pine-soft: #dcebe8;
+    --glow: #e4532f;          /* alpenglow, the brand ember (decorative) */
     --glow-deep: #c4401f;
-    --glow-soft: #fde5dc;
-    --ok-bg: #ecfdf5; --ok-ink: #047857; --ok-ring: #a7f3d0;
-    --hero-ink: #eaf2f9;
-    --hero-sub: #b7cbdc;
-    --hero-dim: #8aa5bd;
+    --glow-soft: #fbe3da;
+    --ember: #c4401f;         /* button ember: white text passes AA on it */
+    --ember-deep: #a53517;
+    --link: #c4401f;          /* text links, AA on paper and surface */
+    --lamp: #8a5a10;          /* lamp amber, AA-safe on paper */
+    --lamp-bright: #f5b04c;   /* the lit globe itself */
+    --dot: #8a5a10;           /* list markers */
+    --dot-glow: none;
+    --field-border: #857b60;  /* form input boundaries, 3:1+ */
+    --deck-board: #e9e1cb;
+    --deck-gap: #cfc5a8;
+    --deck-edge: #bfb494;
+    --ok-bg: #edf4e7; --ok-ink: #33682e; --ok-ring: #c8dbbd;
+    --night-ink: #f2f7f6;     /* text on pine surfaces */
+    --night-sub: #bcd8d2;
+    --night-dim: #8db9b3;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #0c0a09;
-      --surface: #1c1917;
-      --border: #292524;
-      --ink: #f5f5f4;
-      --ink-2: #d6d3d1;
-      --ink-3: #a8a29e;
-      --navy-soft: #14263a;
+      --bg: #0a100f;          /* pine-black water under the pier */
+      --surface: #131f1d;
+      --border: #263733;
+      --ink: #eef3f1;
+      --ink-2: #c3cfcb;
+      --ink-3: #93a39e;
+      --pine-soft: #16302e;
+      --glow: #ef6743;
+      --glow-deep: #e4532f;
       --glow-soft: rgba(228, 83, 47, .16);
-      --ok-bg: rgba(5,150,105,.15); --ok-ink: #34d399; --ok-ring: rgba(52,211,153,.35);
+      --link: #ef6743;
+      --lamp: #f0b95e;
+      --dot: #f5b04c;
+      --dot-glow: 0 0 8px 1px color-mix(in srgb, #f5b04c 65%, transparent);
+      --field-border: #5a6f68;
+      --deck-board: #1c2b28;
+      --deck-gap: #0c1513;
+      --deck-edge: #31443f;
+      --ok-bg: rgba(94,158,84,.14); --ok-ink: #9fce8f; --ok-ring: rgba(159,206,143,.35);
     }
   }
   * { box-sizing: border-box; margin: 0; }
-  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+  @media (min-width: 721px) { html { scroll-padding-top: 72px; } }
   body {
     background: var(--bg); color: var(--ink);
-    font: 16px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    font: 16px/1.58 var(--body);
     -webkit-font-smoothing: antialiased;
   }
   .wrap { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
   img, svg { max-width: 100%; }
-  a { color: var(--glow); }
+  a { color: var(--link); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--glow); outline-offset: 2px; }
+
+  /* ---- the deck: boards and gaps, closes the hero and tops the footer ---- */
+  .deck { height: 14px; border-top: 1px solid var(--deck-edge); border-bottom: 1px solid var(--deck-edge);
+    background:
+      repeating-linear-gradient(90deg, var(--deck-gap) 0 3px, var(--deck-board) 3px 92px),
+      var(--deck-board); }
 
   /* --- nav --- */
-  nav.top { position: sticky; top: 0; z-index: 50; background: var(--navy-deep); color: var(--hero-ink); border-bottom: 1px solid rgba(183,203,220,.15); }
+  nav.top { position: sticky; top: 0; z-index: 50; background: var(--pine-deep); color: var(--night-ink);
+    border-bottom: 1px solid rgba(185,214,209,.16); }
   .nav-inner { display: flex; align-items: center; gap: 18px; padding: 12px 0; flex-wrap: wrap; }
-  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 18px; color: #fff; text-decoration: none; }
-  .brand svg { width: 30px; height: 24px; color: var(--hero-ink); }
+  .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #fff;
+    font: 700 17px/1 var(--display); text-transform: uppercase; letter-spacing: .07em; padding-top: 2px; }
+  .brand svg { width: 30px; height: 24px; color: var(--night-sub); flex: none; }
   .nav-links { display: flex; gap: 16px; flex-wrap: wrap; margin-left: auto; align-items: center; }
-  .nav-links a { color: var(--hero-sub); text-decoration: none; font-size: 14px; font-weight: 600; }
+  .nav-links a { color: var(--night-sub); text-decoration: none; font-size: 13.5px; font-weight: 700; }
   .nav-links a:hover { color: #fff; }
-  .nav-links a.cta { background: var(--glow); color: #fff; padding: 8px 16px; border-radius: 9px; }
-  .nav-links a.cta:hover { background: var(--glow-deep); }
+  .nav-links a.cta { background: var(--ember); color: #fff; padding: 8px 16px; border-radius: 9px; }
+  .nav-links a.cta:hover { background: var(--ember-deep); color: #fff; }
 
   /* --- hero --- */
-  header.hero { background: linear-gradient(160deg, var(--navy-deep) 0%, var(--navy) 55%, var(--navy-mid) 130%); color: var(--hero-ink); overflow: hidden; position: relative; }
-  .hero-inner { padding: 76px 0 64px; position: relative; z-index: 1; }
-  /* ---- photographic backdrop (self-hosted, 114KB WebP, preloaded) ----
-     Photo: Chi Hung Wong via Unsplash (unsplash.com/photos/jODJ4np77W8),
-     Unsplash License — free commercial use, no attribution required.
-     The veil keeps the text column fully readable; the slow zoom is the
+  header.hero { background: linear-gradient(180deg, var(--pine-deep), var(--pine)); color: var(--night-ink);
+    overflow: hidden; position: relative; }
+  .hero-inner { padding: 80px 20px 92px; position: relative; z-index: 1; }
+  /* ---- photographic backdrop (self-hosted 199KB WebP, preloaded) ----
+     Photo: Royce Fonseca via Unsplash (unsplash.com/photos/K5Frw34P1XI),
+     Unsplash License: free commercial use, no attribution required.
+     Alpenglow on a jagged ridge: the brand ember, on an actual mountain.
+     The pine veil keeps the text column readable; the slow zoom is the
      only motion and prefers-reduced-motion turns it off. */
-  .hero-photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 72% 62%;
-    filter: brightness(1.12) saturate(1.05);
-    animation: hero-zoom 45s ease-in-out infinite alternate; will-change: transform; }
+  .hero-photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 60% 68%;
+    filter: brightness(1.04) saturate(1.06);
+    animation: hero-zoom 48s ease-in-out infinite alternate; will-change: transform; }
   @keyframes hero-zoom { from { transform: scale(1); } to { transform: scale(1.06); } }
   .hero-veil { position: absolute; inset: 0; background:
-    linear-gradient(97deg, rgba(8,18,32,.96) 0%, rgba(8,18,32,.88) 30%, rgba(10,22,38,.64) 55%, rgba(10,22,38,.16) 82%, rgba(10,22,38,.08) 100%),
-    linear-gradient(to bottom, rgba(8,18,32,.42) 0%, rgba(8,18,32,0) 26%, rgba(8,18,32,0) 70%, rgba(8,18,32,.55) 100%); }
-  @media (max-width: 720px) { .hero-veil { background:
-    linear-gradient(180deg, rgba(8,18,32,.96) 0%, rgba(8,18,32,.88) 55%, rgba(10,22,38,.66) 100%); } }
+    linear-gradient(97deg, rgba(11,31,30,.94) 0%, rgba(11,31,30,.84) 30%, rgba(11,31,30,.5) 56%, rgba(11,31,30,.12) 84%, rgba(11,31,30,.06) 100%),
+    linear-gradient(to bottom, rgba(11,31,30,.5) 0%, rgba(11,31,30,0) 30%, rgba(11,31,30,0) 62%, rgba(11,31,30,.62) 100%); }
+  @media (max-width: 720px) {
+    /* the wrapped nav would eat a quarter of a small viewport if it stayed stuck */
+    nav.top { position: static; }
+    .hero-photo { object-position: 74% 50%; }
+    .hero-veil { background:
+      linear-gradient(180deg, rgba(11,31,30,.95) 0%, rgba(11,31,30,.84) 52%, rgba(11,31,30,.48) 100%); } }
   @media (prefers-reduced-motion: reduce) { .hero-photo { animation: none; } }
-  .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: #f59e83; }
-  h1 { font-size: clamp(34px, 5.5vw, 54px); line-height: 1.06; margin-top: 14px; font-weight: 800; max-width: 820px; }
-  .hero p.lede { margin-top: 18px; max-width: 680px; font-size: 18px; color: var(--hero-sub); }
+  .eyebrow { font: 600 11px/1.5 var(--mono); letter-spacing: .22em; text-transform: uppercase; color: var(--lamp-bright); }
+  h1 { font-family: var(--display); font-weight: 700; text-transform: uppercase; letter-spacing: .035em;
+    font-size: clamp(29px, 4.8vw, 50px); line-height: 1.08; margin-top: 16px; max-width: 880px; }
+  .hero p.lede { margin-top: 18px; max-width: 640px; font-size: 17.5px; color: var(--night-sub); }
+  .hero p.lede a { color: var(--lamp-bright); }
   .hero-actions { margin-top: 30px; display: flex; gap: 12px; flex-wrap: wrap; }
-  .btn { display: inline-block; padding: 12px 20px; border-radius: 10px; font-weight: 700; font-size: 15px; text-decoration: none; }
-  .btn-glow { background: var(--glow); color: #fff; box-shadow: 0 8px 24px rgba(228,83,47,.3); }
-  .btn-glow:hover { background: var(--glow-deep); }
-  .btn-ghost { border: 1px solid rgba(183,203,220,.5); color: var(--hero-ink); }
+  .btn { display: inline-block; padding: 12px 20px; border-radius: 10px; font-weight: 700; font-size: 15px;
+    text-decoration: none; font-family: var(--body); }
+  .btn-glow { background: var(--ember); color: #fff;
+    box-shadow: 0 8px 24px rgba(228,83,47,.32), 0 0 48px rgba(245,176,76,.16); }
+  .btn-glow:hover { background: var(--ember-deep); }
+  .btn-ghost { border: 1px solid rgba(185,214,209,.5); color: var(--night-ink); }
   .btn-ghost:hover { border-color: #fff; color: #fff; }
-  .hero-meta { margin-top: 40px; display: flex; gap: 30px; flex-wrap: wrap; font-size: 13px; color: var(--hero-dim); }
-  .hero-meta strong { display: block; color: #fff; font-size: 20px; }
+  .hero-meta { margin-top: 40px; display: flex; gap: 28px; flex-wrap: wrap;
+    font: 400 12px/1.5 var(--mono); color: var(--night-dim); }
+  .hero-meta strong { display: block; color: #fff; font-size: 17px; font-family: var(--body); font-weight: 700; }
 
   /* --- sections --- */
   section { padding: 64px 0 8px; }
-  .kicker { font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--glow); }
-  h2 { font-size: clamp(24px, 3.5vw, 32px); font-weight: 800; margin-top: 8px; }
+  .kicker { font: 600 11px/1.5 var(--mono); letter-spacing: .2em; text-transform: uppercase; color: var(--lamp);
+    display: inline-flex; align-items: center; gap: 9px; }
+  .kicker::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--glow);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--glow) 18%, transparent); }
+  h2 { font-family: var(--display); font-weight: 700; text-transform: uppercase; letter-spacing: .045em;
+    font-size: clamp(22px, 3.2vw, 30px); margin-top: 10px; }
   .section-lede { margin-top: 12px; max-width: 760px; color: var(--ink-2); }
 
-  .grid { margin-top: 28px; display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 22px; display: flex; flex-direction: column; gap: 10px; }
-  .card h3 { font-size: 17px; font-weight: 800; }
+  .grid { margin-top: 28px; display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(min(310px, 100%), 1fr)); }
+  .card { position: relative; overflow: hidden; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 24px 22px 20px; display: flex; flex-direction: column; gap: 10px;
+    transition: border-color .15s ease, transform .15s ease, box-shadow .15s ease; }
+  .card h3 { font-family: var(--display); font-weight: 700; font-size: 18px; letter-spacing: .01em; }
   .card p { font-size: 14px; color: var(--ink-2); flex: 1; }
-  .card .stack { font-size: 12.5px; color: var(--ink-3); }
-  .card a.demo { font-size: 14px; font-weight: 700; color: var(--glow); text-decoration: none; padding-top: 8px; border-top: 1px solid var(--border); }
+  .card .stack { font: 400 11.5px/1.6 var(--mono); color: var(--ink-3); }
+  .card a.demo { font-size: 14px; font-weight: 700; color: var(--link); text-decoration: none;
+    padding-top: 10px; border-top: 1px solid var(--border); }
   .card a.demo:hover { text-decoration: underline; }
+  /* Service cards borrow the door paint of the live environment they link to. */
+  .card[class*="door-"]::before { content: ""; position: absolute; top: 0; left: 16px; right: 16px; height: 3px;
+    background: var(--door); border-radius: 0 0 3px 3px; opacity: .85; }
+  .card[class*="door-"]:hover { border-color: color-mix(in srgb, var(--door) 55%, var(--border));
+    transform: translateY(-2px); box-shadow: 0 10px 24px color-mix(in srgb, var(--door) 16%, transparent); }
+  .door-web       { --door: #e4532f; }  /* town hall counter: alpenglow */
+  .door-network   { --door: #3e79ae; }  /* drafting room: Prussian */
+  .door-models    { --door: #2fbf71; }  /* signal bench: phosphor */
+  .door-assistant { --door: #7d79e6; }  /* records office: nocturne violet */
+  .door-documents { --door: #b28a44; }  /* records annex: brass */
+  .door-data      { --door: #2e8fc4; }  /* lake survey: bathymetric blue */
+  .door-api       { --door: #2f9e77; }  /* city exchange: jade */
+  .door-events    { --door: #e8a13d; }  /* switchyard: signal amber */
+  .door-containers{ --door: #a5642f; }  /* bakehouse: crust and espresso */
+  .door-ops       { --door: #c9302a; }  /* mountain patrol: patrol red */
+  .door-security  { --door: #d2691f; }  /* fire lookout: ember */
+  .door-registry  { --door: #a83a49; }  /* county vault: sealing wax */
 
-  .proof { margin-top: 28px; background: var(--navy); color: var(--hero-ink); border-radius: 16px; padding: 30px 28px; display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
-  .proof h3 { font-size: 20px; font-weight: 800; }
-  .proof p { color: var(--hero-sub); font-size: 15px; max-width: 640px; margin-top: 6px; }
-  .proof .btn { white-space: nowrap; }
+  /* --- engagement steps --- */
+  .steps { margin-top: 28px; display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); }
+  .card p.step-plate { font: 600 10.5px/1.4 var(--mono); letter-spacing: .18em; text-transform: uppercase;
+    color: var(--lamp); flex: 0 0 auto; }
 
-  .tiers { margin-top: 28px; display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+  /* --- the boardwalk band: twelve doors on the night pier --- */
+  .boardwalk { background: linear-gradient(180deg, var(--pine-deep), var(--pine)); color: var(--night-ink);
+    padding: 64px 0 72px; margin-top: 64px; }
+  .boardwalk .kicker { color: var(--lamp-bright); }
+  .boardwalk .section-lede { color: var(--night-sub); }
+  /* fixed column counts so the twelve doors always land in even rows */
+  .doors { margin-top: 34px; display: grid; gap: 18px 12px; grid-template-columns: repeat(3, 1fr); }
+  @media (min-width: 520px) { .doors { grid-template-columns: repeat(4, 1fr); } }
+  @media (min-width: 900px) { .doors { grid-template-columns: repeat(6, 1fr); } }
+  .door-tile { display: flex; flex-direction: column; align-items: center; gap: 9px; text-decoration: none;
+    transition: transform .15s ease; }
+  .door-tile .door { width: 100%; max-width: 72px; aspect-ratio: 5 / 7; position: relative;
+    border-radius: 36px 36px 5px 5px;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--door) 80%, #f2f7f6 20%) 0%, var(--door) 48%,
+      color-mix(in srgb, var(--door) 74%, #000 26%) 100%);
+    border: 1px solid color-mix(in srgb, var(--door) 65%, #000 20%);
+    box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--door) 68%, #000 22%),
+      inset 0 0 0 4px color-mix(in srgb, var(--door) 82%, #fff 12%);
+    transition: box-shadow .15s ease; }
+  /* every door keeps a lamp burning in its window */
+  .door-tile .door::before { content: ""; position: absolute; left: 50%; top: 22%; width: 11px; height: 11px;
+    transform: translateX(-50%); border-radius: 50%; background: var(--lamp-bright);
+    box-shadow: 0 0 10px 2px rgba(245,176,76,.6); }
+  .door-tile .door::after { content: ""; position: absolute; right: 16%; top: 55%; width: 5px; height: 5px;
+    border-radius: 50%; background: color-mix(in srgb, var(--door) 45%, #000 45%); }
+  .door-name { font: 600 10.5px/1.3 var(--mono); letter-spacing: .1em; text-transform: uppercase;
+    color: var(--night-dim); text-align: center; }
+  .door-tile:hover { transform: translateY(-4px); }
+  .door-tile:hover .door { box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--door) 68%, #000 22%),
+    inset 0 0 0 4px color-mix(in srgb, var(--door) 82%, #fff 12%),
+    0 12px 26px color-mix(in srgb, var(--door) 40%, transparent); }
+  .door-tile:hover .door-name { color: #fff; }
+  .boardwalk-actions { margin-top: 36px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  .boardwalk-foot { font: 400 12px/1.6 var(--mono); color: var(--night-dim); }
+
+  /* --- federal --- */
+  .facts { margin-top: 26px; display: flex; gap: 10px; flex-wrap: wrap; }
+  .fact { font: 600 11px/1.6 var(--mono); letter-spacing: .06em; text-transform: uppercase;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 999px;
+    padding: 7px 14px; color: var(--ink-2); }
+  .fact strong { color: var(--ink); font-weight: 600; margin-right: 6px; }
+  .checklist { margin: 26px 0 0; padding: 0; list-style: none; display: grid; gap: 14px;
+    grid-template-columns: repeat(auto-fill, minmax(min(310px, 100%), 1fr)); }
+  .checklist li { background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 16px 16px 16px 42px; position: relative; font-size: 14px; color: var(--ink-2); }
+  .checklist li::before { content: ""; position: absolute; left: 17px; top: 21px; width: 8px; height: 8px;
+    border-radius: 50%; background: var(--dot); box-shadow: var(--dot-glow); }
+  .checklist strong { display: block; color: var(--ink); font-size: 15px; margin-bottom: 3px; }
+  .stats { margin-top: 26px; display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr)); }
+  .stat { text-align: center; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 10px 16px; }
+  .stat strong { display: block; font: 700 24px/1.2 var(--display); color: var(--glow); }
+  .stat span { font-size: 12.5px; color: var(--ink-3); }
+
+  /* --- interlude photo --- */
+  .interlude { margin: 64px auto 0; }
+  .interlude img { width: 100%; height: clamp(210px, 30vw, 330px); object-fit: cover; object-position: 50% 42%;
+    border-radius: 14px; border: 1px solid var(--border); display: block; }
+  .interlude figcaption { margin-top: 10px; font: 400 12px/1.6 var(--mono); color: var(--ink-3); }
+
+  /* --- tiers (formats and scopes; no price tags) --- */
+  .tiers { margin-top: 28px; display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); }
   .tier { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 24px; position: relative; }
   .tier.hot { border-color: var(--glow); box-shadow: 0 6px 24px rgba(228,83,47,.12); }
-  .tier .flag { position: absolute; top: -11px; left: 50%; transform: translateX(-50%); background: var(--glow); color: #fff; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; padding: 3px 12px; border-radius: 999px; white-space: nowrap; }
-  .tier .price { font-size: 26px; font-weight: 800; }
-  .tier h3 { font-size: 16px; font-weight: 700; margin-top: 2px; color: var(--ink-2); }
+  .tier .flag { position: absolute; top: -11px; left: 50%; transform: translateX(-50%); background: var(--ember);
+    color: #fff; font: 600 10px/1.6 var(--mono); text-transform: uppercase; letter-spacing: .08em;
+    padding: 3px 12px; border-radius: 999px; white-space: nowrap; }
+  .tier .tier-name { font-family: var(--display); font-weight: 700; font-size: 22px; letter-spacing: .02em; }
+  .tier h3 { font: 600 11px/1.6 var(--mono); letter-spacing: .16em; text-transform: uppercase;
+    margin-top: 4px; color: var(--lamp); }
   .tier ul { margin: 14px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; font-size: 14px; color: var(--ink-2); }
   .tier li { padding-left: 20px; position: relative; }
   .tier li::before { content: "✓"; position: absolute; left: 0; color: var(--ok-ink); font-weight: 700; }
 
-  .checklist { margin: 26px 0 0; padding: 0; list-style: none; display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); }
-  .checklist li { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 16px 16px 44px; position: relative; font-size: 14px; color: var(--ink-2); }
-  .checklist li::before { content: "✓"; position: absolute; left: 18px; top: 15px; color: var(--ok-ink); font-weight: 800; }
-  .checklist strong { display: block; color: var(--ink); font-size: 15px; margin-bottom: 3px; }
-
-  .facts { margin-top: 26px; display: flex; gap: 12px; flex-wrap: wrap; }
-  .fact { background: var(--navy-soft); border-radius: 10px; padding: 10px 16px; font-size: 13px; color: var(--ink-2); }
-  .fact strong { display: block; font-size: 15px; color: var(--ink); }
-  .stats { margin-top: 26px; display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
-  .stat { text-align: center; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 10px; }
-  .stat strong { display: block; font-size: 24px; font-weight: 800; color: var(--glow); }
-  .stat span { font-size: 13px; color: var(--ink-3); }
-
-  .cols { margin-top: 28px; display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+  .cols { margin-top: 28px; display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); }
+  .card ul.plain { margin: 0; padding: 14px 0 0; list-style: none; display: grid; gap: 8px; font-size: 14px; color: var(--ink-2); }
+  .card ul.plain li { padding-left: 18px; position: relative; }
+  .card ul.plain li::before { content: ""; position: absolute; left: 2px; top: .5em; width: 7px; height: 7px;
+    border-radius: 50%; background: var(--dot); box-shadow: var(--dot-glow); }
 
   /* --- contact --- */
-  #contact { padding-bottom: 64px; }
+  #contact { padding-bottom: 72px; }
   .contact-grid { margin-top: 28px; display: grid; gap: 28px; grid-template-columns: 1fr; }
   @media (min-width: 860px) { .contact-grid { grid-template-columns: 1fr 1.4fr; } }
   .contact-info .card + .card { margin-top: 14px; }
@@ -210,27 +356,33 @@
   label { font-size: 13px; font-weight: 700; display: grid; gap: 6px; }
   input, select, textarea {
     font: inherit; color: var(--ink); background: var(--bg);
-    border: 1px solid var(--border); border-radius: 9px; padding: 10px 12px; width: 100%;
+    border: 1px solid var(--field-border); border-radius: 9px; padding: 10px 12px; width: 100%;
   }
   input:focus, select:focus, textarea:focus { outline: 2px solid var(--glow); outline-offset: 0; border-color: transparent; }
   .hp { position: absolute; left: -9999px; opacity: 0; height: 0; overflow: hidden; }
   button.btn { border: 0; cursor: pointer; font: inherit; font-weight: 700; }
-  #form-status { font-size: 14px; font-weight: 600; display: none; padding: 12px 14px; border-radius: 9px; }
-  #form-status.ok { display: block; background: var(--ok-bg); color: var(--ok-ink); border: 1px solid var(--ok-ring); }
-  #form-status.err { display: block; background: var(--glow-soft); color: var(--glow-deep); border: 1px solid var(--glow); }
+  /* Stays rendered (never display:none) so the role="status" live region
+     reliably announces; an empty <p> occupies no height of its own. */
+  #form-status { font-size: 14px; font-weight: 600; border-radius: 9px; }
+  #form-status.ok { background: var(--ok-bg); color: var(--ok-ink); border: 1px solid var(--ok-ring); padding: 12px 14px; }
+  #form-status.err { background: var(--glow-soft); color: var(--ember-deep); border: 1px solid var(--glow); padding: 12px 14px; }
+  @media (prefers-color-scheme: dark) { #form-status.err { color: #f0a48d; } }
 
   /* --- footer --- */
-  footer { margin-top: 64px; background: var(--navy-deep); color: var(--hero-sub); font-size: 13px; }
+  footer { background: var(--pine-deep); color: var(--night-sub); font-size: 13px; }
   .foot-grid { display: grid; gap: 28px; padding: 38px 20px 30px; max-width: 1100px; margin: 0 auto; }
   @media (min-width: 640px) { .foot-grid { grid-template-columns: 2fr 1fr 1fr 1fr; } }
-  .foot-brand { font-weight: 800; color: #fff; font-size: 15px; display: flex; align-items: center; gap: 8px; }
-  .foot-brand svg { width: 26px; height: 20px; }
-  .foot-desc { margin-top: 10px; font-size: 12.5px; line-height: 1.6; color: var(--hero-dim); max-width: 300px; }
+  .foot-brand { font: 700 15px/1.3 var(--display); text-transform: uppercase; letter-spacing: .06em;
+    color: #fff; display: flex; align-items: center; gap: 8px; }
+  .foot-brand svg { width: 26px; height: 20px; flex: none; }
+  .foot-desc { margin-top: 10px; font-size: 12.5px; line-height: 1.6; color: var(--night-dim); max-width: 300px; }
   .foot-head { font-weight: 700; color: #fff; }
   .foot-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 5px; }
-  .foot-list a { color: var(--hero-sub); text-decoration: none; }
+  .foot-list a { color: var(--night-sub); text-decoration: none; }
   .foot-list a:hover { color: #fff; text-decoration: underline; text-underline-offset: 2px; }
-  .foot-bar { border-top: 1px solid rgba(183,203,220,.15); padding: 15px 20px; text-align: center; font-size: 12px; color: var(--hero-dim); }
+  .foot-credit { color: var(--night-dim); }
+  .foot-bar { border-top: 1px solid rgba(185,214,209,.16); padding: 15px 20px; text-align: center;
+    font: 400 11.5px/1.6 var(--mono); color: var(--night-dim); }
 </style>
 </head>
 <body>
@@ -253,17 +405,18 @@
 </nav>
 
 <header class="hero">
-  <img class="hero-photo" src="/assets/hero-city.webp" alt="" aria-hidden="true" fetchpriority="high" decoding="async">
+  <img class="hero-photo" src="/assets/hero-alpenglow.webp" alt="" aria-hidden="true" fetchpriority="high" decoding="async">
   <div class="hero-veil" aria-hidden="true"></div>
   <div class="wrap hero-inner">
     <p class="eyebrow">Managed AWS Services · Colorado-based, serving nationwide</p>
     <h1>Your AWS cloud, expertly run — without the full-time cloud team.</h1>
-    <p class="lede">Planetek designs, builds, secures, and operates AWS environments for growing businesses
-    and government. Everything infrastructure-as-code, security-first, and relentlessly cost-optimized.
-    Instead of slideware, we prove it with <a href="https://demos.planetek.org" style="color:#f59e83">twelve live AWS environments</a> you can walk through right now.</p>
+    <p class="lede">Planetek designs, builds, secures, and operates AWS for growing businesses and government.
+    Everything is infrastructure as code, security-first, and relentlessly cost-optimized. And instead of
+    slideware, we prove it with <a href="https://demos.planetek.org">twelve live AWS environments</a> you can
+    walk through right now.</p>
     <div class="hero-actions">
       <a class="btn btn-glow" href="#contact">Book a free consultation</a>
-      <a class="btn btn-ghost" href="https://demos.planetek.org">Explore the live demos</a>
+      <a class="btn btn-ghost" href="https://demos.planetek.org">Walk the boardwalk</a>
     </div>
     <div class="hero-meta">
       <div><strong>12</strong> live AWS environments</div>
@@ -273,6 +426,7 @@
     </div>
   </div>
 </header>
+<div class="deck" aria-hidden="true"></div>
 
 <main>
 
@@ -287,21 +441,21 @@
     gated by automated security scanning, and deployed through keyless CI/CD.</p>
 
     <div class="grid">
-      <div class="card">
+      <div class="card door-network">
         <h3>Architecture, Migration &amp; IaC</h3>
         <p>Well-Architected reviews, landing zones, and lift-and-modernize migrations. Every resource is
         Terraform: reproducible, reviewable, and never trapped in a console click-path.</p>
-        <p class="stack">Terraform · CloudFront · multi-account IAM · GitHub Actions OIDC</p>
-        <a class="demo" href="https://ops.demos.planetek.org">See our CI/CD &amp; SRE practice live →</a>
+        <p class="stack">Terraform · VPC design · multi-account IAM · GitHub Actions OIDC</p>
+        <a class="demo" href="https://network.demos.planetek.org">See a reference network, proven live →</a>
       </div>
-      <div class="card">
+      <div class="card door-web">
         <h3>Serverless Applications &amp; APIs</h3>
         <p>Scale-to-zero web applications and API platforms that idle at pennies: S3 + CloudFront frontends,
         Lambda backends, Cognito auth, DynamoDB data, plus versioned, key-metered public APIs.</p>
         <p class="stack">Lambda · API Gateway · Cognito · DynamoDB · ECS Fargate</p>
         <a class="demo" href="https://permits.demos.planetek.org">Try a live serverless app →</a>
       </div>
-      <div class="card">
+      <div class="card door-assistant">
         <h3>AI on AWS</h3>
         <p>Production GenAI without runaway bills: retrieval-augmented assistants on Amazon Bedrock and
         document-intelligence pipelines that classify, extract, and index paperwork automatically,
@@ -309,21 +463,21 @@
         <p class="stack">Bedrock (Claude) · Textract · Comprehend · Step Functions</p>
         <a class="demo" href="https://assistant.demos.planetek.org">Chat with a live RAG assistant →</a>
       </div>
-      <div class="card">
+      <div class="card door-data">
         <h3>Data Lakes &amp; Analytics</h3>
         <p>Turn raw data into queryable answers: S3 data lakes, Glue catalogs, and Athena SQL over
         millions of records, engineered so a query scans megabytes, not gigabytes.</p>
         <p class="stack">S3 · Glue · Athena · Parquet · EventBridge</p>
         <a class="demo" href="https://data.demos.planetek.org">Query 3M records live →</a>
       </div>
-      <div class="card">
+      <div class="card door-security">
         <h3>Security, Compliance &amp; Networking</h3>
         <p>Zero Trust network design, continuous compliance against NIST 800-53, GuardDuty threat detection,
         CloudTrail evidence trails, and vulnerability management, with auditable proof instead of promises.</p>
         <p class="stack">GuardDuty · Security Hub · Config · CloudTrail · VPC design</p>
         <a class="demo" href="https://security.demos.planetek.org">Review a live compliance report →</a>
       </div>
-      <div class="card">
+      <div class="card door-ops">
         <h3>Managed Operations &amp; Cost Control</h3>
         <p>Ongoing care for the cloud you already have: monitoring and alerting, backup/restore drills with
         measured recovery times, patching cadence, budget tripwires, and a monthly cost-optimization pass.</p>
@@ -332,34 +486,59 @@
       </div>
     </div>
 
-    <div class="proof">
-      <div style="flex:1">
-        <h3>Proof, not promises: the AWS Boardwalk</h3>
-        <p>Twelve production-grade AWS environments: web apps, APIs, GenAI, document processing, data lakes,
-        containers, event-driven systems, security, networking, databases, model evaluation, and DevOps.
-        All live, all open-source,
-        all running for pennies a day. Walk through what we'd build for you.</p>
-      </div>
-      <a class="btn btn-glow" href="https://demos.planetek.org">Visit demos.planetek.org</a>
-    </div>
-
-    <div class="cols">
+    <div class="steps">
       <div class="card">
+        <p class="step-plate">Step 01</p>
         <h3>Assess</h3>
         <p>Fixed-fee cloud assessment: architecture, security posture, and spend review of your current AWS
         account, delivered as a prioritized roadmap you keep either way.</p>
       </div>
       <div class="card">
+        <p class="step-plate">Step 02</p>
         <h3>Build &amp; Migrate</h3>
         <p>Project-based delivery of new workloads or migrations: infrastructure-as-code from day one,
         with CI/CD and security gates included, then handed over documented.</p>
       </div>
       <div class="card">
+        <p class="step-plate">Step 03</p>
         <h3>Run</h3>
         <p>Monthly managed services: we own uptime, security, backups, patching, and the AWS bill, with
         a named senior engineer and no long-term lock-in.</p>
       </div>
     </div>
+  </div>
+</section>
+
+<!-- ================= The Boardwalk: twelve doors ================= -->
+<section class="boardwalk" aria-label="The AWS Boardwalk">
+  <div class="wrap">
+    <p class="kicker">Proof of work</p>
+    <h2>Twelve doors, all of them open</h2>
+    <p class="section-lede">The AWS Boardwalk is our standing portfolio: twelve production-grade environments
+    covering web apps, APIs, events, containers, data, AI, documents, security, networking, databases,
+    DevOps, and model evaluation. Every door below is a real deployment. Walk through any of them.</p>
+
+    <div class="doors">
+      <a class="door-tile door-web" href="https://permits.demos.planetek.org"><span class="door" aria-hidden="true"></span><span class="door-name">Permits</span></a>
+      <a class="door-tile door-api" href="https://api.demos.planetek.org"><span class="door" aria-hidden="true"></span><span class="door-name">API</span></a>
+      <a class="door-tile door-events" href="https://events.demos.planetek.org"><span class="door" aria-hidden="true"></span><span class="door-name">Events</span></a>
+      <a class="door-tile door-containers" href="https://containers.demos.planetek.org"><span class="door" aria-hidden="true"></span><span class="door-name">Containers</span></a>
+      <a class="door-tile door-data" href="https://data.demos.planetek.org"><span class="door" aria-hidden="true"></span><span class="door-name">Data Lake</span></a>
+      <a class="door-tile door-assistant" href="https://assistant.demos.planetek.org"><span class="door" aria-hidden="true"></span><span class="door-name">GenAI RAG</span></a>
+      <a class="door-tile door-documents" href="https://documents.demos.planetek.org"><span class="door" aria-hidden="true"></span><span class="door-name">Documents</span></a>
+      <a class="door-tile door-security" href="https://security.demos.planetek.org"><span class="door" aria-hidden="true"></span><span class="door-name">Security</span></a>
+      <a class="door-tile door-network" href="https://network.demos.planetek.org"><span class="door" aria-hidden="true"></span><span class="door-name">Network</span></a>
+      <a class="door-tile door-registry" href="https://registry.demos.planetek.org"><span class="door" aria-hidden="true"></span><span class="door-name">Database</span></a>
+      <a class="door-tile door-models" href="https://models.demos.planetek.org"><span class="door" aria-hidden="true"></span><span class="door-name">Models</span></a>
+      <a class="door-tile door-ops" href="https://ops.demos.planetek.org"><span class="door" aria-hidden="true"></span><span class="door-name">DevOps</span></a>
+    </div>
+
+    <div class="boardwalk-actions">
+      <a class="btn btn-glow" href="https://demos.planetek.org">Visit demos.planetek.org</a>
+      <a class="btn btn-ghost" href="https://github.com/dreamingr0b0ts/aws-boardwalk">Read the code on GitHub</a>
+    </div>
+    <p class="boardwalk-foot" style="margin-top:18px">All twelve run on the same patterns we sell: Terraform
+    end-to-end, keyless CI/CD, least-privilege IAM, and free-tier-first architecture.</p>
   </div>
 </section>
 
@@ -374,10 +553,10 @@
     Colorado, and Denver-area civilian agencies.</p>
 
     <div class="facts">
-      <div class="fact"><strong>1ZZA0</strong> CAGE</div>
-      <div class="fact"><strong>PHN7PHMZBKS4</strong> UEI</div>
-      <div class="fact"><strong>Active</strong> SAM.gov</div>
-      <div class="fact"><strong>Pending</strong> 8(a) Status</div>
+      <div class="fact"><strong>CAGE</strong> 1ZZA0</div>
+      <div class="fact"><strong>UEI</strong> PHN7PHMZBKS4</div>
+      <div class="fact"><strong>SAM.gov</strong> Active</div>
+      <div class="fact"><strong>8(a)</strong> Pending</div>
     </div>
 
     <ul class="checklist">
@@ -399,11 +578,18 @@
     </div>
 
     <div class="facts" aria-label="NAICS codes">
-      <div class="fact"><strong>541512</strong> Computer Systems Design · Primary</div>
+      <div class="fact"><strong>541512</strong> Systems Design · Primary</div>
       <div class="fact"><strong>541511</strong> Custom Programming</div>
       <div class="fact"><strong>541519</strong> Other Computer Related</div>
       <div class="fact"><strong>541611</strong> Mgmt Consulting</div>
     </div>
+
+    <!-- Photo: Tim Arterbury via Unsplash (unsplash.com/photos/n-zEC_AypI8),
+         Unsplash License: free commercial use, no attribution required. -->
+    <figure class="interlude">
+      <img src="/assets/dillon-dusk.webp" alt="Dusk over the Tenmile Range and a snowy valley in Summit County, Colorado, with a fiery sky" loading="lazy" decoding="async">
+      <figcaption>Dusk on the Tenmile Range, Summit County, Colorado. Planetek works from the Front Range and serves clients nationwide.</figcaption>
+    </figure>
   </div>
 </section>
 
@@ -412,14 +598,15 @@
   <div class="wrap">
     <p class="kicker">Executive Leadership</p>
     <h2>Fractional Leadership Services</h2>
-    <p class="section-lede">Flexible, expert technology leadership that scales with your business.</p>
+    <p class="section-lede">Senior technology leadership that scales with your business: a seasoned executive
+    a few days a month instead of a full-time salary.</p>
 
     <div class="cols">
       <div class="card">
         <h3>Fractional VP</h3>
-        <p>Executive-level strategic oversight for technology initiatives. We bridge the gap between business
-        objectives and technical execution, ensuring your technology investments drive measurable business outcomes.</p>
-        <ul class="tier" style="border:0;padding:14px 0 0;list-style:none;display:grid;gap:8px;font-size:14px;color:var(--ink-2)">
+        <p>Executive oversight for technology initiatives. We bridge business objectives and technical
+        execution so your technology investments produce measurable outcomes.</p>
+        <ul class="plain">
           <li>Technology strategy &amp; roadmap</li>
           <li>Team leadership &amp; mentoring</li>
           <li>Vendor management</li>
@@ -428,9 +615,9 @@
       </div>
       <div class="card">
         <h3>Fractional CTO</h3>
-        <p>World-class technical architecture and engineering leadership. We design and build scalable, secure
-        systems using industry best practices, ensuring your infrastructure supports long-term growth.</p>
-        <ul class="tier" style="border:0;padding:14px 0 0;list-style:none;display:grid;gap:8px;font-size:14px;color:var(--ink-2)">
+        <p>Technical architecture and engineering leadership. We design and build scalable, secure systems
+        with the same practices you can inspect on the boardwalk.</p>
+        <ul class="plain">
           <li>Technical architecture design</li>
           <li>Engineering team building</li>
           <li>Code review &amp; quality assurance</li>
@@ -439,10 +626,9 @@
       </div>
       <div class="card">
         <h3>Fractional CIO</h3>
-        <p>Comprehensive information systems strategy and cybersecurity leadership. We protect your critical
-        assets while enabling digital transformation, ensuring compliance with industry standards and
-        regulatory requirements.</p>
-        <ul class="tier" style="border:0;padding:14px 0 0;list-style:none;display:grid;gap:8px;font-size:14px;color:var(--ink-2)">
+        <p>Information systems strategy and cybersecurity leadership. We protect critical assets while
+        enabling digital transformation, aligned with industry and regulatory standards.</p>
+        <ul class="plain">
           <li>IT governance &amp; compliance</li>
           <li>Security &amp; risk management</li>
           <li>Digital transformation</li>
@@ -489,8 +675,8 @@
 
     <div class="tiers">
       <div class="tier">
-        <p class="price">Half-Day</p>
-        <h3>Workshop</h3>
+        <p class="tier-name">Workshop</p>
+        <h3>Half-Day</h3>
         <ul>
           <li>4-hour session</li>
           <li>Up to 20 participants</li>
@@ -501,8 +687,8 @@
       </div>
       <div class="tier hot">
         <span class="flag">Most Popular</span>
-        <p class="price">Full-Day</p>
-        <h3>Intensive</h3>
+        <p class="tier-name">Intensive</p>
+        <h3>Full-Day</h3>
         <ul>
           <li>8-hour deep dive</li>
           <li>Up to 25 participants</li>
@@ -512,8 +698,8 @@
         </ul>
       </div>
       <div class="tier">
-        <p class="price">Multi-Day</p>
-        <h3>Program</h3>
+        <p class="tier-name">Program</p>
+        <h3>Multi-Day</h3>
         <ul>
           <li>2–5 day program</li>
           <li>Enterprise teams</li>
@@ -531,9 +717,9 @@
   <div class="wrap">
     <p class="kicker">Professional Web Services</p>
     <h2>Web Design &amp; Development</h2>
-    <p class="section-lede">Professional web design and development services from a Cornell University
-    certified web developer. Modern, responsive websites built with the latest technologies, including
-    zero-maintenance static sites on AWS that cost almost nothing to run, like this one.</p>
+    <p class="section-lede">Professional web design and development from a Cornell University certified web
+    developer. Modern, responsive websites built with the latest technologies, including zero-maintenance
+    static sites on AWS that cost almost nothing to run, like this one.</p>
 
     <div class="cols">
       <div class="card">
@@ -544,7 +730,7 @@
       <div class="card">
         <h3>Modern Tech Stack</h3>
         <p>Next.js, React, TypeScript, and Tailwind CSS for applications, or lean, dependency-free sites on
-        AWS CloudFront that load instantly and score 100 on Core Web Vitals.</p>
+        AWS CloudFront that load instantly and score 100 on Lighthouse.</p>
       </div>
       <div class="card">
         <h3>Full-Service Solutions</h3>
@@ -555,8 +741,8 @@
 
     <div class="tiers">
       <div class="tier">
-        <p class="price">$3,500</p>
-        <h3>Landing Page</h3>
+        <p class="tier-name">Landing Page</p>
+        <h3>Single Page</h3>
         <ul>
           <li>Single page design</li>
           <li>Responsive layout</li>
@@ -567,19 +753,19 @@
       </div>
       <div class="tier hot">
         <span class="flag">Most Popular</span>
-        <p class="price">$8,500</p>
-        <h3>Business Website</h3>
+        <p class="tier-name">Business Website</p>
+        <h3>Up to 5 Pages</h3>
         <ul>
-          <li>Up to 5 pages</li>
           <li>Custom design</li>
           <li>CMS integration</li>
           <li>Analytics setup</li>
+          <li>SEO optimization</li>
           <li>4-week delivery</li>
         </ul>
       </div>
       <div class="tier">
-        <p class="price">Custom</p>
-        <h3>Enterprise Solution</h3>
+        <p class="tier-name">Enterprise</p>
+        <h3>Custom Scope</h3>
         <ul>
           <li>Unlimited pages</li>
           <li>Advanced features</li>
@@ -680,11 +866,12 @@
 
 </main>
 
+<div class="deck" aria-hidden="true"></div>
 <footer>
   <div class="foot-grid">
     <div>
       <p class="foot-brand">
-        <svg viewBox="0 0 1744 1360" aria-hidden="true" style="color:var(--hero-sub)"><use href="#pk-mark"/></svg>
+        <svg viewBox="0 0 1744 1360" aria-hidden="true" style="color:var(--night-sub)"><use href="#pk-mark"/></svg>
         Planetek LLC
       </p>
       <p class="foot-desc">Managed AWS services, federal IT contracting, and fractional technology leadership.
@@ -714,6 +901,7 @@
         <li><a href="tel:+13033562782">303-356-2782</a></li>
         <li><a href="/privacy">Privacy Policy</a></li>
         <li><a href="/terms">Terms of Service</a></li>
+        <li class="foot-credit">Photos: Royce Fonseca, Tim Arterbury (Unsplash)</li>
       </ul>
     </div>
   </div>

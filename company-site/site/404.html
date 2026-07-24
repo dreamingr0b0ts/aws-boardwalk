@@ -5,17 +5,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Page not found | Planetek LLC</title>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
 <meta name="robots" content="noindex">
 <style>
-  :root { --bg:#fafaf9; --ink:#1c1917; --ink-2:#57534e; --glow:#e4532f; }
-  @media (prefers-color-scheme: dark) { :root { --bg:#0c0a09; --ink:#f5f5f4; --ink-2:#d6d3d1; } }
+  @font-face { font-family: "Josefin Sans"; font-style: normal; font-weight: 700; font-display: swap;
+    src: url("/fonts/josefin-sans-latin-700-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Mulish"; font-style: normal; font-weight: 400; font-display: swap;
+    src: url("/fonts/mulish-latin-400-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Mulish"; font-style: normal; font-weight: 700; font-display: swap;
+    src: url("/fonts/mulish-latin-700-normal.woff2") format("woff2"); }
+  :root { --bg:#f5f1e6; --ink:#211f18; --ink-2:#575244; --ember:#c4401f; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#0a100f; --ink:#eef3f1; --ink-2:#c3cfcb; } }
   * { box-sizing:border-box; margin:0; }
-  body { background:var(--bg); color:var(--ink); font:16px/1.6 ui-sans-serif, system-ui, sans-serif;
+  body { background:var(--bg); color:var(--ink); font:16px/1.6 "Mulish", ui-sans-serif, system-ui, sans-serif;
          min-height:100vh; display:grid; place-items:center; padding:20px; }
   main { text-align:center; max-width:460px; }
-  h1 { font-size:56px; font-weight:800; }
+  h1 { font:700 56px/1.1 "Josefin Sans", ui-sans-serif, system-ui, sans-serif; letter-spacing:.05em; }
   p { color:var(--ink-2); margin-top:10px; }
-  a { display:inline-block; margin-top:22px; background:var(--glow); color:#fff; font-weight:700;
+  a { display:inline-block; margin-top:22px; background:var(--ember); color:#fff; font-weight:700;
       padding:11px 20px; border-radius:10px; text-decoration:none; }
 </style>
 </head>
