@@ -141,7 +141,7 @@ export default function Apply() {
                   >
                     <Grommet />
                     {active && (
-                      <span className="absolute right-3 top-3 -rotate-3 rounded-[4px] border border-glow-500/70 bg-glow-50 px-2 py-[3px] font-mono text-[10.5px] font-medium uppercase leading-none tracking-[0.12em] text-glow-700 dark:bg-glow-600/15 dark:text-glow-300">
+                      <span className="absolute right-3 top-3 rounded-[4px] border border-glow-500/70 bg-glow-50 px-2 py-[3px] font-mono text-[10.5px] font-medium uppercase leading-none tracking-[0.12em] text-glow-700 dark:bg-glow-600/15 dark:text-glow-300">
                         {tr('apply.selected')}
                       </span>
                     )}

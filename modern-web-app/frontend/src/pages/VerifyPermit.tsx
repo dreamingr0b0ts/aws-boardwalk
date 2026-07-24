@@ -58,7 +58,7 @@ export default function VerifyPermit() {
 
       {error && (
         <div className="mt-8 rounded-xl border-2 border-rose-500/60 bg-rose-50 p-6 text-rose-900 dark:border-rose-700 dark:bg-rose-950/50 dark:text-rose-200">
-          <p className="-rotate-1 inline-block rounded-[4px] border-2 border-current px-3 py-1.5 font-mono text-sm font-medium uppercase tracking-[0.14em]">
+          <p className="inline-block rounded-[4px] border-2 border-current px-3 py-1.5 font-mono text-sm font-medium uppercase tracking-[0.14em]">
             {error.status === 404 ? t('verify.notFoundStamp') : t('verify.failedStamp')}
           </p>
           <p className="mt-3 text-sm">
@@ -72,7 +72,7 @@ export default function VerifyPermit() {
       {data && (
         <>
           <div className={`mt-8 rounded-xl border-2 p-6 ${VERDICT_CLS[data.record.status]}`}>
-            <p className="-rotate-1 inline-block rounded-[4px] border-2 border-current px-3 py-1.5 font-mono text-sm font-medium uppercase tracking-[0.14em]">
+            <p className="inline-block rounded-[4px] border-2 border-current px-3 py-1.5 font-mono text-sm font-medium uppercase tracking-[0.14em]">
               {t(VERDICT_LABEL[data.record.status])}
             </p>
             <p className="mt-3 text-sm">{t(VERDICT_BLURB[data.record.status])}</p>
