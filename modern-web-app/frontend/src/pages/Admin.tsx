@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { api } from '../lib/api';
-import type { Application, AppStatus, Attachment, MetricsResponse, PermitType } from '../types';
+import type { Application, AppStatus, Attachment, Inspection, MetricsResponse, PermitType } from '../types';
 import { STATUS_LABEL } from '../types';
 import {
   Button,
@@ -9,6 +9,7 @@ import {
   EmptyState,
   ErrorNote,
   Field,
+  InspectionChip,
   Input,
   KpiTile,
   Modal,
@@ -22,9 +23,10 @@ import {
 import { MonthlyTrend, StatusBreakdown, TypeBar } from '../components/Charts';
 
 type Tab = 'queue' | 'metrics' | 'types';
-type Filter = AppStatus | 'all';
+type Filter = AppStatus | 'all' | 'inspection_due';
 
-const FILTERS: Filter[] = ['all', 'submitted', 'under_review', 'approved', 'denied'];
+const FILTERS: Filter[] = ['all', 'submitted', 'under_review', 'approved', 'denied', 'inspection_due'];
+const FILTER_LABEL: Record<string, string> = { all: 'All', inspection_due: 'Inspections' };
 
 export default function Admin() {
   const [tab, setTab] = useState<Tab>('queue');
@@ -78,12 +80,17 @@ function QueueTab() {
 
   const load = useCallback(async (f: Filter) => {
     setApps(null);
-    const query = f === 'all' ? '' : `?status=${f}`;
+    // "Inspections" is a working view over approved permits, not a status.
+    const query = f === 'all' ? '' : f === 'inspection_due' ? '?status=approved' : `?status=${f}`;
     const [list, metrics] = await Promise.all([
       api<{ applications: Application[] }>(`/admin/applications${query}`, { auth: true }),
       api<MetricsResponse>('/admin/metrics', { auth: true }),
     ]);
-    setApps(list.applications);
+    setApps(
+      f === 'inspection_due'
+        ? list.applications.filter((a) => a.inspection && a.inspection !== 'passed')
+        : list.applications
+    );
     if (metrics.current) setCounts(metrics.current.counts);
   }, []);
 
@@ -97,7 +104,7 @@ function QueueTab() {
     <>
       <div className="flex flex-wrap gap-2">
         {FILTERS.map((f) => {
-          const n = f === 'all' ? total : counts?.[f];
+          const n = f === 'all' ? total : f === 'inspection_due' ? undefined : counts?.[f];
           return (
             <button
               key={f}
@@ -106,7 +113,7 @@ function QueueTab() {
                 filter === f ? 'bg-pine-800 text-white dark:bg-pine-600' : 'border border-stone-300 bg-white text-stone-600 hover:border-pine-400 dark:border-stone-600 dark:bg-stone-900 dark:text-stone-400'
               }`}
             >
-              {f === 'all' ? 'All' : STATUS_LABEL[f]}
+              {FILTER_LABEL[f] ?? STATUS_LABEL[f as AppStatus]}
               {n !== null && n !== undefined && <span className="ml-1.5 opacity-70">{n}</span>}
             </button>
           );
@@ -138,14 +145,19 @@ function QueueTab() {
                     <td className="px-4 py-3 text-stone-600 dark:text-stone-400">{app.typeName}</td>
                     <td className="px-4 py-3 font-mono text-xs text-stone-500 dark:text-stone-400">{fmtDate(app.submittedAt)}</td>
                     <td className="px-4 py-3">
-                      <StatusChip status={app.status} />
+                      <span className="inline-flex flex-wrap items-center gap-1.5">
+                        <StatusChip status={app.status} />
+                        {app.inspection && app.inspection !== 'passed' && <InspectionChip state={app.inspection} />}
+                      </span>
                     </td>
                     <td className="px-4 py-3 text-right">
                       <button
                         onClick={() => setSelected(app)}
                         className="rounded-md px-3 py-1 text-sm font-semibold text-pine-700 hover:bg-pine-50 dark:text-pine-300 dark:hover:bg-pine-900/40"
                       >
-                        {app.status === 'submitted' || app.status === 'under_review' ? 'Review' : 'View'}
+                        {app.status === 'submitted' || app.status === 'under_review' || (app.inspection && app.inspection !== 'passed')
+                          ? 'Review'
+                          : 'View'}
                       </button>
                     </td>
                   </tr>
@@ -164,13 +176,188 @@ function QueueTab() {
             setSelected(null);
             load(filter).catch((e: Error) => setError(e.message));
           }}
+          onChanged={() => {
+            load(filter).catch((e: Error) => setError(e.message));
+          }}
         />
       )}
     </>
   );
 }
 
-function ReviewModal({ app, onClose, onDone }: { app: Application; onClose: () => void; onDone: () => void }) {
+/**
+ * The inspection ledger inside the review modal: schedule when the phase is
+ * open (required/failed), record pass/fail on the scheduled visit. A pass
+ * finals the permit; a fail loops back to scheduling.
+ */
+function InspectionSection({ app, onChanged }: { app: Application; onChanged: () => void }) {
+  const defaultDate = new Date(Date.now() + 3 * 86400_000).toISOString().slice(0, 10);
+  const [state, setState] = useState(app.inspection!);
+  const [list, setList] = useState<Inspection[] | null>(null);
+  const [date, setDate] = useState(defaultDate);
+  const [note, setNote] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  const loadInsp = useCallback(() => {
+    void api<{ inspections: Inspection[] }>(`/admin/applications/${app.id}/inspections`, { auth: true })
+      .then((r) => setList(r.inspections))
+      .catch(() => setList([]));
+  }, [app.id]);
+
+  useEffect(loadInsp, [loadInsp]);
+
+  async function act(fn: () => Promise<unknown>, next: typeof state) {
+    setBusy(true);
+    setError('');
+    try {
+      await fn();
+      setState(next);
+      setNote('');
+      loadInsp();
+      onChanged();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Action failed');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const scheduled = list?.filter((i) => i.result === 'scheduled').at(-1);
+
+  return (
+    <div className="mt-5 border-t border-stone-200 pt-4 dark:border-stone-800">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-stone-500 dark:text-stone-400">
+          Final inspection
+        </h3>
+        <InspectionChip state={state} />
+      </div>
+
+      {list && list.length > 0 && (
+        <ul className="mt-3 space-y-1 text-sm">
+          {list.map((insp) => (
+            <li key={insp.n} className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+              <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-stone-400">
+                Visit {String(insp.n).padStart(2, '0')}
+              </span>
+              <span className="text-stone-700 dark:text-stone-300">{fmtDate(`${insp.scheduledFor}T12:00:00Z`)}</span>
+              <span
+                className={`font-mono text-[10.5px] font-medium uppercase tracking-[0.12em] ${
+                  insp.result === 'passed'
+                    ? 'text-emerald-700 dark:text-emerald-300'
+                    : insp.result === 'failed'
+                      ? 'text-rose-700 dark:text-rose-300'
+                      : 'text-amber-700 dark:text-amber-300'
+                }`}
+              >
+                {insp.result}
+              </span>
+              {insp.note && <span className="w-full text-xs text-stone-500 dark:text-stone-400">{insp.note}</span>}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {error && <div className="mt-3"><ErrorNote message={error} /></div>}
+
+      {(state === 'required' || state === 'failed') && (
+        <div className="mt-3 flex flex-wrap items-end gap-3">
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold text-stone-600 dark:text-stone-400">
+              {state === 'failed' ? 'Reinspection date' : 'Inspection date'}
+            </span>
+            <input
+              type="date"
+              value={date}
+              min={new Date().toISOString().slice(0, 10)}
+              onChange={(e) => setDate(e.target.value)}
+              className="rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-800 dark:border-stone-700 dark:bg-stone-950 dark:text-stone-100"
+            />
+          </label>
+          <Button
+            disabled={busy || !date}
+            onClick={() =>
+              void act(
+                () =>
+                  api(`/admin/applications/${app.id}/inspections`, {
+                    method: 'POST',
+                    auth: true,
+                    body: { scheduledFor: date },
+                  }),
+                'scheduled'
+              )
+            }
+          >
+            {state === 'failed' ? 'Schedule reinspection' : 'Schedule inspection'}
+          </Button>
+        </div>
+      )}
+
+      {state === 'scheduled' && scheduled && (
+        <div className="mt-3">
+          <Field label="Inspector's note" hint="Required for a failed visit; recorded on the applicant-visible timeline.">
+            <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="What the inspector found on site" />
+          </Field>
+          <div className="mt-3 flex flex-wrap justify-end gap-2">
+            <Button
+              variant="danger"
+              disabled={busy || note.trim().length < 5}
+              onClick={() =>
+                void act(
+                  () =>
+                    api(`/admin/applications/${app.id}/inspections/${scheduled.n}/result`, {
+                      method: 'POST',
+                      auth: true,
+                      body: { result: 'fail', note: note.trim() },
+                    }),
+                  'failed'
+                )
+              }
+            >
+              Record fail
+            </Button>
+            <Button
+              variant="success"
+              disabled={busy}
+              onClick={() =>
+                void act(
+                  () =>
+                    api(`/admin/applications/${app.id}/inspections/${scheduled.n}/result`, {
+                      method: 'POST',
+                      auth: true,
+                      body: { result: 'pass', note: note.trim() || undefined },
+                    }),
+                  'passed'
+                )
+              }
+            >
+              Record pass
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {state === 'passed' && (
+        <p className="mt-3 text-sm text-emerald-800 dark:text-emerald-300">
+          Permit closed out. The certificate and public register now show the completed inspection.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function ReviewModal({
+  app,
+  onClose,
+  onDone,
+  onChanged,
+}: {
+  app: Application;
+  onClose: () => void;
+  onDone: () => void;
+  onChanged: () => void;
+}) {
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -257,6 +444,8 @@ function ReviewModal({ app, onClose, onDone }: { app: Application; onClose: () =
 
       {error && <div className="mt-4"><ErrorNote message={error} /></div>}
 
+      {app.status === 'approved' && app.inspection && <InspectionSection app={app} onChanged={onChanged} />}
+
       {actionable && (
         <div className="mt-5 border-t border-stone-200 pt-4 dark:border-stone-800">
           <Field label="Reviewer note" hint="Included in the applicant-visible timeline.">
@@ -320,7 +509,7 @@ function MetricsTab() {
 
 // ---------------------------------------------------------------------------
 
-const EMPTY_TYPE: PermitType = { slug: '', name: '', description: '', category: 'Building', fee: 100, processingDays: 14, active: true };
+const EMPTY_TYPE: PermitType = { slug: '', name: '', description: '', category: 'Building', fee: 100, processingDays: 14, active: true, requiresInspection: false };
 
 function TypesTab() {
   const [types, setTypes] = useState<PermitType[] | null>(null);
@@ -477,6 +666,15 @@ function TypeModal({ type, onClose, onDone }: { type: PermitType; onClose: () =>
             className="size-4 accent-pine-700"
           />
           Visible to the public
+        </label>
+        <label className="flex items-center gap-2 text-sm font-semibold text-stone-700 dark:text-stone-300">
+          <input
+            type="checkbox"
+            checked={form.requiresInspection ?? false}
+            onChange={(e) => setForm({ ...form, requiresInspection: e.target.checked })}
+            className="size-4 accent-pine-700"
+          />
+          Requires a final inspection after approval
         </label>
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="outline" onClick={onClose}>

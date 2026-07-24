@@ -58,6 +58,8 @@ export const handler = router({
         status: a.status,
         submittedAt: a.submittedAt,
         decidedAt: a.decidedAt ?? null,
+        inspection: a.inspection ?? null,
+        closedAt: a.closedAt ?? null,
       },
       checkedAt: new Date().toISOString(),
     });

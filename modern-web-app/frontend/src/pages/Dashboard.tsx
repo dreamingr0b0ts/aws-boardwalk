@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import type { Application } from '../types';
-import { Card, CategoryTile, EmptyState, ErrorNote, KpiTile, Spinner, StatusChip, WindowPlate, fmtDate } from '../components/Ui';
+import { Card, CategoryTile, EmptyState, ErrorNote, InspectionChip, KpiTile, Spinner, StatusChip, WindowPlate, fmtDate } from '../components/Ui';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -66,9 +66,12 @@ export default function Dashboard() {
                   <span className="font-mono text-xs text-pine-700 dark:text-pine-300">{app.id}</span> · {app.address}
                 </p>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
                 <span className="font-mono text-xs text-stone-500 dark:text-stone-400">{fmtDate(app.submittedAt)}</span>
-                <StatusChip status={app.status} />
+                <span className="inline-flex flex-wrap items-center gap-1.5">
+                  <StatusChip status={app.status} />
+                  {app.inspection && app.inspection !== 'passed' && <InspectionChip state={app.inspection} />}
+                </span>
               </div>
             </Card>
           </Link>

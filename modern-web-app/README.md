@@ -15,13 +15,14 @@
 | Data tier | DynamoDB single-table design with two GSIs, transactions, materialized counters |
 | Direct-to-S3 uploads | Supporting documents: presigned POST from the browser (4 MB / type / count caps enforced in the POST policy), presigned-GET downloads, private bucket |
 | Public record verification | Printable permit certificate with a QR code that resolves to `/verify/<id>`, checked live against the register with no sign-in |
+| Multi-stage lifecycle | Inspection-required types keep going after approval: schedule, pass or fail, reinspection loop, close-out; the certificate and public register track the standing |
 | Operational hygiene | Nightly automated reset (table, uploads bucket, stranger accounts), API throttling, security headers, PITR |
 
 ## The three experiences
 
 - **Guest (no sign-in):** browse the permit catalog, see the live transparency dashboard (`/stats`), verify any permit number against the live register (`/verify/<id>`, the certificate QR target).
 - **Citizen** (`citizen@demo.planetek.org` / `Alpenglow-Citizen1!`): submit applications via a 3-step wizard, attach site plans (PDF/PNG/JPEG straight to S3), track status through a visible event timeline, get counter-bell notifications on staff actions, and print the permit certificate and decision letter once decided.
-- **Admin** (`admin@demo.planetek.org` / `Alpenglow-Admin1!`): work the review queue (start review / approve / deny with notes), open submitted documents, see operational metrics, manage the permit catalog.
+- **Admin** (`admin@demo.planetek.org` / `Alpenglow-Admin1!`): work the review queue (start review / approve / deny with notes), open submitted documents, run the inspection ledger (schedule visits, record pass/fail, reinspection loop) from the Inspections view, see operational metrics, manage the permit catalog.
 
 Demo credentials are intentionally public and printed on the sign-in page. A nightly EventBridge-scheduled Lambda wipes the table, reseeds deterministic demo data, re-asserts the demo accounts, and deletes any stranger sign-ups.
 

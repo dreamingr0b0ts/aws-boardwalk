@@ -123,6 +123,28 @@ export default function Certificate() {
           </div>
         )}
 
+        {app.inspection && app.inspection !== 'passed' && (
+          <div className="mx-auto mt-6 max-w-xl rounded-lg border-2 border-amber-500/70 bg-amber-50 px-5 py-4">
+            <p className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-amber-800">
+              Final inspection pending
+            </p>
+            <p className="mt-1.5 text-sm text-amber-900">
+              Work may begin under this permit, but it is not closed out until the final inspection passes.
+              The register check below reports the current inspection standing.
+            </p>
+          </div>
+        )}
+        {app.inspection === 'passed' && (
+          <div className="mx-auto mt-6 max-w-xl rounded-lg border-2 border-emerald-600/60 bg-emerald-50 px-5 py-4">
+            <p className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-emerald-800">
+              Work finaled{app.closedAt ? ` · ${fmtDate(app.closedAt)}` : ''}
+            </p>
+            <p className="mt-1.5 text-sm text-emerald-900">
+              The final inspection passed and this permit is closed out on the city register.
+            </p>
+          </div>
+        )}
+
         <div className="mx-auto mt-10 flex max-w-xl items-center gap-6 border-t border-stone-200 pt-8">
           {qr && <img src={qr} alt={`QR code linking to ${verifyUrl}`} className="size-28 shrink-0" />}
           <div className="text-sm text-stone-600">

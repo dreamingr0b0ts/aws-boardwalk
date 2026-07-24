@@ -137,17 +137,27 @@ export const handler = router({
     const id = pathParam(event, 'id');
     const { app } = await ownApplication(event, id);
 
-    const events = await ddb.send(
-      new QueryCommand({
-        TableName: TABLE,
-        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
-        ExpressionAttributeValues: { ':pk': `APP#${id}`, ':sk': 'EVENT#' },
-      })
-    );
+    const [events, inspections] = await Promise.all([
+      ddb.send(
+        new QueryCommand({
+          TableName: TABLE,
+          KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
+          ExpressionAttributeValues: { ':pk': `APP#${id}`, ':sk': 'EVENT#' },
+        })
+      ),
+      ddb.send(
+        new QueryCommand({
+          TableName: TABLE,
+          KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
+          ExpressionAttributeValues: { ':pk': `APP#${id}`, ':sk': 'INSP#' },
+        })
+      ),
+    ]);
 
     return json(200, {
       application: publicView(app),
       events: (events.Items ?? []).map(publicView),
+      inspections: (inspections.Items ?? []).map(publicView),
     });
   },
 

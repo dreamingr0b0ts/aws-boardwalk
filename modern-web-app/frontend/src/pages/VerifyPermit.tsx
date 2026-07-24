@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api, ApiError } from '../lib/api';
 import type { AppStatus, VerifyRecord } from '../types';
-import { Card, Spinner, StatusChip, WindowPlate, fmtDate } from '../components/Ui';
+import { Card, InspectionChip, Spinner, StatusChip, WindowPlate, fmtDate } from '../components/Ui';
 
 // Public field verification: the QR code on a printed certificate lands here.
 // No sign-in — an inspector at the job site checks the register and gets a
@@ -115,6 +115,19 @@ export default function VerifyPermit() {
                   <StatusChip status={data.record.status} />
                 </dd>
               </div>
+              {data.record.inspection && (
+                <div className="grid grid-cols-3 gap-4 py-3">
+                  <dt className="font-mono text-[10.5px] font-medium uppercase tracking-[0.14em] text-stone-500 dark:text-stone-400 pt-0.5">
+                    Final inspection
+                  </dt>
+                  <dd className="col-span-2 flex flex-wrap items-center gap-2">
+                    <InspectionChip state={data.record.inspection} />
+                    {data.record.inspection === 'passed' && data.record.closedAt && (
+                      <span className="text-sm text-stone-600 dark:text-stone-300">closed out {fmtDate(data.record.closedAt)}</span>
+                    )}
+                  </dd>
+                </div>
+              )}
             </dl>
           </Card>
 

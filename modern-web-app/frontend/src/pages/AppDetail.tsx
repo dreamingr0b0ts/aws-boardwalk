@@ -1,15 +1,21 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api } from '../lib/api';
-import type { Application, AppEvent, AppStatus, Attachment } from '../types';
+import type { Application, AppEvent, AppStatus, Attachment, EventTone, Inspection } from '../types';
 import { STATUS_LABEL } from '../types';
-import { Card, ErrorNote, Spinner, StatusChip, WindowPlate, fmtDate } from '../components/Ui';
+import { Card, ErrorNote, InspectionChip, Spinner, StatusChip, WindowPlate, fmtDate } from '../components/Ui';
 
 const DOT: Record<AppStatus, string> = {
   submitted: 'bg-stone-400',
   under_review: 'bg-amber-500',
   approved: 'bg-emerald-600',
   denied: 'bg-rose-600',
+};
+
+const TONE_DOT: Record<EventTone, string> = {
+  ok: 'bg-emerald-600',
+  warn: 'bg-amber-500',
+  bad: 'bg-rose-600',
 };
 
 const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
@@ -42,7 +48,7 @@ function DocIcon({ contentType }: { contentType: string }) {
 
 export default function AppDetail() {
   const { id } = useParams<{ id: string }>();
-  const [data, setData] = useState<{ application: Application; events: AppEvent[] } | null>(null);
+  const [data, setData] = useState<{ application: Application; events: AppEvent[]; inspections: Inspection[] } | null>(null);
   const [attachments, setAttachments] = useState<Attachment[] | null>(null);
   const [error, setError] = useState('');
   const [uploadError, setUploadError] = useState('');
@@ -51,7 +57,7 @@ export default function AppDetail() {
 
   const refresh = useCallback(() => {
     if (!id) return;
-    void api<{ application: Application; events: AppEvent[] }>(`/me/applications/${id}`, { auth: true })
+    void api<{ application: Application; events: AppEvent[]; inspections: Inspection[] }>(`/me/applications/${id}`, { auth: true })
       .then(setData)
       .catch((e: Error) => setError(e.message));
     void api<{ attachments: Attachment[] }>(`/me/applications/${id}/attachments`, { auth: true })
@@ -101,8 +107,18 @@ export default function AppDetail() {
   }
   if (!data) return <Spinner label="Loading application…" />;
 
-  const { application: app, events } = data;
+  const { application: app, events, inspections } = data;
   const open = app.status === 'submitted' || app.status === 'under_review';
+  const nextInspection = inspections.filter((x) => x.result === 'scheduled').at(-1);
+
+  const inspectionSummary: Record<string, string> = {
+    required: 'The permit office will contact you to schedule the final inspection.',
+    scheduled: nextInspection
+      ? `Final inspection scheduled for ${fmtDate(`${nextInspection.scheduledFor}T12:00:00Z`)}. Have the work site accessible.`
+      : 'Final inspection scheduled.',
+    failed: 'Correct the items in the inspector\'s note, then the office will schedule a reinspection.',
+    passed: `Final inspection passed${app.closedAt ? ` on ${fmtDate(app.closedAt)}` : ''}. The permit is closed out.`,
+  };
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
@@ -158,6 +174,42 @@ export default function AppDetail() {
         </div>
       )}
 
+      {app.inspection && (
+        <Card className="mt-6 p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-stone-500 dark:text-stone-400">
+              Final inspection
+            </h2>
+            <InspectionChip state={app.inspection} />
+          </div>
+          <p className="mt-3 text-sm text-stone-700 dark:text-stone-300">{inspectionSummary[app.inspection]}</p>
+          {inspections.length > 0 && (
+            <ul className="mt-4 divide-y divide-stone-100 dark:divide-stone-800">
+              {inspections.map((insp) => (
+                <li key={insp.n} className="flex flex-wrap items-baseline gap-x-4 gap-y-1 py-2.5 text-sm">
+                  <span className="font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-stone-400">
+                    Visit {String(insp.n).padStart(2, '0')}
+                  </span>
+                  <span className="text-stone-700 dark:text-stone-300">{fmtDate(`${insp.scheduledFor}T12:00:00Z`)}</span>
+                  <span
+                    className={`font-mono text-[10.5px] font-medium uppercase tracking-[0.12em] ${
+                      insp.result === 'passed'
+                        ? 'text-emerald-700 dark:text-emerald-300'
+                        : insp.result === 'failed'
+                          ? 'text-rose-700 dark:text-rose-300'
+                          : 'text-amber-700 dark:text-amber-300'
+                    }`}
+                  >
+                    {insp.result}
+                  </span>
+                  {insp.note && <span className="w-full text-xs text-stone-500 dark:text-stone-400 sm:w-auto sm:flex-1">{insp.note}</span>}
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      )}
+
       <div className="mt-6 grid gap-6 md:grid-cols-5">
         <Card className="p-6 md:col-span-3">
           <h2 className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-stone-500 dark:text-stone-400">Application details</h2>
@@ -185,8 +237,8 @@ export default function AppDetail() {
             {events.map((ev, i) => (
               <li key={`${ev.at}-${i}`} className="relative pb-6 pl-6 last:pb-0">
                 {i < events.length - 1 && <span className="absolute left-[5px] top-3 h-full w-px bg-stone-200 dark:bg-stone-700" />}
-                <span className={`absolute left-0 top-1.5 size-2.5 rotate-45 rounded-[2px] ${DOT[ev.status]}`} />
-                <p className="text-sm font-bold text-pine-950 dark:text-pine-100">{STATUS_LABEL[ev.status]}</p>
+                <span className={`absolute left-0 top-1.5 size-2.5 rotate-45 rounded-[2px] ${ev.tone ? TONE_DOT[ev.tone] : DOT[ev.status]}`} />
+                <p className="text-sm font-bold text-pine-950 dark:text-pine-100">{ev.title ?? STATUS_LABEL[ev.status]}</p>
                 <p className="font-mono text-[11px] text-stone-400">
                   {fmtDate(ev.at)} · {ev.actor}
                 </p>

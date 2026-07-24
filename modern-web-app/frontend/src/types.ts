@@ -1,4 +1,6 @@
 export type AppStatus = 'submitted' | 'under_review' | 'approved' | 'denied';
+export type InspectionState = 'required' | 'scheduled' | 'passed' | 'failed';
+export type EventTone = 'ok' | 'warn' | 'bad';
 
 export interface PermitType {
   slug: string;
@@ -8,6 +10,7 @@ export interface PermitType {
   fee: number;
   processingDays: number;
   active?: boolean;
+  requiresInspection?: boolean;
 }
 
 export interface Application {
@@ -23,6 +26,19 @@ export interface Application {
   submittedAt: string;
   decidedAt?: string;
   decisionNote?: string;
+  inspection?: InspectionState;
+  closedAt?: string;
+}
+
+export interface Inspection {
+  n: number;
+  result: 'scheduled' | 'passed' | 'failed';
+  scheduledFor: string;
+  scheduledAt: string;
+  scheduledBy: string;
+  inspector?: string;
+  recordedAt?: string;
+  note?: string | null;
 }
 
 export interface AppEvent {
@@ -30,6 +46,9 @@ export interface AppEvent {
   at: string;
   actor: string;
   note?: string | null;
+  /** Optional override for non-status events (documents, inspections). */
+  title?: string;
+  tone?: EventTone;
 }
 
 export interface Attachment {
@@ -47,6 +66,8 @@ export interface AppNotification {
   status: AppStatus;
   note?: string | null;
   at: string;
+  title?: string;
+  tone?: EventTone;
 }
 
 export interface VerifyRecord {
@@ -58,7 +79,16 @@ export interface VerifyRecord {
   status: AppStatus;
   submittedAt: string;
   decidedAt?: string | null;
+  inspection?: InspectionState | null;
+  closedAt?: string | null;
 }
+
+export const INSPECTION_LABEL: Record<InspectionState, string> = {
+  required: 'Inspection due',
+  scheduled: 'Inspection scheduled',
+  passed: 'Finaled',
+  failed: 'Reinspection required',
+};
 
 export interface CurrentStats {
   counts: Record<AppStatus, number>;

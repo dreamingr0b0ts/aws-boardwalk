@@ -1,6 +1,6 @@
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, TextareaHTMLAttributes } from 'react';
-import type { AppStatus } from '../types';
-import { STATUS_LABEL } from '../types';
+import type { AppStatus, InspectionState } from '../types';
+import { INSPECTION_LABEL, STATUS_LABEL } from '../types';
 
 // ---------------------------------------------------------------------------
 // Small shared UI kit — one place for the design language, light and dark.
@@ -216,6 +216,29 @@ export function StatusChip({ status }: { status: AppStatus }) {
       className={`inline-flex items-center rounded-[4px] border px-2 py-[3px] font-mono text-[10.5px] font-medium uppercase leading-none tracking-[0.12em] ${STATUS_STYLES[status]}`}
     >
       {STATUS_LABEL[status]}
+    </span>
+  );
+}
+
+/* The inspection phase wears the same ink-stamp voice as status, one size
+   down. Passed reads as the close-out; everything else is an open item. */
+const INSPECTION_STYLES: Record<InspectionState, string> = {
+  required:
+    'bg-amber-50 text-amber-800 border-amber-500/60 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700',
+  scheduled:
+    'bg-amber-50 text-amber-800 border-amber-500/60 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700',
+  failed:
+    'bg-rose-50 text-rose-800 border-rose-500/60 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-700',
+  passed:
+    'bg-emerald-50 text-emerald-800 border-emerald-600/50 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-700',
+};
+
+export function InspectionChip({ state }: { state: InspectionState }) {
+  return (
+    <span
+      className={`inline-flex items-center rounded-[4px] border px-1.5 py-[2px] font-mono text-[10px] font-medium uppercase leading-none tracking-[0.1em] ${INSPECTION_STYLES[state]}`}
+    >
+      {INSPECTION_LABEL[state]}
     </span>
   );
 }

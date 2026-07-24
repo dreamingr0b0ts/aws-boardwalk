@@ -19,7 +19,12 @@ export interface PermitType {
   fee: number;
   processingDays: number;
   active: boolean;
+  /** Approved permits of this type need a final inspection before close-out. */
+  requiresInspection?: boolean;
 }
+
+/** Denormalized rollup on the application META row. */
+export type InspectionState = 'required' | 'scheduled' | 'passed' | 'failed';
 
 export interface Application {
   id: string;

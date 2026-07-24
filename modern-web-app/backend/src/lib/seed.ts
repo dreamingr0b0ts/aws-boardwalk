@@ -17,14 +17,14 @@ function mulberry32(seed: number) {
 }
 
 export const PERMIT_TYPES: PermitType[] = [
-  { slug: 'solar-residential', name: 'Residential Solar Installation', category: 'Building', fee: 185, processingDays: 14, active: true, description: 'Rooftop or ground-mount photovoltaic systems on residential property, up to 25kW.' },
-  { slug: 'deck-addition', name: 'Deck & Patio Construction', category: 'Building', fee: 210, processingDays: 14, active: true, description: 'New decks, patios, and porch additions over 30 inches above grade or 200 sq ft.' },
-  { slug: 'food-truck', name: 'Mobile Food Vendor License', category: 'Business', fee: 250, processingDays: 10, active: true, description: 'Annual license to operate a mobile food unit within city limits, including health inspection.' },
-  { slug: 'sign-permit', name: 'Commercial Sign Permit', category: 'Business', fee: 120, processingDays: 7, active: true, description: 'Wall, monument, and projecting signs for commercial storefronts.' },
-  { slug: 'home-business', name: 'Home Occupation Permit', category: 'Business', fee: 65, processingDays: 5, active: true, description: 'Operate a low-impact business from a residential address.' },
-  { slug: 'special-event', name: 'Special Event Permit', category: 'Events', fee: 95, processingDays: 21, active: true, description: 'Festivals, races, markets, and gatherings of 75+ people on public property.' },
-  { slug: 'film-permit', name: 'Film & Photography Permit', category: 'Events', fee: 150, processingDays: 10, active: true, description: 'Commercial filming or photography on city property or requiring street closures.' },
-  { slug: 'short-term-rental', name: 'Short-Term Rental License', category: 'Housing', fee: 340, processingDays: 30, active: true, description: 'Annual license to rent a dwelling for stays under 30 days.' },
+  { slug: 'solar-residential', name: 'Residential Solar Installation', category: 'Building', fee: 185, processingDays: 14, active: true, requiresInspection: true, description: 'Rooftop or ground-mount photovoltaic systems on residential property, up to 25kW.' },
+  { slug: 'deck-addition', name: 'Deck & Patio Construction', category: 'Building', fee: 210, processingDays: 14, active: true, requiresInspection: true, description: 'New decks, patios, and porch additions over 30 inches above grade or 200 sq ft.' },
+  { slug: 'food-truck', name: 'Mobile Food Vendor License', category: 'Business', fee: 250, processingDays: 10, active: true, requiresInspection: true, description: 'Annual license to operate a mobile food unit within city limits, including health inspection.' },
+  { slug: 'sign-permit', name: 'Commercial Sign Permit', category: 'Business', fee: 120, processingDays: 7, active: true, requiresInspection: false, description: 'Wall, monument, and projecting signs for commercial storefronts.' },
+  { slug: 'home-business', name: 'Home Occupation Permit', category: 'Business', fee: 65, processingDays: 5, active: true, requiresInspection: false, description: 'Operate a low-impact business from a residential address.' },
+  { slug: 'special-event', name: 'Special Event Permit', category: 'Events', fee: 95, processingDays: 21, active: true, requiresInspection: false, description: 'Festivals, races, markets, and gatherings of 75+ people on public property.' },
+  { slug: 'film-permit', name: 'Film & Photography Permit', category: 'Events', fee: 150, processingDays: 10, active: true, requiresInspection: false, description: 'Commercial filming or photography on city property or requiring street closures.' },
+  { slug: 'short-term-rental', name: 'Short-Term Rental License', category: 'Housing', fee: 340, processingDays: 30, active: true, requiresInspection: true, description: 'Annual license to rent a dwelling for stays under 30 days, including a safety inspection.' },
 ];
 
 const FIRST = ['Jordan', 'Riley', 'Casey', 'Avery', 'Quinn', 'Morgan', 'Rowan', 'Sage', 'Elena', 'Marcus', 'Priya', 'Dana', 'Felix', 'Iris', 'Hugo', 'Naomi', 'Leo', 'Wren', 'Omar', 'Tessa', 'Silas', 'June', 'Cole', 'Vera'];
@@ -139,7 +139,8 @@ export function buildSeed(now: Date, demoCitizen: DemoCitizen): SeedRecords {
     }
     if (status === 'approved' || status === 'denied') {
       const procDays = Math.min(between(3, type.processingDays + 6), daysAgo);
-      const decidedAt = new Date(submitted.getTime() + procDays * 86400_000).toISOString();
+      const decided = new Date(submitted.getTime() + procDays * 86400_000);
+      const decidedAt = decided.toISOString();
       const note = status === 'approved' ? pick(NOTES_APPROVE) : pick(NOTES_DENY);
       app.decidedAt = decidedAt;
       app.decisionNote = note;
@@ -149,6 +150,38 @@ export function buildSeed(now: Date, demoCitizen: DemoCitizen): SeedRecords {
       }
       processingSum += procDays;
       processingN += 1;
+
+      // Inspection phase: a deterministic spread so the queue always shows
+      // every state. The demo citizen's own permit gets an upcoming
+      // inspection, so the signed-in story has a next step.
+      if (status === 'approved' && type.requiresInspection) {
+        const daysSinceDecision = daysAgo - procDays;
+        let phase = own ? 'scheduled' : (['passed', 'required', 'scheduled', 'failed'] as const)[i % 4];
+        if ((phase === 'passed' || phase === 'failed') && daysSinceDecision < 8) phase = 'required';
+        app.inspection = phase;
+
+        const day = (d: Date) => d.toISOString().slice(0, 10);
+        const prettyDay = (d: Date) =>
+          d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+
+        if (phase === 'scheduled') {
+          const inspDate = new Date(now.getTime() + between(2, 10) * 86400_000);
+          const schedAt = new Date(Math.min(decided.getTime() + 86400_000, now.getTime())).toISOString();
+          items.push({ PK: `APP#${id}`, SK: 'INSP#01', entity: 'Inspection', n: 1, result: 'scheduled', scheduledFor: day(inspDate), scheduledAt: schedAt, scheduledBy: 'staff@alpenglow.gov', note: null });
+          events.push({ PK: `APP#${id}`, SK: `EVENT#${schedAt}#3`, entity: 'Event', status: 'approved', at: schedAt, actor: 'staff@alpenglow.gov', note: null, title: `Final inspection scheduled for ${prettyDay(inspDate)}`, tone: 'warn' });
+          if (own) {
+            items.push({ PK: `USER#${demoCitizen.sub}`, SK: `NOTIF#${schedAt}#${id}`, entity: 'Notification', appId: id, typeName: type.name, status: 'approved', note: null, at: schedAt, title: `Final inspection scheduled for ${prettyDay(inspDate)}`, tone: 'warn' });
+          }
+        } else if (phase === 'passed' || phase === 'failed') {
+          const inspDate = new Date(decided.getTime() + between(3, 7) * 86400_000);
+          const recAt = new Date(inspDate.getTime() + 6 * 3600_000).toISOString();
+          const passed = phase === 'passed';
+          const inspNote = passed ? 'All work matches the approved plans.' : 'Railing height short of code; correct and call for reinspection.';
+          items.push({ PK: `APP#${id}`, SK: 'INSP#01', entity: 'Inspection', n: 1, result: phase, scheduledFor: day(inspDate), scheduledAt: decidedAt, scheduledBy: 'staff@alpenglow.gov', inspector: 'inspector@alpenglow.gov', recordedAt: recAt, note: inspNote });
+          events.push({ PK: `APP#${id}`, SK: `EVENT#${recAt}#3`, entity: 'Event', status: 'approved', at: recAt, actor: 'inspector@alpenglow.gov', note: inspNote, title: passed ? 'Final inspection passed. Permit closed out.' : 'Inspection failed. Correct and schedule a reinspection.', tone: passed ? 'ok' : 'bad' });
+          if (passed) app.closedAt = recAt;
+        }
+      }
     }
 
     counts[status] += 1;

@@ -102,6 +102,41 @@ curl -fsS -H "Authorization: Bearer $CIT" "$BASE/api/me/notifications" \
   | jq -e --arg id "$NEW_ID" '.notifications | map(.appId) | index($id) != null' > /dev/null \
   && ok "decision rang the citizen's notification bell" || bad "notification delivered"
 
+echo "— inspection lifecycle —"
+INSP_ID=$(curl -fsS -X POST -H "Authorization: Bearer $CIT" -H 'content-type: application/json' \
+  -d '{"typeSlug":"deck-addition","address":"200 Verification Way, Alpenglow, CO","description":"Automated inspection lifecycle verification deck."}' \
+  "$BASE/api/me/applications" | jq -r '.id')
+curl -fsS -X POST -H "Authorization: Bearer $ADM" -H 'content-type: application/json' \
+  -d '{"action":"approve","note":"Approved for inspection lifecycle test."}' \
+  "$BASE/api/admin/applications/$INSP_ID/decision" > /dev/null
+PHASE=$(curl -fsS -H "Authorization: Bearer $CIT" "$BASE/api/me/applications/$INSP_ID" | jq -r '.application.inspection')
+[ "$PHASE" = "required" ] && ok "approval opens the inspection phase ($INSP_ID)" || bad "inspection phase opened (got $PHASE)"
+
+INSP_DATE=$(date -v+3d +%Y-%m-%d)
+SCHED=$(curl -fsS -X POST -H "Authorization: Bearer $ADM" -H 'content-type: application/json' \
+  -d "{\"scheduledFor\":\"$INSP_DATE\"}" \
+  "$BASE/api/admin/applications/$INSP_ID/inspections" | jq -r '.state')
+[ "$SCHED" = "scheduled" ] && ok "admin schedules the final inspection" || bad "schedule inspection"
+
+FAILED=$(curl -fsS -X POST -H "Authorization: Bearer $ADM" -H 'content-type: application/json' \
+  -d '{"result":"fail","note":"Railing height short of code."}' \
+  "$BASE/api/admin/applications/$INSP_ID/inspections/1/result" | jq -r '.state')
+RESCHED=$(curl -fsS -X POST -H "Authorization: Bearer $ADM" -H 'content-type: application/json' \
+  -d "{\"scheduledFor\":\"$INSP_DATE\"}" \
+  "$BASE/api/admin/applications/$INSP_ID/inspections" | jq -r '.state')
+[ "$FAILED" = "failed" ] && [ "$RESCHED" = "scheduled" ] \
+  && ok "failed visit loops back to a reinspection" || bad "fail → reinspection loop"
+
+PASSED=$(curl -fsS -X POST -H "Authorization: Bearer $ADM" -H 'content-type: application/json' \
+  -d '{"result":"pass","note":"Corrections verified on site."}' \
+  "$BASE/api/admin/applications/$INSP_ID/inspections/2/result" | jq -r '.state')
+CLOSED=$(curl -fsS -H "Authorization: Bearer $CIT" "$BASE/api/me/applications/$INSP_ID" | jq -r '.application.closedAt')
+[ "$PASSED" = "passed" ] && [ -n "$CLOSED" ] && [ "$CLOSED" != "null" ] \
+  && ok "passing reinspection finals the permit (closedAt set)" || bad "pass finals permit"
+
+curl -fsS "$BASE/api/public/verify/$INSP_ID" | jq -e '.record.inspection == "passed" and .record.closedAt != null' > /dev/null \
+  && ok "public register shows the completed inspection" || bad "register shows inspection"
+
 echo
 echo "Result: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]

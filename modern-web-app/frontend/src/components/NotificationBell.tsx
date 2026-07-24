@@ -1,9 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
-import type { AppNotification, AppStatus } from '../types';
+import type { AppNotification, AppStatus, EventTone } from '../types';
 import { STATUS_LABEL } from '../types';
 import { fmtDate } from './Ui';
+
+const TONE_DOT: Record<EventTone, string> = {
+  ok: 'bg-emerald-600',
+  warn: 'bg-amber-500',
+  bad: 'bg-rose-600',
+};
 
 // The counter bell: staff actions on your applications ring here. Unread
 // state is server-side (lastReadAt on the user's profile item), so it
@@ -91,10 +97,10 @@ export default function NotificationBell() {
                         className={`block px-4 py-3 hover:bg-pine-50/60 dark:hover:bg-pine-900/20 ${isUnread ? 'bg-glow-50/50 dark:bg-glow-600/5' : ''}`}
                       >
                         <span className="flex items-start gap-2.5">
-                          <span className={`mt-1.5 size-2 shrink-0 rotate-45 rounded-[2px] ${DOT[n.status]}`} aria-hidden />
+                          <span className={`mt-1.5 size-2 shrink-0 rotate-45 rounded-[2px] ${n.tone ? TONE_DOT[n.tone] : DOT[n.status]}`} aria-hidden />
                           <span className="min-w-0">
                             <span className="block text-sm font-semibold leading-snug text-stone-800 dark:text-stone-200">
-                              {n.typeName} · {STATUS_LABEL[n.status].toLowerCase()}
+                              {n.title ? `${n.typeName}: ${n.title}` : `${n.typeName} · ${STATUS_LABEL[n.status].toLowerCase()}`}
                             </span>
                             {n.note && <span className="mt-0.5 block truncate text-xs text-stone-500 dark:text-stone-400">{n.note}</span>}
                             <span className="mt-0.5 block font-mono text-[10.5px] text-stone-400">{fmtDate(n.at)}</span>

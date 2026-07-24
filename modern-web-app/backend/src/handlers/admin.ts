@@ -60,9 +60,19 @@ export const handler = router({
     const now = new Date().toISOString();
     const isFinal = transition.to === 'approved' || transition.to === 'denied';
 
-    const updateExpr = isFinal
+    // Approval of an inspection-required type opens the inspection phase.
+    let needsInspection = false;
+    if (transition.to === 'approved') {
+      const typeRes = await ddb.send(
+        new GetCommand({ TableName: TABLE, Key: { PK: 'CATALOG', SK: `TYPE#${meta.Item.typeSlug}` } })
+      );
+      needsInspection = typeRes.Item?.requiresInspection === true;
+    }
+
+    let updateExpr = isFinal
       ? 'SET #status = :new, GSI2PK = :gsi, decidedAt = :now, decisionNote = :note'
       : 'SET #status = :new, GSI2PK = :gsi';
+    if (needsInspection) updateExpr += ', inspection = :insp';
     const updateValues: Record<string, unknown> = {
       ':new': transition.to,
       ':gsi': `STATUS#${transition.to}`,
@@ -72,6 +82,7 @@ export const handler = router({
       updateValues[':now'] = now;
       updateValues[':note'] = note ?? (transition.to === 'approved' ? 'Approved' : 'Denied');
     }
+    if (needsInspection) updateValues[':insp'] = 'required';
 
     await ddb.send(
       new TransactWriteCommand({
@@ -131,6 +142,227 @@ export const handler = router({
     );
 
     return json(200, { id, status: transition.to, decidedAt: isFinal ? now : undefined });
+  },
+
+  // --- inspections ---------------------------------------------------------
+  // The phase after approval for types that require it: schedule → pass, or
+  // schedule → fail → reschedule. A pass finals the permit (closedAt).
+
+  'GET /api/admin/applications/{id}/inspections': async (event) => {
+    requireAdmin(event);
+    const id = pathParam(event, 'id');
+    const res = await ddb.send(
+      new QueryCommand({
+        TableName: TABLE,
+        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
+        ExpressionAttributeValues: { ':pk': `APP#${id}`, ':sk': 'INSP#' },
+      })
+    );
+    return json(200, { inspections: (res.Items ?? []).map(publicView) });
+  },
+
+  'POST /api/admin/applications/{id}/inspections': async (event) => {
+    const who = requireAdmin(event);
+    const id = pathParam(event, 'id');
+    const body = parseBody<{ scheduledFor: string; note?: string }>(event);
+
+    const scheduledFor = requireString(body.scheduledFor, 'scheduledFor', 10, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(scheduledFor)) {
+      throw new HttpError(400, "Field 'scheduledFor' must be a date (YYYY-MM-DD)");
+    }
+    const note = body.note ? requireString(body.note, 'note', 1, 500) : undefined;
+
+    const meta = await ddb.send(new GetCommand({ TableName: TABLE, Key: { PK: `APP#${id}`, SK: 'META' } }));
+    if (!meta.Item) throw new HttpError(404, 'Application not found');
+    if (meta.Item.status !== 'approved') throw new HttpError(409, 'Inspections apply to approved permits');
+    const state = meta.Item.inspection;
+    if (state !== 'required' && state !== 'failed') {
+      throw new HttpError(409, `Cannot schedule: inspection is '${state ?? 'not required'}'`);
+    }
+
+    const existing = await ddb.send(
+      new QueryCommand({
+        TableName: TABLE,
+        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
+        ExpressionAttributeValues: { ':pk': `APP#${id}`, ':sk': 'INSP#' },
+        Select: 'COUNT',
+      })
+    );
+    const n = (existing.Count ?? 0) + 1;
+    const now = new Date().toISOString();
+    const label = n > 1 ? 'Reinspection' : 'Final inspection';
+    const fmtDay = new Date(`${scheduledFor}T12:00:00Z`).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      timeZone: 'UTC',
+    });
+
+    await ddb.send(
+      new TransactWriteCommand({
+        TransactItems: [
+          {
+            Put: {
+              TableName: TABLE,
+              ConditionExpression: 'attribute_not_exists(PK)',
+              Item: {
+                PK: `APP#${id}`,
+                SK: `INSP#${String(n).padStart(2, '0')}`,
+                entity: 'Inspection',
+                n,
+                result: 'scheduled',
+                scheduledFor,
+                scheduledAt: now,
+                scheduledBy: who.email,
+                note: note ?? null,
+              },
+            },
+          },
+          {
+            Update: {
+              TableName: TABLE,
+              Key: { PK: `APP#${id}`, SK: 'META' },
+              ConditionExpression: 'inspection IN (:req, :fail)',
+              UpdateExpression: 'SET inspection = :sched',
+              ExpressionAttributeValues: { ':req': 'required', ':fail': 'failed', ':sched': 'scheduled' },
+            },
+          },
+          {
+            Put: {
+              TableName: TABLE,
+              Item: {
+                PK: `APP#${id}`,
+                SK: `EVENT#${now}#3`,
+                entity: 'Event',
+                status: 'approved',
+                at: now,
+                actor: who.email,
+                note: note ?? null,
+                title: `${label} scheduled for ${fmtDay}`,
+                tone: 'warn',
+              },
+            },
+          },
+          {
+            Put: {
+              TableName: TABLE,
+              Item: {
+                PK: `USER#${meta.Item.applicantSub}`,
+                SK: `NOTIF#${now}#${id}`,
+                entity: 'Notification',
+                appId: id,
+                typeName: meta.Item.typeName,
+                status: 'approved',
+                note: note ?? null,
+                at: now,
+                title: `${label} scheduled for ${fmtDay}`,
+                tone: 'warn',
+              },
+            },
+          },
+        ],
+      })
+    );
+
+    return json(201, { inspection: n, scheduledFor, state: 'scheduled' });
+  },
+
+  'POST /api/admin/applications/{id}/inspections/{n}/result': async (event) => {
+    const who = requireAdmin(event);
+    const id = pathParam(event, 'id');
+    const n = Number(pathParam(event, 'n'));
+    if (!Number.isInteger(n) || n < 1 || n > 99) throw new HttpError(400, 'Invalid inspection number');
+    const body = parseBody<{ result: 'pass' | 'fail'; note?: string }>(event);
+    if (body.result !== 'pass' && body.result !== 'fail') {
+      throw new HttpError(400, "Field 'result' must be 'pass' or 'fail'");
+    }
+    const note = body.note ? requireString(body.note, 'note', 1, 500) : undefined;
+
+    const sk = `INSP#${String(n).padStart(2, '0')}`;
+    const [meta, insp] = await Promise.all([
+      ddb.send(new GetCommand({ TableName: TABLE, Key: { PK: `APP#${id}`, SK: 'META' } })),
+      ddb.send(new GetCommand({ TableName: TABLE, Key: { PK: `APP#${id}`, SK: sk } })),
+    ]);
+    if (!meta.Item || !insp.Item) throw new HttpError(404, 'Inspection not found');
+    if (insp.Item.result !== 'scheduled') {
+      throw new HttpError(409, `Inspection ${n} was already recorded as '${insp.Item.result}'`);
+    }
+
+    const passed = body.result === 'pass';
+    const now = new Date().toISOString();
+    const title = passed
+      ? 'Final inspection passed. Permit closed out.'
+      : 'Inspection failed. Correct and schedule a reinspection.';
+
+    await ddb.send(
+      new TransactWriteCommand({
+        TransactItems: [
+          {
+            Update: {
+              TableName: TABLE,
+              Key: { PK: `APP#${id}`, SK: sk },
+              ConditionExpression: '#r = :sched',
+              UpdateExpression: 'SET #r = :res, recordedAt = :now, inspector = :who' + (note ? ', note = :note' : ''),
+              ExpressionAttributeNames: { '#r': 'result' },
+              ExpressionAttributeValues: {
+                ':sched': 'scheduled',
+                ':res': passed ? 'passed' : 'failed',
+                ':now': now,
+                ':who': who.email,
+                ...(note ? { ':note': note } : {}),
+              },
+            },
+          },
+          {
+            Update: {
+              TableName: TABLE,
+              Key: { PK: `APP#${id}`, SK: 'META' },
+              UpdateExpression: passed
+                ? 'SET inspection = :state, closedAt = :now'
+                : 'SET inspection = :state',
+              ExpressionAttributeValues: passed
+                ? { ':state': 'passed', ':now': now }
+                : { ':state': 'failed' },
+            },
+          },
+          {
+            Put: {
+              TableName: TABLE,
+              Item: {
+                PK: `APP#${id}`,
+                SK: `EVENT#${now}#3`,
+                entity: 'Event',
+                status: 'approved',
+                at: now,
+                actor: who.email,
+                note: note ?? null,
+                title,
+                tone: passed ? 'ok' : 'bad',
+              },
+            },
+          },
+          {
+            Put: {
+              TableName: TABLE,
+              Item: {
+                PK: `USER#${meta.Item.applicantSub}`,
+                SK: `NOTIF#${now}#${id}`,
+                entity: 'Notification',
+                appId: id,
+                typeName: meta.Item.typeName,
+                status: 'approved',
+                note: note ?? null,
+                at: now,
+                title,
+                tone: passed ? 'ok' : 'bad',
+              },
+            },
+          },
+        ],
+      })
+    );
+
+    return json(200, { inspection: n, result: passed ? 'passed' : 'failed', state: passed ? 'passed' : 'failed' });
   },
 
   'GET /api/admin/applications/{id}/attachments': async (event) => {
@@ -212,6 +444,7 @@ export const handler = router({
       fee: number;
       processingDays: number;
       active?: boolean;
+      requiresInspection?: boolean;
     }>(event);
 
     const name = requireString(body.name, 'name', 3, 100);
@@ -246,6 +479,7 @@ export const handler = router({
           fee: body.fee,
           processingDays: body.processingDays,
           active: body.active ?? true,
+          requiresInspection: body.requiresInspection ?? false,
         },
       })
     );
