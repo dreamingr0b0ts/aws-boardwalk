@@ -1,6 +1,7 @@
 import { GetCommand, PutCommand, QueryCommand, TransactWriteCommand } from '@aws-sdk/lib-dynamodb';
 import { ddb, TABLE, publicView, STATUSES, type AppStatus } from '../lib/db.js';
 import { router, json, requireAdmin, parseBody, pathParam, requireString, HttpError } from '../lib/http.js';
+import { presignDownload } from '../lib/uploads.js';
 
 type DecisionAction = 'start_review' | 'approve' | 'deny';
 
@@ -109,11 +110,48 @@ export const handler = router({
               ExpressionAttributeValues: { ':neg': -1, ':one': 1, ':now': now },
             },
           },
+          {
+            // Applicant's notification feed (the bell in the header).
+            Put: {
+              TableName: TABLE,
+              Item: {
+                PK: `USER#${meta.Item.applicantSub}`,
+                SK: `NOTIF#${now}#${id}`,
+                entity: 'Notification',
+                appId: id,
+                typeName: meta.Item.typeName,
+                status: transition.to,
+                note: note ?? null,
+                at: now,
+              },
+            },
+          },
         ],
       })
     );
 
     return json(200, { id, status: transition.to, decidedAt: isFinal ? now : undefined });
+  },
+
+  'GET /api/admin/applications/{id}/attachments': async (event) => {
+    requireAdmin(event);
+    const id = pathParam(event, 'id');
+    const res = await ddb.send(
+      new QueryCommand({
+        TableName: TABLE,
+        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
+        ExpressionAttributeValues: { ':pk': `APP#${id}`, ':sk': 'ATT#' },
+      })
+    );
+    const attachments = await Promise.all(
+      (res.Items ?? [])
+        .filter((a) => a.status === 'uploaded')
+        .map(async (a) => ({
+          ...publicView(a),
+          downloadUrl: await presignDownload(String(a.s3Key), String(a.filename)),
+        }))
+    );
+    return json(200, { attachments });
   },
 
   'GET /api/admin/metrics': async (event) => {

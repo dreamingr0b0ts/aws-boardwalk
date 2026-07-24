@@ -34,12 +34,12 @@ const STREETS = ['Alpenglow Way', 'Larkspur Lane', 'Timberline Court', 'Cache Cr
 const NOTES_APPROVE = [
   'Plans meet code. Approved as submitted.',
   'Approved with standard conditions; see attached inspection schedule.',
-  'Site review complete — approved.',
+  'Site review complete. Approved.',
   'Approved. Display permit visibly on premises.',
 ];
 const NOTES_DENY = [
   'Setback requirements not met; resubmit with revised site plan.',
-  'Incomplete structural drawings. Denied without prejudice — please reapply.',
+  'Incomplete structural drawings. Denied without prejudice; please reapply.',
   'Zoning conflict with district overlay; variance required first.',
   'Insurance documentation expired. Reapply with current certificate.',
 ];
@@ -133,6 +133,9 @@ export function buildSeed(now: Date, demoCitizen: DemoCitizen): SeedRecords {
     if (status !== 'submitted') {
       const reviewAt = new Date(submitted.getTime() + between(1, 3) * 86400_000).toISOString();
       events.push({ PK: `APP#${id}`, SK: `EVENT#${reviewAt}#1`, entity: 'Event', status: 'under_review', at: reviewAt, actor: 'staff@alpenglow.gov', note: 'Assigned for review' });
+      if (own) {
+        items.push({ PK: `USER#${demoCitizen.sub}`, SK: `NOTIF#${reviewAt}#${id}`, entity: 'Notification', appId: id, typeName: type.name, status: 'under_review', note: 'Assigned for review', at: reviewAt });
+      }
     }
     if (status === 'approved' || status === 'denied') {
       const procDays = Math.min(between(3, type.processingDays + 6), daysAgo);
@@ -141,6 +144,9 @@ export function buildSeed(now: Date, demoCitizen: DemoCitizen): SeedRecords {
       app.decidedAt = decidedAt;
       app.decisionNote = note;
       events.push({ PK: `APP#${id}`, SK: `EVENT#${decidedAt}#2`, entity: 'Event', status, at: decidedAt, actor: 'staff@alpenglow.gov', note });
+      if (own) {
+        items.push({ PK: `USER#${demoCitizen.sub}`, SK: `NOTIF#${decidedAt}#${id}`, entity: 'Notification', appId: id, typeName: type.name, status, note, at: decidedAt });
+      }
       processingSum += procDays;
       processingN += 1;
     }

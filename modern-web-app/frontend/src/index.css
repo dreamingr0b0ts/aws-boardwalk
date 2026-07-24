@@ -66,6 +66,17 @@ body {
   @apply bg-paper text-stone-800 antialiased dark:bg-stone-950 dark:text-stone-200;
 }
 
+/* Printable documents (permit certificate, decision letter): the sheet is the
+   whole page; app chrome and toolbars carry .no-print. */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: white !important;
+  }
+}
+
 /* Ridge band — the plank's signature strip: alpenglow fading into pine under a
    survey-tape tick overlay. Closes the hero, tops the footer, underlines KPIs. */
 .ridge-band {

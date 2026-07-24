@@ -8,6 +8,9 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Apply from './pages/Apply';
 import AppDetail from './pages/AppDetail';
+import Certificate from './pages/Certificate';
+import Letter from './pages/Letter';
+import VerifyPermit from './pages/VerifyPermit';
 import Admin from './pages/Admin';
 import NotFound from './pages/NotFound';
 
@@ -19,6 +22,7 @@ export default function App() {
         <Route path="stats" element={<Stats />} />
         <Route path="login" element={<Login />} />
         <Route path="register" element={<Register />} />
+        <Route path="verify/:id" element={<VerifyPermit />} />
 
         <Route element={<RequireAuth />}>
           <Route path="dashboard" element={<Dashboard />} />
@@ -31,6 +35,13 @@ export default function App() {
         </Route>
 
         <Route path="*" element={<NotFound />} />
+      </Route>
+
+      {/* Printable documents render outside the app chrome so the sheet is
+          the whole page. */}
+      <Route element={<RequireAuth />}>
+        <Route path="applications/:id/certificate" element={<Certificate />} />
+        <Route path="applications/:id/letter" element={<Letter />} />
       </Route>
     </Routes>
   );

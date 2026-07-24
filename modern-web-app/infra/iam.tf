@@ -137,3 +137,52 @@ resource "aws_iam_role_policy" "demo_ddb_cognito" {
     ]
   })
 }
+
+# Attachments: the citizen Lambda mints presigned POSTs (upload) and GETs
+# (download) for the owner; the admin Lambda only ever reads; the reset
+# Lambda empties the bucket nightly alongside the table wipe.
+resource "aws_iam_role_policy" "me_uploads" {
+  name = "uploads-put-get"
+  role = aws_iam_role.me.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["s3:PutObject", "s3:GetObject"]
+      Resource = "${aws_s3_bucket.uploads.arn}/*"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "admin_uploads" {
+  name = "uploads-read-only"
+  role = aws_iam_role.admin.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["s3:GetObject"]
+      Resource = "${aws_s3_bucket.uploads.arn}/*"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "demo_uploads" {
+  name = "uploads-purge"
+  role = aws_iam_role.demo.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["s3:ListBucket"]
+        Resource = aws_s3_bucket.uploads.arn
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["s3:DeleteObject"]
+        Resource = "${aws_s3_bucket.uploads.arn}/*"
+      },
+    ]
+  })
+}

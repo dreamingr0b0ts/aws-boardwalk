@@ -13,13 +13,15 @@
 | Role-based access control | Guest / citizen / admin see different UI **and** different API responses |
 | Defense in depth | JWT authorizer at the gateway, group checks in code, least-privilege IAM per Lambda |
 | Data tier | DynamoDB single-table design with two GSIs, transactions, materialized counters |
-| Operational hygiene | Nightly automated reset, API throttling, security headers, PITR |
+| Direct-to-S3 uploads | Supporting documents: presigned POST from the browser (4 MB / type / count caps enforced in the POST policy), presigned-GET downloads, private bucket |
+| Public record verification | Printable permit certificate with a QR code that resolves to `/verify/<id>`, checked live against the register with no sign-in |
+| Operational hygiene | Nightly automated reset (table, uploads bucket, stranger accounts), API throttling, security headers, PITR |
 
 ## The three experiences
 
-- **Guest (no sign-in):** browse the permit catalog, see the live transparency dashboard (`/stats`).
-- **Citizen** (`citizen@demo.planetek.org` / `Alpenglow-Citizen1!`): submit applications via a 3-step wizard, track status through a visible event timeline.
-- **Admin** (`admin@demo.planetek.org` / `Alpenglow-Admin1!`): work the review queue (start review / approve / deny with notes), see operational metrics, manage the permit catalog.
+- **Guest (no sign-in):** browse the permit catalog, see the live transparency dashboard (`/stats`), verify any permit number against the live register (`/verify/<id>`, the certificate QR target).
+- **Citizen** (`citizen@demo.planetek.org` / `Alpenglow-Citizen1!`): submit applications via a 3-step wizard, attach site plans (PDF/PNG/JPEG straight to S3), track status through a visible event timeline, get counter-bell notifications on staff actions, and print the permit certificate and decision letter once decided.
+- **Admin** (`admin@demo.planetek.org` / `Alpenglow-Admin1!`): work the review queue (start review / approve / deny with notes), open submitted documents, see operational metrics, manage the permit catalog.
 
 Demo credentials are intentionally public and printed on the sign-in page. A nightly EventBridge-scheduled Lambda wipes the table, reseeds deterministic demo data, re-asserts the demo accounts, and deletes any stranger sign-ups.
 
@@ -35,8 +37,11 @@ flowchart LR
     APIGW --> LMe[Lambda: me]
     APIGW --> LAdm[Lambda: admin]
     LPub & LMe & LAdm --> DDB[(DynamoDB)]
+    U -->|presigned POST/GET| UP[(S3 uploads)]
+    LMe -->|presign| UP
     SCHED[EventBridge Scheduler<br/>nightly 09:00 UTC] --> LDemo[Lambda: demo-reset]
     LDemo --> DDB
+    LDemo --> UP
     LDemo --> COG
     COG -->|post-confirmation| LPC[Lambda: postconfirm]
 ```

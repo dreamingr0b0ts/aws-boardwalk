@@ -9,8 +9,10 @@ import {
   ListUsersCommand,
   UserNotFoundException,
 } from '@aws-sdk/client-cognito-identity-provider';
+import { ListObjectsV2Command, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { ddb, TABLE } from '../lib/db.js';
 import { buildSeed } from '../lib/seed.js';
+import { s3, UPLOADS_BUCKET } from '../lib/uploads.js';
 
 // Demo-reset Lambda: wipes and reseeds the table, re-asserts the two demo
 // accounts, and removes every other Cognito user. Runs nightly via
@@ -127,6 +129,23 @@ async function wipeTable(): Promise<number> {
   return deleted;
 }
 
+/** Visitor uploads die with their records (S3 lifecycle is the backstop). */
+async function purgeUploads(): Promise<number> {
+  if (!UPLOADS_BUCKET) return 0;
+  let purged = 0;
+  let token: string | undefined;
+  do {
+    const page = await s3.send(new ListObjectsV2Command({ Bucket: UPLOADS_BUCKET, ContinuationToken: token }));
+    for (const obj of page.Contents ?? []) {
+      if (!obj.Key) continue;
+      await s3.send(new DeleteObjectCommand({ Bucket: UPLOADS_BUCKET, Key: obj.Key }));
+      purged += 1;
+    }
+    token = page.NextContinuationToken;
+  } while (token);
+  return purged;
+}
+
 async function writeItems(items: Record<string, unknown>[]): Promise<void> {
   for (let i = 0; i < items.length; i += 25) {
     let requests = items.slice(i, i + 25).map((item) => ({ PutRequest: { Item: item } }));
@@ -144,6 +163,7 @@ export const handler = async (event: { mode?: string } = {}) => {
 
   const [adminSub, citizenSub] = await Promise.all(DEMO_USERS.map(ensureDemoUser));
   const purged = await purgeStrangerUsers();
+  const purgedUploads = await purgeUploads();
 
   const deleted = await wipeTable();
   const seed = buildSeed(new Date(), {
@@ -153,7 +173,7 @@ export const handler = async (event: { mode?: string } = {}) => {
   });
   await writeItems(seed.items);
 
-  const result = { ...seed.summary, deleted, purgedUsers: purged, adminSub, citizenSub };
+  const result = { ...seed.summary, deleted, purgedUsers: purged, purgedUploads, adminSub, citizenSub };
   console.log('demo-reset done', result);
   return result;
 };

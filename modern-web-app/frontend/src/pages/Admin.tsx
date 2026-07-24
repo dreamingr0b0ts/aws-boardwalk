@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { api } from '../lib/api';
-import type { Application, AppStatus, MetricsResponse, PermitType } from '../types';
+import type { Application, AppStatus, Attachment, MetricsResponse, PermitType } from '../types';
 import { STATUS_LABEL } from '../types';
 import {
   Button,
@@ -174,6 +174,13 @@ function ReviewModal({ app, onClose, onDone }: { app: Application; onClose: () =
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [attachments, setAttachments] = useState<Attachment[] | null>(null);
+
+  useEffect(() => {
+    void api<{ attachments: Attachment[] }>(`/admin/applications/${app.id}/attachments`, { auth: true })
+      .then((r) => setAttachments(r.attachments))
+      .catch(() => setAttachments([]));
+  }, [app.id]);
 
   const actionable = app.status === 'submitted' || app.status === 'under_review';
 
@@ -220,6 +227,32 @@ function ReviewModal({ app, onClose, onDone }: { app: Application; onClose: () =
             <dd className="mt-0.5 text-stone-800 dark:text-stone-200">{app.decisionNote}</dd>
           </div>
         )}
+        <div>
+          <dt className="font-semibold text-stone-500 dark:text-stone-400">Supporting documents</dt>
+          <dd className="mt-1">
+            {attachments === null && <span className="text-stone-400">Checking the file…</span>}
+            {attachments?.length === 0 && <span className="text-stone-400">None submitted</span>}
+            {attachments && attachments.length > 0 && (
+              <ul className="space-y-1">
+                {attachments.map((att) => (
+                  <li key={att.attId}>
+                    <a
+                      href={att.downloadUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-semibold text-pine-700 underline-offset-2 hover:underline dark:text-pine-300"
+                    >
+                      {att.filename}
+                    </a>
+                    <span className="ml-2 font-mono text-[11px] text-stone-400">
+                      {att.size ? (att.size >= 1048576 ? `${(att.size / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(att.size / 1024))} KB`) : ''}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </dd>
+        </div>
       </dl>
 
       {error && <div className="mt-4"><ErrorNote message={error} /></div>}

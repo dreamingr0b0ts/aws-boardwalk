@@ -45,7 +45,9 @@ resource "aws_cloudfront_response_headers_policy" "security" {
       override        = true
     }
     content_security_policy {
-      content_security_policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://cognito-idp.${local.region}.amazonaws.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+      # connect-src carries the uploads bucket: attachments go browser→S3 via
+      # presigned POST, never through Lambda.
+      content_security_policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://cognito-idp.${local.region}.amazonaws.com https://${aws_s3_bucket.uploads.bucket_regional_domain_name}; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
       override                = true
     }
   }

@@ -48,7 +48,8 @@ resource "aws_lambda_function" "me" {
 
   environment {
     variables = {
-      TABLE_NAME = aws_dynamodb_table.permits.name
+      TABLE_NAME     = aws_dynamodb_table.permits.name
+      UPLOADS_BUCKET = aws_s3_bucket.uploads.bucket
     }
   }
 
@@ -70,7 +71,8 @@ resource "aws_lambda_function" "admin" {
 
   environment {
     variables = {
-      TABLE_NAME = aws_dynamodb_table.permits.name
+      TABLE_NAME     = aws_dynamodb_table.permits.name
+      UPLOADS_BUCKET = aws_s3_bucket.uploads.bucket
     }
   }
 
@@ -93,6 +95,7 @@ resource "aws_lambda_function" "demo" {
   environment {
     variables = {
       TABLE_NAME            = aws_dynamodb_table.permits.name
+      UPLOADS_BUCKET        = aws_s3_bucket.uploads.bucket
       USER_POOL_ID          = aws_cognito_user_pool.users.id
       DEMO_ADMIN_EMAIL      = var.demo_admin_email
       DEMO_ADMIN_PASSWORD   = var.demo_admin_password

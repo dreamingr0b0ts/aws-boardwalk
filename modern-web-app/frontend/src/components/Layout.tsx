@@ -1,6 +1,7 @@
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { useTheme } from '../lib/theme';
+import NotificationBell from './NotificationBell';
 import { RidgeBand } from './Ui';
 
 export function Mountain({ className }: { className?: string }) {
@@ -94,6 +95,7 @@ export default function Layout() {
 
           <div className="flex items-center gap-3">
             <ThemeToggle />
+            {user && <NotificationBell />}
             {user ? (
               <>
                 <span className="hidden text-right sm:block">

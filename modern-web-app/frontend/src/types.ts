@@ -32,6 +32,34 @@ export interface AppEvent {
   note?: string | null;
 }
 
+export interface Attachment {
+  attId: string;
+  filename: string;
+  contentType: string;
+  size?: number;
+  uploadedAt?: string;
+  downloadUrl: string;
+}
+
+export interface AppNotification {
+  appId: string;
+  typeName: string;
+  status: AppStatus;
+  note?: string | null;
+  at: string;
+}
+
+export interface VerifyRecord {
+  id: string;
+  typeName: string;
+  category: string;
+  address: string;
+  holder: string;
+  status: AppStatus;
+  submittedAt: string;
+  decidedAt?: string | null;
+}
+
 export interface CurrentStats {
   counts: Record<AppStatus, number>;
   total: number;

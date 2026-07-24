@@ -66,6 +66,25 @@ NEW_ID=$(curl -fsS -X POST -H "Authorization: Bearer $CIT" -H 'content-type: app
   "$BASE/api/me/applications" | jq -r '.id')
 [ -n "$NEW_ID" ] && [ "$NEW_ID" != "null" ] && ok "citizen submits application ($NEW_ID)" || bad "citizen submit"
 
+echo "— attachments (presigned upload) —"
+PRESIGN=$(curl -fsS -X POST -H "Authorization: Bearer $CIT" -H 'content-type: application/json' \
+  -d '{"filename":"site-plan.pdf","contentType":"application/pdf"}' \
+  "$BASE/api/me/applications/$NEW_ID/attachments")
+ATT_ID=$(echo "$PRESIGN" | jq -r '.attachmentId')
+UP_URL=$(echo "$PRESIGN" | jq -r '.upload.url')
+
+DOC=$(mktemp -t verify-doc).pdf
+printf '%%PDF-1.4\n1 0 obj<</Type/Catalog>>endobj\ntrailer<</Root 1 0 R>>\n%%%%EOF\n' > "$DOC"
+FORM_ARGS=()
+while IFS= read -r kv; do FORM_ARGS+=(-F "$kv"); done < <(echo "$PRESIGN" | jq -r '.upload.fields | to_entries[] | "\(.key)=\(.value)"')
+UP_CODE=$(curl -s -o /dev/null -w '%{http_code}' "${FORM_ARGS[@]}" -F "file=@$DOC;type=application/pdf" "$UP_URL")
+rm -f "$DOC"
+[ "$UP_CODE" = "204" ] && ok "browser-style presigned POST to S3 (204)" || bad "presigned POST upload (got $UP_CODE)"
+
+CONFIRMED=$(curl -fsS -X POST -H "Authorization: Bearer $CIT" \
+  "$BASE/api/me/applications/$NEW_ID/attachments/$ATT_ID/confirm" | jq -r '.status')
+[ "$CONFIRMED" = "uploaded" ] && ok "attachment confirmed + logged to the record" || bad "attachment confirm"
+
 DECIDED=$(curl -fsS -X POST -H "Authorization: Bearer $ADM" -H 'content-type: application/json' \
   -d '{"action":"approve","note":"Verified by automated smoke test."}' \
   "$BASE/api/admin/applications/$NEW_ID/decision" | jq -r '.status')
@@ -73,6 +92,15 @@ DECIDED=$(curl -fsS -X POST -H "Authorization: Bearer $ADM" -H 'content-type: ap
 
 FINAL=$(curl -fsS -H "Authorization: Bearer $CIT" "$BASE/api/me/applications/$NEW_ID" | jq -r '.application.status')
 [ "$FINAL" = "approved" ] && ok "citizen sees the decision + timeline" || bad "citizen sees decision"
+
+echo "— public register check + notifications —"
+VERIFIED=$(curl -fsS "$BASE/api/public/verify/$NEW_ID" | jq -r '.record.status')
+[ "$VERIFIED" = "approved" ] && ok "public register verifies the permit (no auth)" || bad "public verify"
+[ "$(code "$BASE/api/public/verify/APP-DOESNOTEXIST")" = "404" ] \
+  && ok "unknown permit number → 404" || bad "unknown permit number 404"
+curl -fsS -H "Authorization: Bearer $CIT" "$BASE/api/me/notifications" \
+  | jq -e --arg id "$NEW_ID" '.notifications | map(.appId) | index($id) != null' > /dev/null \
+  && ok "decision rang the citizen's notification bell" || bad "notification delivered"
 
 echo
 echo "Result: $PASS passed, $FAIL failed"
