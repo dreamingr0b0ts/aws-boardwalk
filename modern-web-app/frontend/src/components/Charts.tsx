@@ -13,27 +13,35 @@ import {
 } from 'recharts';
 import type { AppStatus, CurrentStats, MonthStats } from '../types';
 import { STATUS_LABEL } from '../types';
-import { Card } from './Ui';
+import { Card, StatusChip } from './Ui';
 import { useTheme } from '../lib/theme';
 
 // ---------------------------------------------------------------------------
 // Chart kit. Mark palettes validated with the dataviz six-check validator on
-// BOTH surfaces (light #fcfcfb and dark) — the same hues pass everywhere, so
-// marks never change color between themes; only the chrome (grid, ticks,
-// surface rings, tooltip) follows the surface:
+// BOTH surfaces (light card #ffffff and dark card #182420) — the same hues pass
+// everywhere, so marks never change color between themes; only the chrome
+// (grid, ticks, surface rings, tooltip) follows the surface:
 //   series:  received #0d9488 · approved #e4532f
-//   status:  submitted #0284c7 · under review #d97706 ·
-//            approved #059669 · denied #e11d48
+//   status:  submitted #707d75 · under review #d97706 ·
+//            approved #047857 · denied #d5164a
+// The status marks track the StatusChip stamp families (stone/amber/emerald/
+// rose) so the dashboard reads as the same product as the queue. Documented
+// acceptances from the 2026-07-24 validator run: (1) submitted is a deliberate
+// status-neutral below the categorical chroma floor (pending = uninked; the
+// floor's scope is categorical identity palettes); (2) approved is 2.92:1 on
+// the dark surface, a WARN whose required relief is the labeled per-status
+// rows rendered under the bar. approved↔denied clears deutan CVD at ΔE 8.9
+// (the old #059669/#e11d48 pair hard-failed at 5.8).
 // Marks follow the spec: 2px lines, ≥8px ringed markers, ≤24px bars with 4px
 // rounded data-ends, hairline solid gridlines, text in text tokens only.
 // ---------------------------------------------------------------------------
 
 export const SERIES = { received: '#0d9488', approved: '#e4532f' } as const;
 export const STATUS_COLOR: Record<AppStatus, string> = {
-  submitted: '#0284c7',
+  submitted: '#707d75',
   under_review: '#d97706',
-  approved: '#059669',
-  denied: '#e11d48',
+  approved: '#047857',
+  denied: '#d5164a',
 };
 
 /** Surface-dependent chart chrome (never carries data identity). Hexes track
@@ -223,8 +231,10 @@ export function TypeBar({
 
 /**
  * Part-to-whole as a single horizontal stacked bar (per the form table), with
- * 2px surface gaps between segments and a full legend carrying the counts —
- * every value is directly visible, so no hover layer is needed.
+ * 2px surface gaps between segments, then one ledger row per status carrying
+ * the office's own ink stamp, the count, and the share — every value is
+ * directly visible (this doubles as the table view the palette's documented
+ * acceptances require), so no hover layer is needed.
  */
 export function StatusBreakdown({ current }: { current: CurrentStats }) {
   const order: AppStatus[] = ['submitted', 'under_review', 'approved', 'denied'];
@@ -245,15 +255,20 @@ export function StatusBreakdown({ current }: { current: CurrentStats }) {
           );
         })}
       </div>
-      <div className="mt-3">
-        <LegendChips
-          items={order.map((s) => ({
-            label: STATUS_LABEL[s],
-            color: STATUS_COLOR[s],
-            value: String(current.counts[s] ?? 0),
-          }))}
-        />
-      </div>
+      <ul className="mt-4 divide-y divide-stone-100 dark:divide-stone-800">
+        {order.map((s) => {
+          const n = current.counts[s] ?? 0;
+          const share = total ? Math.round((n / total) * 100) : 0;
+          return (
+            <li key={s} className="flex items-center gap-3 py-2.5">
+              <span className="size-2.5 shrink-0 rounded-[3px]" style={{ backgroundColor: STATUS_COLOR[s] }} aria-hidden />
+              <StatusChip status={s} />
+              <span className="ml-auto font-mono text-sm font-medium text-stone-700 dark:text-stone-200">{n}</span>
+              <span className="w-10 text-right font-mono text-xs text-stone-400 dark:text-stone-500">{share}%</span>
+            </li>
+          );
+        })}
+      </ul>
     </ChartCard>
   );
 }

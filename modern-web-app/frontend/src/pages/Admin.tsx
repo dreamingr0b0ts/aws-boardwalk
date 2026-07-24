@@ -5,6 +5,7 @@ import { STATUS_LABEL } from '../types';
 import {
   Button,
   Card,
+  CategoryBadge,
   EmptyState,
   ErrorNote,
   Field,
@@ -120,7 +121,7 @@ function QueueTab() {
           <Card className="overflow-x-auto">
             <table className="w-full min-w-[640px] text-sm">
               <thead>
-                <tr className="border-b border-stone-200 dark:border-stone-800 text-left font-mono text-[10.5px] font-medium uppercase tracking-[0.12em] text-stone-400">
+                <tr className="border-b border-stone-200 bg-stone-50 dark:border-stone-700 dark:bg-stone-950/60 text-left font-mono text-[10.5px] font-medium uppercase tracking-[0.12em] text-stone-500 dark:text-stone-400">
                   <th className="px-4 py-3">ID</th>
                   <th className="px-4 py-3">Applicant</th>
                   <th className="px-4 py-3">Type</th>
@@ -131,7 +132,7 @@ function QueueTab() {
               </thead>
               <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
                 {apps.map((app) => (
-                  <tr key={app.id} className="hover:bg-stone-50 dark:hover:bg-stone-800/50">
+                  <tr key={app.id} className="hover:bg-pine-50/60 dark:hover:bg-pine-900/20">
                     <td className="px-4 py-3 font-mono text-xs text-stone-500 dark:text-stone-400">{app.id}</td>
                     <td className="px-4 py-3 font-semibold text-stone-700 dark:text-stone-300">{app.applicantName}</td>
                     <td className="px-4 py-3 text-stone-600 dark:text-stone-400">{app.typeName}</td>
@@ -317,7 +318,7 @@ function TypesTab() {
           <Card className="overflow-x-auto">
             <table className="w-full min-w-[640px] text-sm">
               <thead>
-                <tr className="border-b border-stone-200 dark:border-stone-800 text-left font-mono text-[10.5px] font-medium uppercase tracking-[0.12em] text-stone-400">
+                <tr className="border-b border-stone-200 bg-stone-50 dark:border-stone-700 dark:bg-stone-950/60 text-left font-mono text-[10.5px] font-medium uppercase tracking-[0.12em] text-stone-500 dark:text-stone-400">
                   <th className="px-4 py-3">Permit</th>
                   <th className="px-4 py-3">Category</th>
                   <th className="px-4 py-3">Fee</th>
@@ -328,9 +329,11 @@ function TypesTab() {
               </thead>
               <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
                 {types.map((t) => (
-                  <tr key={t.slug} className="hover:bg-stone-50 dark:hover:bg-stone-800/50">
+                  <tr key={t.slug} className="hover:bg-pine-50/60 dark:hover:bg-pine-900/20">
                     <td className="px-4 py-3 font-semibold text-stone-700 dark:text-stone-300">{t.name}</td>
-                    <td className="px-4 py-3 text-stone-600 dark:text-stone-400">{t.category}</td>
+                    <td className="px-4 py-3">
+                      <CategoryBadge category={t.category} />
+                    </td>
                     <td className="px-4 py-3 text-stone-600 dark:text-stone-400">{fmtMoney(t.fee)}</td>
                     <td className="px-4 py-3 text-stone-500 dark:text-stone-400">~{t.processingDays} days</td>
                     <td className="px-4 py-3">

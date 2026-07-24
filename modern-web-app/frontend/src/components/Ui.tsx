@@ -88,6 +88,94 @@ export function Grommet() {
   );
 }
 
+/* Category chips — shared by the catalog placards, the Apply picker, and the
+   dashboard row tiles, so a permit's category reads the same at every window. */
+export const CATEGORY_BADGE: Record<string, string> = {
+  Building: 'bg-pine-100 text-pine-800 dark:bg-pine-900/60 dark:text-pine-200',
+  Business: 'bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300',
+  Events: 'bg-violet-100 text-violet-800 dark:bg-violet-950/60 dark:text-violet-300',
+  Housing: 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300',
+};
+
+const CATEGORY_ICON: Record<string, ReactNode> = {
+  Building: (
+    <>
+      <path d="M6 21V8h12v13" />
+      <path d="M6 12h12M6 16.5h12" />
+      <path d="M9.5 8V5h5v3" />
+      <path d="M3 21h18" />
+    </>
+  ),
+  Business: (
+    <>
+      <path d="M4 9 5.5 4h13L20 9" />
+      <path d="M4.5 9v12h15V9" />
+      <path d="M9.5 21v-6h5v6" />
+    </>
+  ),
+  Events: (
+    <>
+      <path d="M5.5 21V4" />
+      <path d="M5.5 5h13l-3 4 3 4h-13" />
+    </>
+  ),
+  Housing: (
+    <>
+      <path d="m3 11.5 9-7.5 9 7.5" />
+      <path d="M6 10v11h12V10" />
+      <path d="M10 21v-6h4v6" />
+    </>
+  ),
+};
+
+export function CategoryIcon({ category, className = 'size-3.5 shrink-0' }: { category: string; className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      {CATEGORY_ICON[category] ?? (
+        <>
+          <rect x="6" y="4" width="12" height="17" rx="2" />
+          <path d="M9 10h6M9 14h4" />
+        </>
+      )}
+    </svg>
+  );
+}
+
+export function CategoryBadge({ category }: { category: string }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 self-start rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide ${
+        CATEGORY_BADGE[category] ?? 'bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300'
+      }`}
+    >
+      <CategoryIcon category={category} />
+      {category}
+    </span>
+  );
+}
+
+/** Square icon tile for list rows — the category chip's bigger sibling. */
+export function CategoryTile({ category }: { category: string }) {
+  return (
+    <span
+      className={`flex size-10 shrink-0 items-center justify-center rounded-lg ${
+        CATEGORY_BADGE[category] ?? 'bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300'
+      }`}
+    >
+      <CategoryIcon category={category} className="size-5" />
+    </span>
+  );
+}
+
 export function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
     <label className="block">

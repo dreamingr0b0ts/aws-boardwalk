@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import type { Application } from '../types';
-import { Card, EmptyState, ErrorNote, Spinner, StatusChip, WindowPlate, fmtDate } from '../components/Ui';
+import { Card, CategoryTile, EmptyState, ErrorNote, KpiTile, Spinner, StatusChip, WindowPlate, fmtDate } from '../components/Ui';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -34,7 +34,19 @@ export default function Dashboard() {
         </Link>
       </div>
 
-      <div className="mt-8 space-y-3">
+      {apps && apps.length > 0 && (
+        <div className="mt-8 grid gap-4 sm:grid-cols-3">
+          <KpiTile
+            label="Open"
+            value={String(apps.filter((a) => a.status === 'submitted' || a.status === 'under_review').length)}
+            sub="submitted or under review"
+          />
+          <KpiTile label="Approved" value={String(apps.filter((a) => a.status === 'approved').length)} sub="ready to post at the job site" />
+          <KpiTile label="Denied" value={String(apps.filter((a) => a.status === 'denied').length)} sub="see the reviewer note for why" />
+        </div>
+      )}
+
+      <div className="mt-6 space-y-3">
         {error && <ErrorNote message={error} />}
         {!error && apps === null && <Spinner label="Loading your applications…" />}
         {apps?.length === 0 && (
@@ -46,7 +58,8 @@ export default function Dashboard() {
         )}
         {apps?.map((app) => (
           <Link key={app.id} to={`/applications/${app.id}`} className="block">
-            <Card className="flex flex-wrap items-center gap-x-6 gap-y-2 px-5 py-4 transition-shadow hover:shadow-md">
+            <Card className="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-4 transition hover:-translate-y-0.5 hover:border-pine-300 hover:shadow-md dark:hover:border-pine-600">
+              <CategoryTile category={app.category} />
               <div className="min-w-0 flex-1">
                 <p className="font-bold text-pine-950 dark:text-pine-100">{app.typeName}</p>
                 <p className="mt-0.5 truncate text-sm text-stone-500 dark:text-stone-400">

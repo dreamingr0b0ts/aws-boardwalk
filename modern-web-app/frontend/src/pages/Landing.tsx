@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import type { PermitType, StatsResponse } from '../types';
-import { Card, Grommet, RidgeBand, WindowPlate, fmtMoney } from '../components/Ui';
+import { Card, CategoryBadge, Grommet, RidgeBand, WindowPlate, fmtMoney } from '../components/Ui';
 import heroSm from '../assets/hero-alpenglow-800.webp';
 import heroMd from '../assets/hero-alpenglow-1200.webp';
 import heroLg from '../assets/hero-alpenglow-2000.webp';
@@ -40,66 +40,6 @@ function Eyebrow({ children, onDark = false }: { children: ReactNode; onDark?: b
       <span className="-ml-1 h-px w-7 bg-current" aria-hidden />
       {children}
     </p>
-  );
-}
-
-const CATEGORY_BADGE: Record<string, string> = {
-  Building: 'bg-pine-100 text-pine-800 dark:bg-pine-900/60 dark:text-pine-200',
-  Business: 'bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300',
-  Events: 'bg-violet-100 text-violet-800 dark:bg-violet-950/60 dark:text-violet-300',
-  Housing: 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300',
-};
-
-const CATEGORY_ICON: Record<string, ReactNode> = {
-  Building: (
-    <>
-      <path d="M6 21V8h12v13" />
-      <path d="M6 12h12M6 16.5h12" />
-      <path d="M9.5 8V5h5v3" />
-      <path d="M3 21h18" />
-    </>
-  ),
-  Business: (
-    <>
-      <path d="M4 9 5.5 4h13L20 9" />
-      <path d="M4.5 9v12h15V9" />
-      <path d="M9.5 21v-6h5v6" />
-    </>
-  ),
-  Events: (
-    <>
-      <path d="M5.5 21V4" />
-      <path d="M5.5 5h13l-3 4 3 4h-13" />
-    </>
-  ),
-  Housing: (
-    <>
-      <path d="m3 11.5 9-7.5 9 7.5" />
-      <path d="M6 10v11h12V10" />
-      <path d="M10 21v-6h4v6" />
-    </>
-  ),
-};
-
-function CategoryIcon({ category }: { category: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      className="size-3.5 shrink-0"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      {CATEGORY_ICON[category] ?? (
-        <>
-          <rect x="6" y="4" width="12" height="17" rx="2" />
-          <path d="M9 10h6M9 14h4" />
-        </>
-      )}
-    </svg>
   );
 }
 
@@ -203,12 +143,7 @@ export default function Landing() {
               className="group relative flex flex-col p-5 pt-6 transition hover:-translate-y-0.5 hover:border-pine-300 hover:shadow-lg dark:hover:border-pine-600"
             >
               <Grommet />
-              <span
-                className={`inline-flex items-center gap-1.5 self-start rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide ${CATEGORY_BADGE[t.category] ?? 'bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300'}`}
-              >
-                <CategoryIcon category={t.category} />
-                {t.category}
-              </span>
+              <CategoryBadge category={t.category} />
               <h3 className="mt-3 font-bold leading-snug text-pine-950 dark:text-pine-100">{t.name}</h3>
               <p className="mt-1.5 line-clamp-3 flex-1 text-sm text-stone-500 dark:text-stone-400">{t.description}</p>
               <div className="mt-4 flex items-center justify-between border-t border-stone-100 pt-3 dark:border-stone-800 text-sm">
