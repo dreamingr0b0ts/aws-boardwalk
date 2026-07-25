@@ -139,6 +139,7 @@ h1 {
 .hero-meta strong { display: block; color: #fff; font: 700 16px/1.4 var(--font-mono); letter-spacing: 0; }
 .hero-titleblock {
   position: relative; display: flex; flex-wrap: wrap;
+  margin: 0 12px 12px;           /* dock inside the drawn sheet frame (matches ::after inset) */
   border-top: 1px solid rgba(214, 232, 245, .45);
   background: rgba(7, 17, 28, .72);
   font: 400 10px/1.3 var(--font-mono); text-transform: uppercase; letter-spacing: .16em; color: #a8cbe8;
@@ -181,7 +182,6 @@ code { font: 400 .88em var(--font-mono); background: var(--chip-bg); padding: 1p
 .badge {
   display: inline-block; font: 700 11px/1.3 var(--font-mono); text-transform: uppercase; letter-spacing: .16em;
   padding: 6px 14px; border: 2px solid var(--ink-3); border-radius: 4px; color: var(--ink-3);
-  transform: rotate(-1.5deg);
 }
 .badge.live { color: var(--ok-ink); border-color: var(--ok-ink); background: var(--ok-bg); animation: pulse 1.4s ease-in-out infinite; }
 .badge.down { color: var(--ink-2); background: var(--chip-bg); border-style: dashed; }
@@ -293,6 +293,7 @@ footer::before {               /* full-width scale bar closing the sheet */
   .hero-photo { object-position: 24% 40%; }
   .hero-inner { padding-top: 48px; padding-bottom: 36px; }
   header.hero::after { inset: 8px; outline: none; }
+  .hero-titleblock { margin: 0 8px 8px; }
   .hero-titleblock span:nth-child(n+4) { display: none; }
   .plate { float: none; display: inline-flex; margin: 0 0 14px; }
 }
