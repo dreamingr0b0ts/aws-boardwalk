@@ -31,7 +31,8 @@ function renderStatus(status) {
   $("stat-status").textContent = live ? "LIVE" : "torn down";
   $("status-text").innerHTML = live
     ? "The full network is staked out and billing: both instances are up, the interface endpoints " +
-      "are serving SSM, and the paths below are live right now."
+      "are serving SSM, and the paths below are live right now. Sheet 03 will send the inspector " +
+      "on a round for you."
     : status
       ? `The hourly-billing stack was struck ${fmtWhen(status.updatedAt)} after its last demo window. ` +
         "The evidence below is the as-built record from that cycle, redeployable in ~15 minutes."
@@ -146,9 +147,241 @@ function renderEvidence(ev) {
     "internet background noise: strangers scanning a minutes-old public IP, turned away by the security group.";
 }
 
+// ---- field inspection rounds (same-origin /api, Sheet 03) -------------------
+// POST /api/runs dispatches a live probe round via the net-inspection-runner
+// Lambda; the page polls the run record and replays the field book as it is
+// written. A 409 means a round is already out: the response carries that
+// round's id and the page attaches to it, so everyone watches the original
+// request.
+
+const api = async (path, opts) => {
+  try {
+    const res = await fetch(`/api${path}`, opts);
+    const body = await res.json().catch(() => ({}));
+    return { status: res.status, body };
+  } catch {
+    return { status: 0, body: {} };
+  }
+};
+
+const STAGE_BY_STATUS = {
+  queued: 0, dispatching: 0, "probing-web": 1, "probing-app": 2,
+  comparing: 3, passed: 4, failed: 4, error: 4,
+};
+const FINAL_STATUS = new Set(["passed", "failed", "error"]);
+
+// probe name → the plan-view element the inspector is walking
+const PROBE_EDGE = {
+  "public-internet-egress": "edge-public-internet-egress",
+  "web-to-app-8080": "edge-web-to-app-8080",
+  "web-to-data-5432": "edge-web-to-data-5432",
+  "private-internet-egress": "edge-private-internet-egress",
+  "private-s3-gateway": "edge-gateway-endpoints",
+  "private-ddb-gateway": "edge-gateway-endpoints",
+  "imdsv1-blocked": "node-private-app",
+  "imdsv2-works": "node-private-app",
+};
+
+let watchTimer = null;
+let watchingId = null;
+let renderedLines = 0;
+let stackDeployed = false;
+
+const ago = (iso) => {
+  const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+  if (s < 90) return `${Math.round(s)}s ago`;
+  if (s < 5400) return `${Math.round(s / 60)}m ago`;
+  if (s < 129600) return `${Math.round(s / 3600)}h ago`;
+  return `${Math.round(s / 86400)}d ago`;
+};
+
+function setRouteStage(status) {
+  const pos = STAGE_BY_STATUS[status] ?? 0;
+  document.querySelectorAll(".route .stage").forEach((el) => {
+    const s = Number(el.dataset.stage);
+    el.classList.remove("lit", "done", "fail");
+    if (s < pos) el.classList.add("done");
+    else if (s === pos) {
+      if (FINAL_STATUS.has(status)) el.classList.add(status === "passed" ? "done" : "fail");
+      else el.classList.add("lit");
+    }
+  });
+}
+
+function resetEdges() {
+  for (const id of new Set(Object.values(PROBE_EDGE))) {
+    $(id)?.classList.remove("tracing", "traced", "traced-bad");
+  }
+}
+
+function paintEdges(probes) {
+  for (const p of probes) {
+    const el = $(PROBE_EDGE[p.name]);
+    if (!el) continue;
+    if (p.status === "running") el.classList.add("tracing");
+    else if (p.status === "pass") { el.classList.remove("tracing"); el.classList.add("traced"); }
+    else if (p.status === "fail") { el.classList.remove("tracing"); el.classList.add("traced-bad"); }
+  }
+}
+
+function renderFieldBook(lines) {
+  if (lines.length <= renderedLines) return;
+  $("fb-empty").hidden = true;
+  const pre = $("fb-log");
+  for (const l of lines.slice(renderedLines)) {
+    const span = document.createElement("span");
+    if (/\]\s+\$ /.test(l.m)) span.className = "cmd";
+    else if (/\]\s+OK /.test(l.m)) span.className = "ok";
+    else if (/\]\s+XX /.test(l.m) || /abandoned/.test(l.m)) span.className = "bad";
+    span.textContent = l.m + "\n";
+    pre.appendChild(span);
+  }
+  renderedLines = lines.length;
+  const book = $("fieldbook");
+  book.scrollTop = book.scrollHeight;
+}
+
+function showRoundResult(run) {
+  $("round-result").hidden = false;
+  const verdict = $("result-verdict");
+  const labels = { passed: "as designed", failed: "unexpected results", error: "round abandoned" };
+  verdict.textContent = labels[run.status] ?? run.status;
+  verdict.className = `badge ${run.status === "passed" ? "ok" : "bad"}`;
+  const passCount = (run.probes ?? []).filter((p) => p.status === "pass").length;
+  const secs = run.finishedAt && run.createdAt
+    ? ` · ${((new Date(run.finishedAt) - new Date(run.createdAt)) / 1000).toFixed(0)}s on site`
+    : "";
+  $("result-summary").textContent =
+    `${passCount}/${(run.probes ?? []).length} probes as designed · plan agreement ` +
+    `${run.plan?.agree ?? "?"}/${run.plan?.total ?? "?"}${secs}`;
+}
+
+function highlightRound() {
+  document.querySelectorAll(".round-row").forEach((el) => {
+    el.classList.toggle("selected", el.dataset.runId === watchingId);
+  });
+}
+
+function watchRound(runId, mine = false) {
+  clearInterval(watchTimer);
+  watchingId = runId;
+  renderedLines = 0;
+  $("fb-log").textContent = "";
+  $("fb-empty").hidden = false;
+  $("round-result").hidden = true;
+  resetEdges();
+  setRouteStage("queued");
+  $("watching").textContent = mine
+    ? `your round: ${runId}`
+    : `watching round ${runId}`;
+  highlightRound();
+
+  let polls = 0;
+  const poll = async () => {
+    if (++polls > 160) { // ~5 min: a round that stopped reporting is not coming back
+      clearInterval(watchTimer);
+      $("round-error").textContent = "The round stopped reporting. Check the recent rounds below.";
+      $("round-error").hidden = false;
+      return;
+    }
+    const { status, body } = await api(`/runs/${runId}`);
+    if (status !== 200) { clearInterval(watchTimer); return; }
+    const run = body.run;
+    setRouteStage(run.status);
+    paintEdges(run.probes ?? []);
+    renderFieldBook(run.log ?? []);
+    if (FINAL_STATUS.has(run.status)) {
+      clearInterval(watchTimer);
+      showRoundResult(run);
+      loadRounds();
+      loadApiStatus(false);
+    }
+  };
+  poll();
+  watchTimer = setInterval(poll, 2000);
+}
+
+async function launchRound() {
+  $("round-error").hidden = true;
+  const btn = $("launch-round");
+  btn.disabled = true;
+  try {
+    const { status, body } = await api("/runs", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{}",
+    });
+    if (status === 202) {
+      watchRound(body.runId, true);
+    } else if (status === 409 && body.runId) {
+      $("watching").textContent =
+        `an inspector was already out when you pressed the button; this is the original round (${body.runId})`;
+      watchRound(body.runId);
+    } else {
+      $("round-error").textContent = body.message ?? `The round could not be dispatched (${status || "network error"}).`;
+      $("round-error").hidden = false;
+    }
+  } finally {
+    btn.disabled = !stackDeployed;
+  }
+}
+
+function roundRow(r) {
+  const btn = document.createElement("button");
+  btn.className = "round-row";
+  btn.dataset.runId = r.runId;
+  const chips = {
+    passed: '<span class="chip ok">as designed</span>',
+    failed: '<span class="chip bad">unexpected</span>',
+    error: '<span class="chip bad">abandoned</span>',
+  };
+  const chip = chips[r.status] ?? `<span class="chip run">${r.status ?? "running"}</span>`;
+  btn.innerHTML = `<span class="id">${r.runId}</span> ${chip}
+    <span class="desc">${r.summary ?? "round in progress"}</span>
+    <span class="age">${ago(r.createdAt)}</span>`;
+  btn.addEventListener("click", () => watchRound(r.runId));
+  return btn;
+}
+
+async function loadRounds() {
+  const { status, body } = await api("/runs");
+  const feed = $("rounds-feed");
+  if (status !== 200) { feed.innerHTML = '<p class="muted">The round ledger is unreachable.</p>'; return; }
+  feed.replaceChildren();
+  if (!body.runs?.length) {
+    feed.innerHTML = '<p class="muted">No rounds in the last 48h. Be the first one out.</p>';
+    return;
+  }
+  for (const r of body.runs) feed.appendChild(roundRow(r));
+  highlightRound();
+}
+
+async function loadApiStatus(autoAttach = true) {
+  const { status, body } = await api("/status");
+  const btn = $("launch-round");
+  if (status !== 200) {
+    $("round-usage").textContent = "inspection API unreachable";
+    btn.disabled = true;
+    return;
+  }
+  stackDeployed = body.deployed === true;
+  $("round-usage").textContent = `day book: ${body.usage?.used ?? 0} of ${body.usage?.limit ?? "?"} rounds today`;
+  btn.disabled = !stackDeployed;
+  if (!watchingId) {
+    $("watching").textContent = stackDeployed
+      ? "the site is staked out; a round takes about a minute"
+      : "the stack is struck between windows, so no rounds can go out; the day book below still reads back";
+  }
+  if (autoAttach && body.running?.runId && !watchingId) watchRound(body.running.runId);
+}
+
+$("launch-round").addEventListener("click", launchRound);
+
 const [status, evidence] = await Promise.all([
   fetchJson("/evidence/status.json"),
   fetchJson("/evidence/evidence.json"),
 ]);
 renderStatus(status);
 renderEvidence(evidence);
+loadApiStatus();
+loadRounds();

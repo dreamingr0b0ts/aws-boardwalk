@@ -22,8 +22,16 @@ echo "verifying $SITE"
 # ---- 1. always-on: static site + security headers ----
 HDRS=$(curl -sS -D - -o /tmp/net-index.html "$SITE/" | tr -d '\r')
 grep -q "Alpenglow Network Blueprint" /tmp/net-index.html; check $? "site serves the Network Blueprint page"
+grep -q "Send the inspector" /tmp/net-index.html; check $? "field-inspection sheet present"
 echo "$HDRS" | grep -qi "strict-transport-security" || [ $? -eq 141 ]; check $? "HSTS header present"
 echo "$HDRS" | grep -qi "content-security-policy" || [ $? -eq 141 ]; check $? "CSP header present"
+
+# inspection API is always on (it answers honestly either way)
+API_STATUS=$(curl -sS "$SITE/api/status")
+echo "$API_STATUS" | jq -e '.usage.limit >= 1' > /dev/null; check $? "inspection API answers with the day-book cap"
+CODE=$(curl -sS -o /dev/null -w '%{http_code}' "$SITE/api/runs/not-a-round")
+[ "$CODE" = "400" ]; check $? "malformed round id rejected with 400"
+curl -sS "$SITE/api/runs" | jq -e 'has("runs")' > /dev/null; check $? "round ledger endpoint answers"
 
 # ---- 2. always-on: persisted evidence artifacts ----
 STATUS=$(curl -sS "$SITE/evidence/status.json")
@@ -114,6 +122,34 @@ if [ "$DEMO_RESOURCES" -gt 0 ]; then
   [ "$AGE_H" -lt 24 ]; check $? "evidence.json fresh (${AGE_H}h old)"
 
   echo "$STATUS" | jq -e '.deployed == true' > /dev/null; check $? "status.json says deployed"
+
+  # visitor-triggered inspection round, end to end. If another round is in
+  # flight the POST answers 409 with that round's id, and we watch it instead —
+  # exactly what the page does.
+  echo "$API_STATUS" | jq -e '.deployed == true' > /dev/null; check $? "inspection API sees the live stack"
+  BODY=$(curl -sS -X POST "$SITE/api/runs" -H 'content-type: application/json' -d '{}')
+  RUN_ID=$(echo "$BODY" | jq -r '.runId // empty')
+  [ -n "$RUN_ID" ]; check $? "round dispatched ($RUN_ID)"
+
+  CONC=$(curl -sS -X POST "$SITE/api/runs" -H 'content-type: application/json' -d '{}')
+  echo "$CONC" | jq -e --arg id "$RUN_ID" '.runId == $id' > /dev/null
+  check $? "second trigger is handed the round already under way"
+
+  ROUND_STATUS=""
+  for i in $(seq 1 60); do
+    sleep 5
+    ROUND_STATUS=$(curl -sS "$SITE/api/runs/$RUN_ID" | jq -r '.run.status // empty')
+    case "$ROUND_STATUS" in passed|failed|error) break;; esac
+  done
+  [ "$ROUND_STATUS" = "passed" ]; check $? "round filed as designed (status: ${ROUND_STATUS:-unknown})"
+
+  RUN_JSON=$(curl -sS "$SITE/api/runs/$RUN_ID")
+  echo "$RUN_JSON" | jq -e '[.run.probes[] | select(.status=="pass")] | length == 8' > /dev/null
+  check $? "all 8 live probes in the round as designed"
+  echo "$RUN_JSON" | jq -e '.run.plan.agree == 4 and .run.plan.total == 4' > /dev/null
+  check $? "plan-check agreement 4/4"
+  echo "$RUN_JSON" | jq -e '.run.log | length >= 20' > /dev/null
+  check $? "field book streamed ($(echo "$RUN_JSON" | jq '.run.log | length') lines)"
 else
   echo "— demo stack TORN DOWN: proving the idle state —"
 
@@ -139,6 +175,16 @@ else
   [ "$N" = "0" ]; check $? "flow-log log group removed (no storage accruing)"
 
   echo "$STATUS" | jq -e '.deployed == false' > /dev/null; check $? "status.json says torn down"
+
+  # the inspection API answers honestly between windows
+  echo "$API_STATUS" | jq -e '.deployed == false' > /dev/null
+  check $? "inspection API answers honestly: stack struck"
+  CODE=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$SITE/api/runs" \
+    -H 'content-type: application/json' -d '{}')
+  [ "$CODE" = "503" ]; check $? "trigger between windows answers 503 (no site to walk)"
+  N=$(aws ssm get-parameters-by-path --path /boardwalk/network-blueprint \
+    --query 'length(Parameters)' --output text)
+  [ "$N" = "0" ]; check $? "discovery parameters removed with the stack"
 fi
 
 echo

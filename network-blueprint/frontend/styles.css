@@ -262,6 +262,85 @@ table.sim td.note { color: var(--ink-3); font-size: 12.5px; }
 ul.proof { margin: 12px 0 0; padding-left: 20px; display: grid; gap: 8px; font-size: 14px; color: var(--ink-2); }
 ul.proof strong { color: var(--ink); }
 
+/* ---- field inspection round (Sheet 03) ---- */
+button.btn-link { cursor: pointer; }
+button.btn-link:disabled { opacity: .45; cursor: not-allowed; filter: none; }
+
+.error {
+  margin-top: 12px; padding: 10px 14px; border: 1.5px solid var(--bad-ink); border-radius: 3px;
+  background: var(--bad-bg); color: var(--bad-ink); font-size: 13.5px;
+}
+
+.route { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; margin-top: 18px; }
+.route .arr { align-self: center; color: var(--ink-3); font-weight: 700; }
+.rnode {
+  flex: 1 1 150px; min-width: 0; border: 1.5px solid var(--border); background: var(--bg);
+  border-radius: 3px; padding: 8px 10px;
+  font: 700 11px/1.3 var(--font-mono); text-transform: uppercase; letter-spacing: .1em; color: var(--ink-2);
+}
+.rnode small {
+  display: block; margin-top: 3px; font: 400 10.5px/1.35 var(--font-body);
+  letter-spacing: 0; text-transform: none; color: var(--ink-3);
+}
+.rnode.done { border-color: var(--blue); color: var(--blue); }
+.rnode.lit {
+  border-color: var(--pencil); color: var(--warn-ink); box-shadow: inset 0 0 0 1px var(--pencil);
+  animation: rpulse 1.3s ease-in-out infinite;
+}
+.rnode.fail { border-color: var(--bad-ink); color: var(--bad-ink); }
+@keyframes rpulse { 50% { box-shadow: inset 0 0 0 3px var(--warn-bg); } }
+
+/* the field book: a cyanotype print pinned to the board, in both color schemes */
+.fieldbook {
+  margin-top: 16px; min-height: 130px; max-height: 330px; overflow-y: auto; padding: 14px 16px;
+  background-color: #0b1c2e; border: 1.5px solid #24425f; border-radius: 3px;
+  background-image:
+    linear-gradient(rgba(233, 242, 249, .05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(233, 242, 249, .05) 1px, transparent 1px);
+  background-size: 26px 26px;
+}
+.fb-empty { color: #8aa6bf; font: 400 12.5px/1.6 var(--font-mono); }
+#fb-log { margin: 0; font: 400 12.5px/1.7 var(--font-mono); color: #cfe4f2; white-space: pre-wrap; overflow-wrap: anywhere; }
+#fb-log .ok { color: #7fd8a4; }
+#fb-log .bad { color: #f2887c; }
+#fb-log .cmd { color: #8fb4d4; }
+
+.round-result { margin-top: 14px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.round-result .muted { font-family: var(--font-mono); font-size: 12.5px; }
+.badge.ok { color: var(--ok-ink); border-color: var(--ok-ink); background: var(--ok-bg); }
+.badge.bad { color: var(--bad-ink); border-color: var(--bad-ink); background: var(--bad-bg); }
+
+.rounds-feed { margin-top: 10px; display: grid; gap: 6px; grid-template-columns: minmax(0, 1fr); }
+.round-row {
+  display: flex; gap: 10px; align-items: center; min-width: 0; text-align: left; cursor: pointer;
+  border: 1px solid var(--border); background: var(--bg); border-radius: 3px; padding: 8px 12px;
+  font: 400 12.5px/1.5 var(--font-mono); color: var(--ink-2);
+}
+.round-row:hover { border-color: var(--blue); }
+.round-row.selected { border-color: var(--blue); box-shadow: inset 0 0 0 1px var(--blue); }
+.round-row .id { font-weight: 700; color: var(--ink); }
+.round-row .desc { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.round-row .age { color: var(--ink-3); white-space: nowrap; }
+.chip {
+  font: 700 10px/1.4 var(--font-mono); text-transform: uppercase; letter-spacing: .08em;
+  padding: 2px 8px; border-radius: 3px; white-space: nowrap;
+}
+.chip.ok { color: var(--ok-ink); background: var(--ok-bg); }
+.chip.bad { color: var(--bad-ink); background: var(--bad-bg); }
+.chip.run { color: var(--warn-ink); background: var(--warn-bg); }
+
+/* live probe tracing on the plan view (Sheet 02) */
+.d-line.tracing { stroke-width: 3.5; stroke-dasharray: 7 7; animation: trace .7s linear infinite; }
+@keyframes trace { to { stroke-dashoffset: -28; } }
+.d-line.traced { stroke-width: 3.5; }
+.d-line.traced-bad { stroke: var(--bad-ink); stroke-width: 4; }
+.d-node.tracing { stroke: var(--pencil); stroke-width: 3; }
+.d-node.traced { stroke-width: 3; }
+.d-node.traced-bad { stroke: var(--bad-ink); stroke-width: 3; }
+@media (prefers-reduced-motion: reduce) {
+  .rnode.lit, .d-line.tracing { animation: none; }
+}
+
 /* ---- interlude photo ---- */
 .interlude { margin: 4px 0; border: 1px solid var(--border); background: var(--surface); }
 .interlude img { display: block; width: 100%; height: auto; }
@@ -289,6 +368,7 @@ footer::before {               /* full-width scale bar closing the sheet */
 
 /* ---- mobile ---- */
 @media (max-width: 640px) {
+  .route .arr { display: none; }
   .hero-scrim { background: linear-gradient(180deg, rgba(7, 17, 28, .62), rgba(7, 17, 28, .9) 72%); }
   .hero-photo { object-position: 24% 40%; }
   .hero-inner { padding-top: 48px; padding-bottom: 36px; }

@@ -114,13 +114,13 @@
       <text x="508" y="228" class="d-sub" text-anchor="middle">standing room for the web tier</text>
 
       <!-- IGW to public -->
-      <line x1="375" y1="58" x2="188" y2="162" class="d-line d-ok"/>
+      <line id="edge-public-internet-egress" x1="375" y1="58" x2="188" y2="162" class="d-line d-ok"/>
       <text x="240" y="128" class="d-edge d-edge-ok">:443 ✓</text>
 
       <!-- app tier -->
       <rect x="52" y="298" width="272" height="130" rx="8" class="d-subnet d-private"/>
       <text x="66" y="318" class="d-tier">app · 10.42.10.0/24 · private</text>
-      <rect x="66" y="330" width="244" height="56" rx="8" class="d-node d-inst"/>
+      <rect id="node-private-app" x="66" y="330" width="244" height="56" rx="8" class="d-node d-inst"/>
       <text x="188" y="352" class="d-label" text-anchor="middle">net-private-app · t4g.nano</text>
       <text x="188" y="368" class="d-sub" text-anchor="middle">:8080 ← web SG only · no internet path</text>
       <rect x="66" y="394" width="244" height="26" rx="8" class="d-node d-vpce"/>
@@ -131,9 +131,9 @@
       <text x="508" y="368" class="d-sub" text-anchor="middle">multi-AZ capacity, same tier rules</text>
 
       <!-- web → app edges -->
-      <line x1="188" y1="266" x2="188" y2="330" class="d-line d-ok"/>
+      <line id="edge-web-to-app-8080" x1="188" y1="266" x2="188" y2="330" class="d-line d-ok"/>
       <text x="196" y="296" class="d-edge d-edge-ok">:8080 ✓</text>
-      <line x1="252" y1="266" x2="252" y2="330" class="d-line d-no"/>
+      <line id="edge-web-to-data-5432" x1="252" y1="266" x2="252" y2="330" class="d-line d-no"/>
       <text x="260" y="296" class="d-edge d-edge-no">:5432 ✗</text>
 
       <!-- data tier -->
@@ -160,11 +160,11 @@
 
       <line x1="806" y1="342" x2="806" y2="306" class="d-line d-ok"/>
       <line x1="806" y1="252" x2="806" y2="234" class="d-line d-ok"/>
-      <line x1="310" y1="358" x2="712" y2="371" class="d-line d-ok"/>
+      <line id="edge-gateway-endpoints" x1="310" y1="358" x2="712" y2="371" class="d-line d-ok"/>
       <text x="480" y="352" class="d-edge d-edge-ok">app + data route tables ✓</text>
 
       <!-- igw to app blocked -->
-      <line x1="430" y1="58" x2="330" y2="330" class="d-line d-no"/>
+      <line id="edge-private-internet-egress" x1="430" y1="58" x2="330" y2="330" class="d-line d-no"/>
       <text x="392" y="210" class="d-edge d-edge-no">no route ✗</text>
     </svg>
     </div>
@@ -175,9 +175,55 @@
     running cost, and the reason it tears down between windows).</p>
   </section>
 
+  <!-- Field inspection: trigger a live round -->
+  <section class="panel" id="inspection-panel">
+    <div class="plate"><span class="plate-no">Sheet 03</span><span class="plate-title">Field inspection</span></div>
+    <div class="map-head">
+      <h2>Send the inspector on a round</h2>
+      <p class="muted" id="round-usage">–</p>
+    </div>
+    <p class="muted">While the stack is staked out you can walk the site yourself. A round runs the
+    eight probe commands on the two live instances via SSM Run Command, one at a time, and closes
+    by checking the field results against the four Reachability Analyzer verdicts from the plan
+    check. The blocked paths are part of the round: watching them fail on cue is the point.
+    One inspector is out at a time; if a round is already under way you are handed that one to
+    watch instead.</p>
+
+    <div class="launch-row" style="margin-top:14px">
+      <button id="launch-round" class="btn-link" disabled>Walk the site</button>
+      <p class="muted small" id="watching">Checking whether the site is staked out…</p>
+    </div>
+    <p id="round-error" class="error" hidden></p>
+
+    <div class="route" id="route">
+      <span class="rnode stage" data-stage="0">Dispatch<small>the work order is picked up</small></span>
+      <span class="arr">→</span>
+      <span class="rnode stage" data-stage="1">Web tier<small>3 probes, in from the street</small></span>
+      <span class="arr">→</span>
+      <span class="rnode stage" data-stage="2">App tier<small>5 probes, in over PrivateLink</small></span>
+      <span class="arr">→</span>
+      <span class="rnode stage" data-stage="3">Plan check<small>field results vs analyzer</small></span>
+      <span class="arr">→</span>
+      <span class="rnode stage" data-stage="4">Filed<small>verdict in the day book</small></span>
+    </div>
+
+    <div class="fieldbook" id="fieldbook"><p class="fb-empty" id="fb-empty">the field book opens
+    when a round goes out (or pick a recent round below)</p><pre id="fb-log"></pre></div>
+
+    <div class="round-result" id="round-result" hidden>
+      <span class="badge" id="result-verdict"></span>
+      <span class="muted" id="result-summary"></span>
+    </div>
+
+    <h3 style="margin-top:22px">Recent rounds</h3>
+    <p class="muted small">Yours and other visitors'. Records expire after 48 hours; pick one to
+    read its field book back.</p>
+    <div id="rounds-feed" class="rounds-feed"><p class="muted">Loading…</p></div>
+  </section>
+
   <!-- Evidence report -->
   <section class="panel">
-    <div class="plate"><span class="plate-no">Sheet 03</span><span class="plate-title">As-built record</span></div>
+    <div class="plate"><span class="plate-no">Sheet 04</span><span class="plate-title">As-built record</span></div>
     <div class="map-head">
       <h2>Latest evidence report</h2>
       <p class="muted" id="evidence-when">–</p>
@@ -238,12 +284,16 @@
 
   <!-- Proof -->
   <section class="panel">
-    <div class="plate"><span class="plate-no">Sheet 04</span><span class="plate-title">General notes</span></div>
+    <div class="plate"><span class="plate-no">Sheet 05</span><span class="plate-title">General notes</span></div>
     <h2>What this plank proves</h2>
     <ul class="proof">
       <li><strong>Segmentation you can verify, not just draw:</strong> every tier boundary is tested
       from both directions. Reachability Analyzer analyzes the configuration, and probe commands on
       the instances confirm the data plane, including the paths that are supposed to fail.</li>
+      <li><strong>Proof on demand, not a screenshot:</strong> while the stack is live, any visitor
+      can send the inspector on a round and watch the eight probes walk the site one SSM command at
+      a time, traced on the plan view, closed out against the analyzer verdicts. One round at a
+      time, thirty per day, $0 per round.</li>
       <li><strong>The no-NAT cost pattern:</strong> private subnets have no internet route at all,
       yet reach S3 and DynamoDB through free gateway endpoints. A NAT gateway idles at ~$33/month
       before data charges; knowing when you don't need one is real architecture.</li>

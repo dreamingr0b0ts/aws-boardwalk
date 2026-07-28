@@ -12,8 +12,8 @@ teardown on the always-on site.
 
 | root | lifecycle | contents |
 |---|---|---|
-| `infra/` | always-on, applied by CI like every other plank (state key `network-blueprint.tfstate`) | private S3 site behind CloudFront/OAC, custom domain, and the persisted `evidence/` prefix |
-| `demo/` | **local-only** `make demo` / `make teardown` (state key `network-blueprint-demo.tfstate`) | everything that bills hourly, deliberately **excluded from the CI matrix** so a push to main can never silently re-start it |
+| `infra/` | always-on, applied by CI like every other plank (state key `network-blueprint.tfstate`) | private S3 site behind CloudFront/OAC, custom domain, the persisted `evidence/` prefix, and the **inspection API** (HTTP API + two Lambdas + DynamoDB) that lets visitors trigger live probe rounds |
+| `demo/` | **local-only** `make demo` / `make teardown` (state key `network-blueprint-demo.tfstate`) | everything that bills hourly, deliberately **excluded from the CI matrix** so a push to main can never silently re-start it; also writes the SSM discovery parameters the inspection API uses to find the stack |
 
 ## What a demo window deploys
 
@@ -36,6 +36,27 @@ teardown on the always-on site.
 - **Evidence Lambda** (`net-evidence-report`) reads all of the above, re-runs the probe suites,
   and writes `evidence/evidence.json` + a printable `evidence/evidence.html` into the always-on
   bucket.
+
+## The field inspection, on demand
+
+While the stack is deployed, any visitor can press **Walk the site** (Sheet 03) and watch a real
+inspection round: the always-on `net-inspection-api` Lambda gates the request, and the async
+`net-inspection-runner` Lambda executes the eight probe commands on the two instances via SSM Run
+Command, **one probe per command**, so the page's field book streams and the plan-view edges trace
+as each result lands. The round closes by re-reading the four Reachability Analyzer verdicts and
+checking the field results agree with the plan.
+
+Guardrails, mirroring the containers plank:
+
+- **One inspector at a time**: a DynamoDB lock; a second trigger gets a **409 carrying the id of
+  the round already under way**, and the page attaches to that round so everyone shares the view.
+- **30 rounds per UTC day** across all visitors (atomic DynamoDB counter → 429 after that).
+- A round costs **$0** (SSM Run Command is free; no new analyses are started), so the caps bound
+  nuisance, not spend.
+- The API discovers the stack through SSM parameters the demo root writes
+  (`/boardwalk/network-blueprint/*`). Torn down → parameters gone → `POST /api/runs` answers an
+  honest **503** while the rest of the page keeps serving the persisted evidence. Round records
+  expire after 48h.
 
 ## Lifecycle
 
@@ -60,7 +81,7 @@ itself: Prussian-blue ground, pale linework. The metaphor carries the exhibits: 
 Analyzer is the plan check, the SSM probe suite is the field inspection, the persisted report is
 the as-built record filed with the town, and deploy-demo-teardown is the structure being staked
 out for inspection and struck while the drawings stay on file. Sections wear engineering
-title-block plates (Sheet 01–04), headings get scale-bar underlines, the ghost NAT gateway is
+title-block plates (Sheet 01–05), headings get scale-bar underlines, the ghost NAT gateway is
 struck from the drawing, and the standalone evidence report renders as a stamped as-built sheet.
 
 - **Type**: Big Shoulders (condensed drafting-caps display) · Instrument Sans (body) ·

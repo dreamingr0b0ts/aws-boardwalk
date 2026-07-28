@@ -45,6 +45,8 @@ security-posture/demo/lambda/report.zip
 
 # Plank 9 report Lambda archive (built by terraform archive provider)
 network-blueprint/demo/lambda/report.zip
+network-blueprint/infra/lambda/api.zip
+network-blueprint/infra/lambda/runner.zip
 
 # Plank 11 Lambda archives (built by terraform archive provider)
 relational-registry/infra/lambda/query.zip

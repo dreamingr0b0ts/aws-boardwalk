@@ -15,3 +15,12 @@ variable "site_hostname" {
   type        = string
   default     = "network.demos.planetek.org"
 }
+
+# A probe round is free (SSM Run Command + a few DynamoDB writes), so like the
+# containers plank this cap bounds nuisance, not spend. One round runs at a
+# time; extra trigger attempts get a 409 pointing at the round under way.
+variable "global_daily_limit" {
+  description = "Max inspection rounds across ALL visitors per UTC day"
+  type        = number
+  default     = 30
+}

@@ -6,6 +6,10 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 6.0"
     }
+    archive = {
+      source  = "hashicorp/archive"
+      version = "~> 2.7"
+    }
   }
 
   backend "s3" {
@@ -36,4 +40,8 @@ locals {
   prefix     = "net"
   account_id = data.aws_caller_identity.current.account_id
   region     = data.aws_region.current.region
+
+  # Handshake with the demo root: it writes discovery parameters here while
+  # the stack is deployed; the inspection API answers 503 when they are gone.
+  ssm_prefix = "/boardwalk/network-blueprint"
 }
