@@ -70,10 +70,16 @@ report:
 
 ## Final evidence snapshot, then destroy the cluster and every daily-billing
 ## resource. The site keeps serving the last report; the query API answers 503.
+## The trailing deletes handle a race: a demo Lambda's final log lines can be
+## delivered AFTER terraform destroys its log group, auto-recreating it
+## unmanaged (no retention) — which then collides with the next demo's apply.
 teardown:
 	-$(MAKE) report
 	$(TFD) destroy -auto-approve $(DEMO_VARS)
 	$(MAKE) write-status DEPLOYED=false
+	@for LG in /aws/lambda/rdb-seed /aws/lambda/rdb-evidence-report; do \
+	  aws logs delete-log-group --log-group-name "$$LG" 2>/dev/null || true; \
+	done
 	@echo "Aurora stack torn down; the evidence report remains on the site."
 
 ## Internal: status.json drives the page's LIVE / torn-down banner.

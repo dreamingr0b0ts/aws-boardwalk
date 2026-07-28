@@ -75,10 +75,14 @@ report:
 
 ## Final evidence snapshot, then destroy every hourly-billing resource.
 ## The site keeps serving the last report; status.json flips to torn-down.
+## The trailing delete handles a race: the report Lambda's final log lines can
+## be delivered AFTER terraform destroys its log group, auto-recreating it
+## unmanaged (no retention) — which then collides with the next demo's apply.
 teardown:
 	-$(MAKE) report
 	$(TFD) destroy -auto-approve $(DEMO_VARS)
 	$(MAKE) write-status DEPLOYED=false
+	@aws logs delete-log-group --log-group-name /aws/lambda/net-evidence-report 2>/dev/null || true
 	@echo "network torn down. The evidence report remains on the site."
 
 ## Internal: status.json drives the page's LIVE / torn-down banner.
