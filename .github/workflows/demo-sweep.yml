@@ -1,0 +1,70 @@
+# Nightly demo-window sweep for the deploy-demo-teardown planks (8 security,
+# 9 network, 11 relational registry). Their demo/ roots bill by the hour or
+# day and are driven by local `make demo` / `make teardown` — this workflow is
+# the safety net for a forgotten teardown: every night it checks each demo
+# root's state and, if a window was left open, runs that plank's own
+# `make teardown` (final evidence snapshot → terraform destroy → status flip).
+#
+# Deliberately DESTROY-ONLY. The demo roots stay out of the apply matrix in
+# terraform.yml because CI applying them would silently re-start billing; a
+# sweep that can only tear down cannot re-create anything that bills, so it
+# honors the same rule from the other side. workflow_dispatch doubles as a
+# remote kill switch when the owner is away from the machine.
+#
+# 09:00 UTC is the boardwalk's standing reset hour (nightly data reseeds run
+# then too), so the worst case for a forgotten window is about one day.
+
+name: demo sweep
+
+on:
+  schedule:
+    - cron: "0 9 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  sweep:
+    name: sweep (${{ matrix.dir }})
+    environment: prod # same protection + OIDC subject the apply role trusts
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        dir: [security-posture, network-blueprint, relational-registry]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.10"
+          # No wrapper: the Makefiles capture `terraform output -raw` values
+          # in command substitutions, which the wrapper's echo would corrupt.
+          terraform_wrapper: false
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/ops-gh-apply
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: tear down if a demo window was left open
+        working-directory: ${{ matrix.dir }}
+        run: |
+          terraform -chdir=infra init -input=false \
+            -backend-config="bucket=aws-boardwalk-tfstate-${{ vars.AWS_ACCOUNT_ID }}"
+          terraform -chdir=demo init -input=false \
+            -backend-config="bucket=aws-boardwalk-tfstate-${{ vars.AWS_ACCOUNT_ID }}"
+          # wc consumes all input — `grep -q` here would SIGPIPE terraform
+          COUNT=$(terraform -chdir=demo state list 2>/dev/null | wc -l | tr -d ' ')
+          if [ "$COUNT" -eq 0 ]; then
+            echo "demo stack already torn down; nothing to sweep"
+            exit 0
+          fi
+          echo "demo stack left up with $COUNT resources — sweeping"
+          make teardown

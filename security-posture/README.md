@@ -42,7 +42,9 @@ make verify     # both modes: live exhibits when deployed; proof of $0 idle when
 make status     # is the demo stack up?
 ```
 
-`make demo` prints a reminder that the stack bills until torn down. Costs per window: Config
+`make demo` prints a reminder that the stack bills until torn down, and a forgotten window is
+bounded by the nightly **demo sweep** workflow (`.github/workflows/demo-sweep.yml`, 09:00 UTC),
+which runs this plank's own `make teardown` if the demo root was left up. Costs per window: Config
 configuration items + 130 rules' evaluations (about $1-3 for this account), GuardDuty/Security Hub
 in free trial (then pennies/day), CloudTrail first management trail free. Idle between windows:
 **$0** (a KMS key pending its 7-day deletion window bills nothing).

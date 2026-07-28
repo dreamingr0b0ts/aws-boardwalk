@@ -164,6 +164,20 @@ resource "aws_iam_role_policy" "gh_apply_iam" {
         Resource = local.plank_policy_arns
       },
       {
+        # Instance profiles exist only in plank 9's demo root (the EC2 probe
+        # instances). CI never applies demo roots, but the nightly demo-sweep
+        # workflow DESTROYS abandoned ones, and that teardown must be able to
+        # unwind the profile ↔ role attachment.
+        Sid    = "PlankInstanceProfiles"
+        Effect = "Allow"
+        Action = [
+          "iam:CreateInstanceProfile", "iam:DeleteInstanceProfile",
+          "iam:AddRoleToInstanceProfile", "iam:RemoveRoleFromInstanceProfile",
+          "iam:GetInstanceProfile", "iam:TagInstanceProfile", "iam:UntagInstanceProfile",
+        ]
+        Resource = [for p in local.plank_iam_prefixes : "arn:aws:iam::${local.account_id}:instance-profile/${p}"]
+      },
+      {
         Sid      = "PassPlankRoles"
         Effect   = "Allow"
         Action   = "iam:PassRole"

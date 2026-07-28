@@ -76,3 +76,7 @@ make report     # refresh evidence.json / evidence.html
 make verify     # two-mode suite: live exhibits, or proof of $0 idle
 make teardown   # final evidence, then destroy every billing resource
 ```
+
+A forgotten teardown is bounded by the nightly **demo sweep** workflow
+(`.github/workflows/demo-sweep.yml`, 09:00 UTC), which runs this same `make teardown` if the
+demo root was left up.

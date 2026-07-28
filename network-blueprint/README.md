@@ -72,6 +72,11 @@ Costs per window: 2 × t4g.nano ($0.0084/hr) + 3 interface endpoints ($0.03/hr) 
 ($0.40) + flow-log pennies → **≈ $0.04/hr + $0.40 fixed**; a 2-hour window is about fifty cents.
 Idle between windows: **$0**.
 
+A forgotten `make teardown` cannot bill for long: the nightly **demo sweep** workflow
+(`.github/workflows/demo-sweep.yml`, 09:00 UTC, also manually dispatchable) tears down any demo
+window left open, running this same `make teardown` so the final evidence snapshot and status
+flip still happen.
+
 ## Design
 
 **"The Engineer's Drafting Room."** The plank is named Network Blueprint, so it dresses as one.
