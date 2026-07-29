@@ -45,7 +45,16 @@ async function init() {
   $('search').addEventListener('input', (e) => {
     searchTerm = e.target.value.trim().toLowerCase();
     renderGrid();
+    if (!searchTerm) clearDeepSearch();
   });
+  $('search').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      deepSearch($('search').value.trim());
+    }
+  });
+  $('deep-clear').addEventListener('click', clearDeepSearch);
+  $('replay-btn').addEventListener('click', replayTimeline);
   $('file-input').addEventListener('change', () => {
     if ($('file-input').files[0]) onUpload($('file-input').files[0]);
   });
@@ -68,10 +77,12 @@ async function init() {
   $('v-prev').addEventListener('click', () => gotoPage(viewer.page - 1));
   $('v-next').addEventListener('click', () => gotoPage(viewer.page + 1));
   $('v-download').addEventListener('click', downloadRedactedPage);
-  const kvTable = $('d-kv');
-  kvTable.addEventListener('mouseover', (e) => hoverKvRow(e.target.closest('tr'), true));
-  kvTable.addEventListener('mouseout', (e) => hoverKvRow(e.target.closest('tr'), false));
-  kvTable.addEventListener('click', (e) => jumpToKvRow(e.target.closest('tr')));
+  for (const tableId of ['d-kv', 'd-queries']) {
+    const table = $(tableId);
+    table.addEventListener('mouseover', (e) => hoverKvRow(e.target.closest('tr'), true));
+    table.addEventListener('mouseout', (e) => hoverKvRow(e.target.closest('tr'), false));
+    table.addEventListener('click', (e) => jumpToKvRow(e.target.closest('tr')));
+  }
 
   if (signedIn()) showSignedIn();
   else showAnon();
@@ -120,9 +131,12 @@ function renderFacets() {
   for (const [type, n] of [...counts.entries()].sort((a, b) => b[1] - a[1])) {
     mkChip(DOC_TYPE_LABELS[type] ?? type, type, n);
   }
+  const reviewCount = allDocs.filter((d) => d.status === 'INDEXED' && d.needsReview).length;
+  if (reviewCount) mkChip('Needs review', '__review', reviewCount);
 }
 
 function matches(d) {
+  if (activeType === '__review') return Boolean(d.needsReview);
   if (activeType && d.docType !== activeType) return false;
   if (!searchTerm) return true;
   const hay = [d.title, d.summary, d.filename, d.docType].filter(Boolean).join(' ').toLowerCase();
@@ -145,6 +159,7 @@ function renderGrid() {
     if (d.docType) badges.push(`<span class="badge type">${esc(DOC_TYPE_LABELS[d.docType] ?? d.docType)}</span>`);
     if (d.status !== 'INDEXED') badges.push(`<span class="badge status-${esc(d.status)}">${esc(d.status)}</span>`);
     if (d.hasPii) badges.push('<span class="badge pii">PII</span>');
+    if (d.needsReview) badges.push('<span class="badge review">review</span>');
     const meta = [
       d.pages ? `${d.pages} page${d.pages > 1 ? 's' : ''}` : null,
       d.ocrConfidence ? `OCR ${d.ocrConfidence}%` : null,
@@ -162,7 +177,7 @@ function renderGrid() {
   }
 }
 
-async function openDoc(docId) {
+async function openDoc(docId, opts = {}) {
   let d;
   try {
     const res = await fetch(`/api/public/documents/${encodeURIComponent(docId)}`);
@@ -203,6 +218,13 @@ async function openDoc(docId) {
     a.textContent = 'private · purges in 24h';
     badges.appendChild(a);
   }
+  if (d.needsReview) {
+    const r = document.createElement('span');
+    r.className = 'badge review';
+    r.textContent = d.reviewFields ? `needs review · ${d.reviewFields} field${d.reviewFields > 1 ? 's' : ''}` : 'needs review';
+    r.title = 'Low-confidence extraction or classification; a records clerk would verify before trusting the metadata.';
+    badges.appendChild(r);
+  }
 
   $('d-summary').textContent = d.summary ?? d.rejectReason ?? d.error ?? '';
   $('d-meta').innerHTML = [
@@ -213,12 +235,20 @@ async function openDoc(docId) {
     `<span>source <strong>${d.source === 'seed' ? 'seed corpus' : d.source === 'anon' ? 'anonymous upload' : 'demo upload'}</strong></span>`,
   ].filter(Boolean).join('');
 
+  const review = (conf, threshold) => conf < threshold ? ' <span class="rev">review</span>' : '';
   const kv = $('d-kv');
   kv.innerHTML = (d.kvPairs ?? []).map((p, i) =>
-    `<tr data-i="${i}" data-page="${p.valueBox?.p ?? p.keyBox?.p ?? ''}">
-      <td>${esc(p.key)}</td><td>${esc(p.value || '—')} <span class="conf">${p.confidence}%</span></td></tr>`
+    `<tr data-ov="kv-${i}" data-page="${p.valueBox?.p ?? p.keyBox?.p ?? ''}">
+      <td>${esc(p.key)}</td><td>${esc(p.value || '—')} <span class="conf">${p.confidence}%</span>${review(p.confidence, 90)}</td></tr>`
   ).join('') || '<tr><td class="muted">none detected</td><td></td></tr>';
   $('d-kv-hint').hidden = !(d.kvPairs ?? []).some((p) => p.valueBox || p.keyBox);
+
+  const queries = (d.queryAnswers ?? []);
+  $('d-queries-label').hidden = !queries.length;
+  $('d-queries').innerHTML = queries.map((qa, i) =>
+    `<tr data-ov="q-${i}" data-page="${qa.box?.p ?? ''}">
+      <td>${esc(qa.question)}</td><td>${esc(qa.answer)} <span class="conf">${qa.confidence}%</span>${review(qa.confidence, 80)}</td></tr>`
+  ).join('');
 
   const ents = $('d-entities');
   ents.innerHTML = (d.entities ?? []).map((e) =>
@@ -230,6 +260,8 @@ async function openDoc(docId) {
   steps.innerHTML = (d.steps ?? []).map((st) =>
     `<li>${esc(st.name)} <span class="t">+${((new Date(st.at).getTime() - t0) / 1000).toFixed(1)}s</span></li>`
   ).join('');
+  replaySteps = d.steps ?? [];
+  $('replay-btn').hidden = replaySteps.length < 2;
 
   renderReceipt(d);
 
@@ -238,7 +270,7 @@ async function openDoc(docId) {
   $('d-preview-label').hidden = !d.textPreview;
   $('doc-dialog').showModal();
 
-  openViewer(d); // async; renders when the bytes and pdf.js arrive
+  openViewer(d, opts.search ?? null); // async; renders when the bytes and pdf.js arrive
 }
 
 // ---- the processing receipt ------------------------------------------------
@@ -250,8 +282,10 @@ function renderReceipt(d) {
     return;
   }
   const money = (n) => `$${(n ?? 0).toFixed(4)}`;
+  const pageQty = `${d.pages ?? '?'} page${d.pages === 1 ? '' : 's'}`;
   const rows = [
-    ['OCR · Textract FORMS', `${d.pages ?? '?'} page${d.pages === 1 ? '' : 's'}`, money(d.cost.textract)],
+    ['OCR · Textract FORMS', pageQty, money(d.cost.textract)],
+    ...(d.cost.queries ? [['Answers · Textract Queries', pageQty, money(d.cost.queries)]] : []),
     ['NLP · Comprehend ×2', `${d.comprehendUnits ?? '?'} units`, money(d.cost.comprehend)],
     ['Classify · Claude Haiku', `${d.tokensIn ?? '?'} in / ${d.tokensOut ?? '?'} out`, money(d.cost.bedrock)],
   ];
@@ -260,6 +294,76 @@ function renderReceipt(d) {
       `<div class="r-line"><span>${esc(svc)}</span><span class="r-qty">${esc(qty)}</span><span class="r-amt">${amt}</span></div>`
     ).join('') +
     `<div class="r-line r-total"><span>total, this document</span><span class="r-qty"></span><span class="r-amt">${money(d.cost.total)}</span></div>`;
+}
+
+// ---- archive search: every word of every page ------------------------------
+
+async function deepSearch(term) {
+  if (term.length < 2) return;
+  const panel = $('deep-results');
+  panel.hidden = false;
+  $('deep-title').textContent = `Searching every page for "${term}"…`;
+  $('deep-list').innerHTML = '';
+  let res;
+  try {
+    const r = await fetch(`/api/public/search?q=${encodeURIComponent(term)}`);
+    if (!r.ok) throw new Error();
+    res = await r.json();
+  } catch {
+    $('deep-title').textContent = 'Search failed. Try again.';
+    return;
+  }
+
+  const total = res.results.reduce((n, r2) => n + r2.count, 0);
+  $('deep-title').textContent = res.results.length
+    ? `"${term}": ${total} hit${total > 1 ? 's' : ''} across ${res.results.length} of ${res.searched} documents`
+    : `No page in the archive mentions "${term}" (${res.searched} documents searched)`;
+
+  const list = $('deep-list');
+  const mark = (text) => esc(text).replace(
+    new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'),
+    (m) => `<mark>${m}</mark>`
+  );
+  for (const r2 of res.results) {
+    const row = document.createElement('button');
+    row.type = 'button';
+    row.className = 'deep-row';
+    row.innerHTML = `
+      <span class="deep-doc">${esc(r2.title)} <span class="n">${r2.count}×</span></span>
+      ${r2.snippets.map((s) => `<span class="deep-snip">p.${s.page} · ${mark(s.text)}</span>`).join('')}`;
+    row.addEventListener('click', () => openDoc(r2.docId, { search: { term, boxes: r2.boxes } }));
+    list.appendChild(row);
+  }
+}
+
+function clearDeepSearch() {
+  $('deep-results').hidden = true;
+  $('deep-list').innerHTML = '';
+}
+
+// ---- pipeline replay: the recorded run, animated ---------------------------
+
+let replaySteps = [];
+let replaying = false;
+
+async function replayTimeline() {
+  if (replaying || replaySteps.length < 2) return;
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  replaying = true;
+  $('replay-btn').disabled = true;
+  const lis = [...$('d-steps').children];
+  const times = replaySteps.map((s) => new Date(s.at).getTime());
+  const scale = Math.min(1, 5000 / Math.max(1, times[times.length - 1] - times[0]));
+  lis.forEach((li) => li.classList.add('rp-dim'));
+  for (let i = 0; i < lis.length && i < times.length; i++) {
+    if (i > 0) await sleep(Math.max(280, (times[i] - times[i - 1]) * scale));
+    lis[i].classList.remove('rp-dim');
+    lis[i].classList.add('rp-flash');
+    setTimeout(() => lis[i]?.classList.remove('rp-flash'), 700);
+  }
+  lis.forEach((li) => li.classList.remove('rp-dim'));
+  $('replay-btn').disabled = false;
+  replaying = false;
 }
 
 // ---- the viewer: source under glass ----------------------------------------
@@ -288,12 +392,13 @@ function viewerNote(text) {
   $('v-note').hidden = !text;
 }
 
-async function openViewer(d) {
+async function openViewer(d, search = null) {
   const session = ++viewer.session;
   viewer.doc = d;
   viewer.pdf = null;
   viewer.bitmap = null;
   viewer.page = 1;
+  viewer.search = search;
   $('d-viewer').hidden = true;
   viewerNote('');
 
@@ -326,6 +431,13 @@ async function openViewer(d) {
   viewer.mode = hasKvBoxes ? 'fields' : hasPiiBoxes ? 'redact' : 'none';
   $('v-mode-fields').disabled = !hasKvBoxes;
   $('v-mode-redact').disabled = !hasPiiBoxes;
+
+  // Arriving from a search hit: open on the first matched page, clean view
+  // so the highlighter is what the eye finds.
+  if (search?.boxes?.length) {
+    viewer.page = Math.min(viewer.pages, search.boxes[0].p);
+    viewer.mode = 'none';
+  }
 
   $('d-viewer').hidden = false;
   await renderViewerPage(session);
@@ -397,7 +509,7 @@ function renderOverlays() {
         if (!box || box.p !== viewer.page) continue;
         const div = document.createElement('div');
         div.className = `ov ${cls}`;
-        div.dataset.i = i;
+        div.dataset.ov = `kv-${i}`;
         div.style.cssText = pctBox(box);
         div.title = `${p.key}: ${p.value || '(empty)'}`;
         layer.appendChild(div);
@@ -417,18 +529,40 @@ function renderOverlays() {
     viewerNote('');
   }
 
+  // Query answers light up only when their row is hovered, in any mode.
+  (d.queryAnswers ?? []).forEach((qa, i) => {
+    if (!qa.box || qa.box.p !== viewer.page) return;
+    const div = document.createElement('div');
+    div.className = 'ov ov-q';
+    div.dataset.ov = `q-${i}`;
+    div.style.cssText = pctBox(qa.box);
+    layer.appendChild(div);
+  });
+
+  // Search hits ride on top of every mode.
+  const searchHits = (viewer.search?.boxes ?? []).filter((b) => b.p === viewer.page);
+  for (const box of searchHits) {
+    const div = document.createElement('div');
+    div.className = 'ov ov-search';
+    div.style.cssText = pctBox(box);
+    layer.appendChild(div);
+  }
+  if (searchHits.length) {
+    viewerNote(`Highlighted: ${searchHits.length} match${searchHits.length > 1 ? 'es' : ''} for "${viewer.search.term}" on this page.`);
+  }
+
   $('v-download').hidden = !(viewer.mode === 'redact' && pagePiiBoxes().length);
 }
 
 function hoverKvRow(row, on) {
-  if (!row?.dataset.i) return;
-  for (const ov of document.querySelectorAll(`.ov[data-i="${row.dataset.i}"]`)) {
+  if (!row?.dataset.ov) return;
+  for (const ov of document.querySelectorAll(`.ov[data-ov="${row.dataset.ov}"]`)) {
     ov.classList.toggle('hot', on);
   }
 }
 
 function jumpToKvRow(row) {
-  if (!row?.dataset.i || $('d-viewer').hidden) return;
+  if (!row?.dataset.ov || $('d-viewer').hidden) return;
   const p = Number(row.dataset.page);
   const flash = () => {
     hoverKvRow(row, true);

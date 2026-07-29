@@ -1,7 +1,8 @@
 import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
 import { ComprehendClient, DetectEntitiesCommand, DetectPiiEntitiesCommand } from '@aws-sdk/client-comprehend';
 import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
-import { getDoc, updateDoc, type Box, type Entity, type PiiHit } from '../lib/store.js';
+import { round6, spanBoxes, type WordRef } from '../lib/geometry.js';
+import { getDoc, updateDoc, type Entity, type PiiHit } from '../lib/store.js';
 
 const BUCKET = process.env.DOCS_BUCKET!;
 const MODEL_ID = process.env.MODEL_ID!;
@@ -35,9 +36,6 @@ const s3 = new S3Client({});
 const comprehend = new ComprehendClient({});
 const bedrock = new BedrockRuntimeClient({});
 
-const round6 = (n: number) => Math.round(n * 1e6) / 1e6;
-const round4 = (n: number) => Math.round(n * 1e4) / 1e4;
-
 interface EnrichInput {
   step: 'entities' | 'classify' | 'index';
   docId: string;
@@ -50,12 +48,6 @@ export async function handler(event: EnrichInput): Promise<{ docId: string }> {
   return { docId: event.docId };
 }
 
-interface WordRef {
-  start: number;
-  end: number;
-  box: Box;
-}
-
 interface Extraction {
   text: string;
   words?: WordRef[];
@@ -64,33 +56,6 @@ interface Extraction {
 async function extraction(docId: string): Promise<Extraction> {
   const obj = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: `extracted/${docId}.json` }));
   return JSON.parse(await obj.Body!.transformToString()) as Extraction;
-}
-
-/**
- * Turn one Comprehend PII span into page boxes via the OCR word map: collect
- * the words the span overlaps, then merge horizontal runs (same page, same
- * baseline) into single bars. Offsets index into the exact string the OCR
- * step assembled, so for the ASCII text these documents produce the mapping
- * is exact; a multibyte drift would only nudge a bar by a word.
- */
-function spanBoxes(words: WordRef[], begin: number, end: number): Box[] {
-  const hit = words.filter((w) => w.start < end && w.end > begin).map((w) => w.box);
-  const boxes: Box[] = [];
-  for (const b of hit) {
-    const prev = boxes[boxes.length - 1];
-    const sameLine = prev && prev.p === b.p && Math.abs(prev.t - b.t) < Math.max(prev.h, b.h) * 0.6;
-    if (sameLine) {
-      const right = Math.max(prev.l + prev.w, b.l + b.w);
-      const bottom = Math.max(prev.t + prev.h, b.t + b.h);
-      prev.l = Math.min(prev.l, b.l);
-      prev.t = Math.min(prev.t, b.t);
-      prev.w = round4(right - prev.l);
-      prev.h = round4(bottom - prev.t);
-    } else {
-      boxes.push({ ...b });
-    }
-  }
-  return boxes;
 }
 
 /** Comprehend pass: named entities for the facet index, plus PII spans mapped to redaction geometry. */
@@ -220,20 +185,31 @@ async function classify(docId: string): Promise<void> {
   );
 }
 
-/** Final state flip: assemble the processing receipt and become INDEXED. */
+/**
+ * Final state flip: assemble the processing receipt, roll up the
+ * human-review verdict, and become INDEXED.
+ */
 async function index(docId: string): Promise<void> {
   const doc = await getDoc(docId);
   const textract = doc?.costTextract ?? 0;
+  const queries = doc?.costQueries ?? 0;
   const comprehendCost = doc?.costComprehend ?? 0;
   const bedrockCost = doc?.costBedrock ?? 0;
   const fields: Record<string, unknown> = {
     status: 'INDEXED',
     cost: {
       textract,
+      queries,
       comprehend: comprehendCost,
       bedrock: bedrockCost,
-      total: round6(textract + comprehendCost + bedrockCost),
+      total: round6(textract + queries + comprehendCost + bedrockCost),
     },
+    // Triage without A2I: repeated low-confidence extraction or a hesitant
+    // classifier marks the document for a human pass before its metadata is
+    // trusted. The bar is three flagged fields, not one: almost every scan
+    // has a stray heading artifact or two, and a queue that flags everything
+    // flags nothing (the seed corpus lands at 4 of 8 in the queue).
+    needsReview: (doc?.reviewFields ?? 0) >= 3 || (doc?.docTypeConfidence ?? 1) < 0.7,
   };
   // Uploads are transient demo artifacts: TTL is the backstop, the nightly
   // reset is the broom. Anonymous uploads live 24h at most; credentialed ones

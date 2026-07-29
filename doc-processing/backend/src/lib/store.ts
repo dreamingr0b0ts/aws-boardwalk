@@ -51,9 +51,18 @@ export interface PiiHit {
   boxes: Box[];
 }
 
+/** One Textract Queries answer, with where on the page it was found. */
+export interface QueryAnswer {
+  question: string;
+  answer: string;
+  confidence: number;
+  box?: Box;
+}
+
 /** Per-document processing receipt, assembled at the index step. */
 export interface CostReceipt {
   textract: number;
+  queries: number;
   comprehend: number;
   bedrock: number;
   total: number;
@@ -81,7 +90,11 @@ export interface DocRecord {
   hasPii?: boolean;
   piiLabels?: string[];
   piiEntities?: PiiHit[];
+  queryAnswers?: QueryAnswer[];
+  reviewFields?: number;
+  needsReview?: boolean;
   costTextract?: number;
+  costQueries?: number;
   costComprehend?: number;
   comprehendUnits?: number;
   costBedrock?: number;

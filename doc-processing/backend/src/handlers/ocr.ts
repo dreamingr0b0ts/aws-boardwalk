@@ -6,13 +6,33 @@ import {
 } from '@aws-sdk/client-textract';
 import { GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { PDFDocument } from 'pdf-lib';
-import { putDoc, updateDoc, type Box, type DocRecord, type KvPair } from '../lib/store.js';
+import { round4, round6, type WordRef } from '../lib/geometry.js';
+import { putDoc, updateDoc, type Box, type DocRecord, type KvPair, type QueryAnswer } from '../lib/store.js';
 
 const BUCKET = process.env.DOCS_BUCKET!;
 const MAX_UPLOAD_BYTES = Number(process.env.MAX_UPLOAD_BYTES ?? 4 * 1024 * 1024);
 const MAX_PAGES = Number(process.env.MAX_PAGES ?? 6);
 const MAX_POLLS = 40; // × the state machine's 4s wait ≈ 2.7 min OCR budget
 const PRICE_TEXTRACT_PER_PAGE = Number(process.env.PRICE_TEXTRACT_PER_PAGE ?? 0.05);
+const PRICE_TEXTRACT_QUERIES_PER_PAGE = Number(process.env.PRICE_TEXTRACT_QUERIES_PER_PAGE ?? 0.015);
+
+// Fields below this confidence get flagged "needs human review" — the
+// triage a records clerk would run before trusting the extraction.
+const REVIEW_CONFIDENCE = 90;
+
+// The type isn't known until the Bedrock classify step, long after this job
+// starts, so the query set is universal municipal-records vocabulary (the
+// async API allows up to 15 queries; unanswerable ones simply return nothing).
+const QUERIES = [
+  { Text: 'What is the reference, permit, license, case, or invoice number?', Alias: 'ref_number' },
+  { Text: 'What is the primary date on the document?', Alias: 'doc_date' },
+  { Text: 'What is the total amount due or fee paid?', Alias: 'amount' },
+  { Text: 'Who is the applicant, owner, or addressee?', Alias: 'person' },
+  { Text: 'What is the property or business address?', Alias: 'address' },
+  { Text: 'What is the deadline, due date, or expiration date?', Alias: 'deadline' },
+  { Text: 'Who issued or signed the document?', Alias: 'issuer' },
+  { Text: 'What phone number is listed?', Alias: 'phone' },
+];
 
 // Everything the async Textract API accepts. The page/size caps below are the
 // plank's Textract cost ceiling: nothing over MAX_PAGES ever starts a job.
@@ -102,7 +122,8 @@ async function start({ bucket, key }: StartInput): Promise<PipelineOutput> {
   const job = await textract.send(
     new StartDocumentAnalysisCommand({
       DocumentLocation: { S3Object: { Bucket: bucket, Name: key } },
-      FeatureTypes: ['FORMS'],
+      FeatureTypes: ['FORMS', 'QUERIES'],
+      QueriesConfig: { Queries: QUERIES },
     })
   );
   await updateDoc(docId, {}, 'ocr-started');
@@ -138,7 +159,9 @@ async function poll({ docId, jobId, pollCount }: PollInput): Promise<PipelineOut
 
   const { text, pageTexts, words, avgConfidence } = assembleText(blocks);
   const kv = parseForms(blocks);
+  const queryAnswers = parseQueries(blocks);
   const pages = first.DocumentMetadata?.Pages ?? pageTexts.length;
+  const storedKv = kv.slice(0, 40);
 
   const extractKey = `extracted/${docId}.json`;
   await s3.send(
@@ -159,18 +182,18 @@ async function poll({ docId, jobId, pollCount }: PollInput): Promise<PipelineOut
       ocrConfidence: Math.round(avgConfidence * 10) / 10,
       textChars: text.length,
       textPreview: text.slice(0, 600),
-      kvPairs: kv.slice(0, 40),
+      kvPairs: storedKv,
+      queryAnswers,
+      reviewFields: storedKv.filter((p) => p.confidence < REVIEW_CONFIDENCE).length,
       extractKey,
       costTextract: round6(pages * PRICE_TEXTRACT_PER_PAGE),
+      costQueries: round6(pages * PRICE_TEXTRACT_QUERIES_PER_PAGE),
     },
     'ocr-complete'
   );
 
   return { docId, rejected: false, jobId, pollCount, done: true };
 }
-
-const round6 = (n: number) => Math.round(n * 1e6) / 1e6;
-const round4 = (n: number) => Math.round(n * 1e4) / 1e4;
 
 function bbox(block: Block): Box | undefined {
   const b = block.Geometry?.BoundingBox;
@@ -182,12 +205,6 @@ function bbox(block: Block): Box | undefined {
     w: round4(b.Width ?? 0),
     h: round4(b.Height ?? 0),
   };
-}
-
-export interface WordRef {
-  start: number;
-  end: number;
-  box: Box;
 }
 
 /**
@@ -248,6 +265,32 @@ function assembleText(blocks: Block[]): {
     : 0;
 
   return { text: pageTexts.join('\n\n'), pageTexts, words, avgConfidence };
+}
+
+/**
+ * Textract QUERIES walk: QUERY blocks → their ANSWER QUERY_RESULT blocks.
+ * Multi-page documents answer each query per page; keep the highest-
+ * confidence answer per question.
+ */
+function parseQueries(blocks: Block[]): QueryAnswer[] {
+  const byId = new Map(blocks.map((b) => [b.Id!, b]));
+  const best = new Map<string, QueryAnswer>();
+  for (const block of blocks) {
+    if (block.BlockType !== 'QUERY' || !block.Query?.Text) continue;
+    const question = block.Query.Text;
+    for (const rel of block.Relationships ?? []) {
+      if (rel.Type !== 'ANSWER') continue;
+      for (const id of rel.Ids ?? []) {
+        const r = byId.get(id);
+        if (r?.BlockType !== 'QUERY_RESULT' || !r.Text) continue;
+        const confidence = Math.round((r.Confidence ?? 0) * 10) / 10;
+        const prev = best.get(question);
+        if (prev && prev.confidence >= confidence) continue;
+        best.set(question, { question, answer: r.Text, confidence, box: bbox(r) });
+      }
+    }
+  }
+  return [...best.values()].sort((a, b) => b.confidence - a.confidence);
 }
 
 /** Standard Textract FORMS walk: KEY blocks → their VALUE blocks → child words. */

@@ -4,8 +4,9 @@ import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { createPresignedPost } from '@aws-sdk/s3-presigned-post';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { createHash, randomUUID } from 'node:crypto';
+import { spanBoxes, type WordRef } from '../lib/geometry.js';
 import { claims, HttpError, json, parseBody, requireString, router, type ApiEvent } from '../lib/http.js';
-import { ddb, TABLE, type DocRecord } from '../lib/store.js';
+import { ddb, TABLE, type Box, type DocRecord } from '../lib/store.js';
 
 const BUCKET = process.env.DOCS_BUCKET!;
 const MAX_UPLOAD_BYTES = Number(process.env.MAX_UPLOAD_BYTES ?? 4 * 1024 * 1024);
@@ -28,7 +29,7 @@ const s3 = new S3Client({});
 const LIST_FIELDS = [
   'docId', 'status', 'filename', 'title', 'docType', 'docTypeConfidence', 'summary', 'pages',
   'ocrConfidence', 'hasPii', 'source', 'createdAt', 'entityCount', 'docDate', 'sizeBytes', 'rejectReason',
-  'cost',
+  'cost', 'needsReview', 'reviewFields',
 ] as const;
 
 async function scanDocs(): Promise<DocRecord[]> {
@@ -83,6 +84,95 @@ async function getDocument(event: ApiEvent) {
 
   const { uploadedBy: _private, ...publicDoc } = doc;
   return json(200, { ...publicDoc, PK: undefined, SK: undefined, originalUrl });
+}
+
+// ---- archive search: every word of every public document -------------------
+//
+// Free like the other public reads: DynamoDB + S3 GETs only. The extraction
+// JSONs (text + word map) are memoized per container against the record's
+// textChars fingerprint, so a warm search over the whole corpus is a scan
+// plus zero-to-few S3 reads.
+
+const SEARCH_MAX_DOCS = 60;
+const SEARCH_MAX_RESULTS = 12;
+const SEARCH_SNIPPETS_PER_DOC = 2;
+const SEARCH_BOXES_PER_DOC = 12;
+
+interface CachedExtraction {
+  fingerprint: number;
+  text: string;
+  lower: string;
+  words: WordRef[];
+}
+const extractionCache = new Map<string, CachedExtraction>();
+
+async function loadExtraction(doc: DocRecord): Promise<CachedExtraction | null> {
+  const fingerprint = doc.textChars ?? -1;
+  const hit = extractionCache.get(doc.docId);
+  if (hit && hit.fingerprint === fingerprint) return hit;
+  try {
+    const obj = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: `extracted/${doc.docId}.json` }));
+    const ex = JSON.parse(await obj.Body!.transformToString()) as { text: string; words?: WordRef[] };
+    const entry: CachedExtraction = { fingerprint, text: ex.text, lower: ex.text.toLowerCase(), words: ex.words ?? [] };
+    extractionCache.set(doc.docId, entry);
+    return entry;
+  } catch {
+    return null; // extraction may be mid-write or purged; skip the document
+  }
+}
+
+function snippetAround(text: string, at: number, len: number): string {
+  const from = Math.max(0, at - 55);
+  const to = Math.min(text.length, at + len + 55);
+  return `${from > 0 ? '…' : ''}${text.slice(from, to).replaceAll('\n', ' ')}${to < text.length ? '…' : ''}`;
+}
+
+async function searchArchive(event: ApiEvent) {
+  const q = requireString(event.queryStringParameters?.q, 'q', 2, 60).toLowerCase();
+
+  const docs = (await scanDocs())
+    .filter((d) => d.status === 'INDEXED' && d.extractKey)
+    .slice(0, SEARCH_MAX_DOCS);
+
+  const results = (
+    await Promise.all(
+      docs.map(async (doc) => {
+        const ex = await loadExtraction(doc);
+        if (!ex) return null;
+
+        const hits: number[] = [];
+        for (let i = ex.lower.indexOf(q); i !== -1 && hits.length < 40; i = ex.lower.indexOf(q, i + q.length)) {
+          hits.push(i);
+        }
+        if (!hits.length) return null;
+
+        const boxes: Box[] = [];
+        for (const at of hits) {
+          if (boxes.length >= SEARCH_BOXES_PER_DOC) break;
+          boxes.push(...spanBoxes(ex.words, at, at + q.length));
+        }
+        const snippets = hits.slice(0, SEARCH_SNIPPETS_PER_DOC).map((at) => ({
+          text: snippetAround(ex.text, at, q.length),
+          page: ex.words.find((w) => w.start < at + q.length && w.end > at)?.box.p ?? 1,
+        }));
+
+        return {
+          docId: doc.docId,
+          title: doc.title ?? doc.filename,
+          docType: doc.docType,
+          pages: doc.pages,
+          count: hits.length,
+          snippets,
+          boxes: boxes.slice(0, SEARCH_BOXES_PER_DOC),
+        };
+      })
+    )
+  )
+    .filter((r): r is NonNullable<typeof r> => Boolean(r))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, SEARCH_MAX_RESULTS);
+
+  return json(200, { query: q, results, searched: docs.length });
 }
 
 // ---- upload grants (each accepted upload spends Textract/AI money) ----
@@ -244,6 +334,7 @@ async function getAnonQuota(event: ApiEvent) {
 export const handler = router({
   'GET /api/public/documents': listDocuments,
   'GET /api/public/documents/{id}': getDocument,
+  'GET /api/public/search': searchArchive,
   'POST /api/public/uploads': (event) => issueUpload(event, true),
   'GET /api/public/uploads/quota': getAnonQuota,
   'POST /api/uploads': (event) => issueUpload(event, false),

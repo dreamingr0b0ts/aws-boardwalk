@@ -57,8 +57,9 @@ resource "aws_lambda_function" "ocr" {
       TABLE_NAME              = aws_dynamodb_table.documents.name
       DOCS_BUCKET             = aws_s3_bucket.docs.bucket
       MAX_UPLOAD_BYTES        = tostring(var.max_upload_bytes)
-      MAX_PAGES               = tostring(var.max_pages)
-      PRICE_TEXTRACT_PER_PAGE = tostring(var.textract_price_per_page)
+      MAX_PAGES                       = tostring(var.max_pages)
+      PRICE_TEXTRACT_PER_PAGE         = tostring(var.textract_price_per_page)
+      PRICE_TEXTRACT_QUERIES_PER_PAGE = tostring(var.textract_queries_price_per_page)
     }
   }
 

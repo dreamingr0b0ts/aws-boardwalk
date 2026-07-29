@@ -28,9 +28,23 @@ the document's own timeline, and three under-glass exhibits on every document:
   *types and geometry*, never the detected values), with a redacted-page PNG download.
   This is the pass a records office runs before releasing a copy under an
   open-records request.
-- **Processing receipt** — an itemized bill per document: Textract pages, Comprehend
-  units, Bedrock tokens, priced to the fraction of a cent from Terraform-sourced
-  rates.
+- **Processing receipt** — an itemized bill per document: Textract FORMS and Queries
+  pages, Comprehend units, Bedrock tokens, priced to the fraction of a cent from
+  Terraform-sourced rates.
+- **Direct answers** — Textract Queries puts eight universal municipal-records
+  questions to every page (the doc type isn't known until the later Bedrock step, so
+  the set is generic on purpose); answers carry confidence scores and page geometry,
+  and hover-highlight like the form fields.
+- **Archive search** — `GET /api/public/search` runs over the full OCR text of the
+  public corpus (extraction JSONs memoized per Lambda container). Hits return context
+  snippets plus word-map geometry, so opening a result highlights the matched words
+  on the rendered page.
+- **Review triage** — fields under 90% confidence get a clerk's-pencil flag; three
+  or more flags (or a hesitant classification) stamp the document "needs review",
+  which is also a facet chip. Human-in-the-loop without A2I. The seed corpus lands
+  at 4 of 8 in the queue.
+- **Pipeline replay** — every record keeps its step timestamps, so the dialog can
+  replay the recorded run, animated to scale. Costs nothing per view.
 
 ## Two upload tiers
 
@@ -46,8 +60,8 @@ the document's own timeline, and three under-glass exhibits on every document:
 
 ## Cost posture (same philosophy as plank 6, tuned for Textract)
 
-Textract FORMS is the expensive unit (~$0.05/page), so the caps bound **pages**, not
-just requests:
+Textract is the expensive unit (FORMS $0.05 + Queries $0.015 per page), so the caps
+bound **pages**, not just requests:
 
 1. **Size cap (4 MB)** — enforced in the presigned POST conditions *and* re-checked in the pipeline.
 2. **Page cap (6)** — the PDF is parsed and counted **before** any Textract job starts.
@@ -57,8 +71,8 @@ just requests:
    so the taste tier added reach without adding worst-case spend beyond the cap raise.
 4. **Edge throttle** (5 rps) on the API stage, plus the shared WAF per-IP rate limit.
 
-Worst case: 30 docs × 6 pages × $0.05 ≈ **$9/day**, plus Comprehend/Bedrock pennies.
-Idle: **~$0** (all pay-per-use services).
+Worst case: 30 docs × 6 pages × $0.065 ≈ **$12/day**, plus Comprehend/Bedrock pennies.
+Idle: **~$0** (all pay-per-use services; the archive search is DynamoDB + S3 reads only).
 
 Uploads are purged nightly at 09:00 UTC (`idp-reset`, also `make reset`); item TTL is
 the backstop (72h credentialed, 24h anonymous). Seeds are permanent.
@@ -69,7 +83,7 @@ the backstop (72h credentialed, 24h anonymous). Seeds are permanent.
 |---|---|
 | `make deploy` | bundle Lambdas, apply Terraform, publish frontend, seed corpus |
 | `make seed` | regenerate the fictional PDFs and push them through the live pipeline |
-| `make verify` | 44-check end-to-end suite against the live URL (includes credentialed AND anonymous upload round trips, geometry/redaction/receipt exhibits, and cap/abuse checks; spends 1 of the machine's 5 daily visitor uploads) |
+| `make verify` | 54-check end-to-end suite against the live URL (includes credentialed AND anonymous upload round trips, geometry/redaction/receipt/queries/search/review exhibits, and cap/abuse checks; spends 1 of the machine's 5 daily visitor uploads) |
 | `make creds-show` | print the demo credential (never published) |
 | `make reset` | purge uploaded demo documents now |
 | `make destroy` | tear the plank down |

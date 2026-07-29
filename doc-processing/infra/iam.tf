@@ -81,6 +81,14 @@ resource "aws_iam_role_policy" "api_all" {
         Action   = ["s3:PutObject", "s3:GetObject"]
         Resource = "${aws_s3_bucket.docs.arn}/incoming/*"
       },
+      {
+        # The archive search reads extraction JSONs (text + word map) to
+        # find and geolocate matches. Read-only, still no AI services.
+        Sid      = "SearchReadsExtractions"
+        Effect   = "Allow"
+        Action   = ["s3:GetObject"]
+        Resource = "${aws_s3_bucket.docs.arn}/extracted/*"
+      },
     ]
   })
 }

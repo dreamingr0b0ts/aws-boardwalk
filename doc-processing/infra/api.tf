@@ -39,6 +39,7 @@ locals {
   routes = {
     "GET /api/public/documents"      = { auth = false }
     "GET /api/public/documents/{id}" = { auth = false }
+    "GET /api/public/search"         = { auth = false }
     "POST /api/public/uploads"       = { auth = false }
     "GET /api/public/uploads/quota"  = { auth = false }
     "POST /api/uploads"              = { auth = true }

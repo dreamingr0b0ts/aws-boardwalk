@@ -59,8 +59,23 @@ ORIG_CODE=$(curl -sS -o /dev/null -w '%{http_code}' "$ORIG")
 
 # ---- 3b. under glass: geometry, redaction boxes, and the receipt ----
 echo "$DETAIL" | jq -e '[.kvPairs[] | select(.valueBox.w > 0)] | length > 3' > /dev/null; check $? "extracted fields carry page geometry (valueBox)"
-[ "$(echo "$DETAIL" | jq '.cost.total > 0 and .cost.textract > 0 and .cost.bedrock > 0')" = "true" ]; check $? "processing receipt itemized (total \$$(echo "$DETAIL" | jq -r '.cost.total'))"
+[ "$(echo "$DETAIL" | jq '.cost.total > 0 and .cost.textract > 0 and .cost.queries > 0 and .cost.bedrock > 0')" = "true" ]; check $? "processing receipt itemized incl. Queries (total \$$(echo "$DETAIL" | jq -r '.cost.total'))"
 [ "$(echo "$DETAIL" | jq '.tokensOut > 0 and .comprehendUnits > 0')" = "true" ]; check $? "receipt quantities present (tokens, Comprehend units)"
+
+# ---- 3c. direct answers, review flags, and the archive search ----
+[ "$(echo "$DETAIL" | jq '.queryAnswers | length >= 3')" = "true" ]; check $? "Textract Queries answered ($(echo "$DETAIL" | jq '.queryAnswers | length')/8 questions on the invoice)"
+echo "$DETAIL" | jq -e '[.queryAnswers[].answer] | join(" ") | test("1,842")' > /dev/null; check $? "the amount query found the invoice total"
+echo "$DETAIL" | jq -e '.queryAnswers[0].box.w > 0' > /dev/null; check $? "query answers carry page geometry"
+[ "$(echo "$DETAIL" | jq '.reviewFields >= 0')" = "true" ]; check $? "low-confidence field count present (reviewFields: $(echo "$DETAIL" | jq -r '.reviewFields'))"
+[ "$(echo "$LIST" | jq '[.documents[] | select(.needsReview == true)] | length >= 1')" = "true" ]; check $? "review triage flags at least one document in the corpus"
+
+SEARCH=$(curl -sS "$SITE/api/public/search?q=Whitefeather")
+[ "$(echo "$SEARCH" | jq '.results | length >= 1')" = "true" ]; check $? "archive search finds the term inside document text"
+[ "$(echo "$SEARCH" | jq -r '.results[0].docId')" = "$INV_ID" ]; check $? "search hit resolves to the invoice"
+echo "$SEARCH" | jq -e '.results[0].boxes[0].w > 0' > /dev/null; check $? "search hits carry page geometry for in-page highlighting"
+echo "$SEARCH" | jq -e '.results[0].snippets[0].text | test("Whitefeather")' > /dev/null; check $? "search returns a context snippet"
+SHORT_Q=$(curl -sS -o /dev/null -w '%{http_code}' "$SITE/api/public/search?q=a")
+[ "$SHORT_Q" = "400" ]; check $? "one-character search rejected (400)"
 
 LETTER_ID=$(echo "$LIST" | jq -r '[.documents[] | select(.docId | startswith("seed-str-renewal-letter"))][0].docId')
 LETTER=$(curl -sS "$SITE/api/public/documents/$LETTER_ID")

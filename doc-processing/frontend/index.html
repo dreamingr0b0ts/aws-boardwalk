@@ -50,8 +50,21 @@
     documents are fictional City of Alpenglow records. Filter by what the pipeline extracted:</p>
 
     <div class="controls">
-      <input type="search" id="search" placeholder="Search titles, summaries, filenames…" aria-label="Search documents">
+      <input type="search" id="search" aria-label="Search documents"
+             placeholder="Filter the cards, or press Enter to search every word of every page…">
     </div>
+
+    <!-- Archive search: server-side, over the full OCR text. Each hit knows
+         its page geometry, so opening a result highlights the matched words
+         on the rendered page. -->
+    <div id="deep-results" class="deep" hidden>
+      <div class="deep-head">
+        <h4 id="deep-title">Searching…</h4>
+        <button type="button" id="deep-clear" class="quiet-btn">Clear</button>
+      </div>
+      <div id="deep-list"></div>
+    </div>
+
     <div id="facets" class="facets" aria-label="Filter by document type"></div>
 
     <div id="doc-grid" class="doc-grid" aria-live="polite">
@@ -141,8 +154,18 @@
       <li><strong>NLP &amp; governance:</strong> Comprehend entity extraction feeds the facet index,
       and PII detection is mapped back onto the page as a redaction exhibit: the same black-bar
       pass a records office runs before releasing a document under an open-records request.</li>
+      <li><strong>Direct answers:</strong> Textract Queries puts eight plain-language questions to
+      every page ("what is the total amount due?", "who issued this?") and each answer arrives with
+      a confidence score and the exact spot on the page it came from.</li>
+      <li><strong>Search every word:</strong> the archive search runs over the full OCR text of the
+      corpus, and because the pipeline keeps a character-to-page word map, opening a result
+      highlights the matched words on the rendered page itself.</li>
       <li><strong>AI classification:</strong> Claude Haiku on Bedrock assigns a document type, title,
       summary, and primary date: the metadata a records clerk would otherwise key in by hand.</li>
+      <li><strong>Human-in-the-loop triage:</strong> extracted fields below 90% confidence get a
+      clerk's-pencil flag, and repeated flags or a hesitant classification stamp the whole document
+      "needs review", the queue a records clerk would work before trusting the metadata. No extra
+      services, just honest confidence scores.</li>
       <li><strong>Cost transparency:</strong> every document carries an itemized processing receipt:
       Textract pages, Comprehend units, and Bedrock tokens, priced to the fraction of a cent.</li>
       <li><strong>Cost containment in depth:</strong> the anonymous tier is fenced per visitor
@@ -200,11 +223,13 @@
       <h4>Extracted form fields</h4>
       <p class="muted small kv-hint" id="d-kv-hint" hidden>Hover a row to light up where on the page it was read.</p>
       <table id="d-kv" class="kv"></table>
+      <h4 id="d-queries-label" hidden>Direct answers · Textract Queries</h4>
+      <table id="d-queries" class="kv"></table>
     </div>
     <div>
       <h4>Detected entities</h4>
       <div id="d-entities" class="entities"></div>
-      <h4>Pipeline timeline</h4>
+      <h4>Pipeline timeline <button type="button" id="replay-btn" class="quiet-btn rp-btn" hidden>replay</button></h4>
       <ol id="d-steps" class="timeline"></ol>
       <h4>Processing receipt</h4>
       <div id="d-receipt" class="receipt"><span class="muted">not itemized</span></div>

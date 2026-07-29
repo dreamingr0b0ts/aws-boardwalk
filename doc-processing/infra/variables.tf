@@ -41,12 +41,12 @@ variable "model_id" {
 
 # ---- AI/OCR cost guardrails (defense in depth behind the Cognito gate) ----
 #
-# Textract FORMS is the expensive unit here (~$0.05/page), so the caps bound
-# pages, not just requests: global_daily_limit × max_pages × $0.05 ≈ $9/day
-# worst case even if the (unpublished) credential leaks. Size and page caps
-# are enforced BEFORE any Textract job starts. The anonymous taste tier
-# (5/day per hashed IP, 10/day pool) counts into the same global cap, so it
-# adds reach without moving the worst-case day.
+# Textract is the expensive unit here (FORMS $0.05 + QUERIES $0.015 per
+# page), so the caps bound pages, not just requests: global_daily_limit ×
+# max_pages × $0.065 ≈ $12/day worst case even if the (unpublished)
+# credential leaks. Size and page caps are enforced BEFORE any Textract job
+# starts. The anonymous taste tier (5/day per hashed IP, 10/day pool) counts
+# into the same global cap, so it adds reach without moving the worst-case day.
 
 variable "user_daily_limit" {
   description = "Max accepted document uploads per signed-in user per UTC day"
@@ -95,6 +95,11 @@ variable "max_pages" {
 variable "textract_price_per_page" {
   type    = number
   default = 0.05
+}
+
+variable "textract_queries_price_per_page" {
+  type    = number
+  default = 0.015
 }
 
 variable "comprehend_price_per_unit" {
