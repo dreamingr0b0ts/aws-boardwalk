@@ -289,6 +289,68 @@ table.kv .conf { color: var(--ink-3); font-size: 10.5px; white-space: nowrap; }
   max-height: 180px; overflow-y: auto; color: var(--ink-2);
 }
 
+/* ---- source under glass: the light table ---- */
+.viewer { margin-top: 16px; }
+.viewer-bar {
+  display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  margin-bottom: 8px;
+}
+.v-modes { display: flex; gap: 0; border: 1px solid var(--border); border-radius: 3px; overflow: hidden; }
+.v-mode {
+  font-family: "Courier Prime", monospace; font-size: 12px; font-weight: 700;
+  background: var(--chip-bg); color: var(--ink-2); border: 0; border-radius: 0;
+  padding: 6px 12px 5px; cursor: pointer;
+}
+.v-mode + .v-mode { border-left: 1px solid var(--border); }
+.v-mode.on { background: var(--brass); color: #fdf9ee; }
+@media (prefers-color-scheme: dark) { .v-mode.on { color: #241a08; } }
+.v-mode:disabled { opacity: 0.4; cursor: default; }
+.v-pages { display: flex; gap: 8px; align-items: center; }
+#v-page-label { font-family: "Courier Prime", monospace; font-size: 12px; color: var(--ink-2); }
+.v-pages .quiet-btn { padding: 4px 10px; font-size: 11px; }
+
+.page-stage {
+  border: 1px solid var(--border); border-radius: 3px; overflow-x: hidden;
+  background: #fff; box-shadow: inset 0 0 0 1px rgba(37, 29, 18, 0.04), 0 2px 10px rgba(23, 17, 10, 0.12);
+  max-height: 560px; overflow-y: auto;
+}
+.page-inner { position: relative; }
+#page-canvas { display: block; width: 100%; height: auto; }
+.page-overlays { position: absolute; inset: 0; pointer-events: none; }
+
+.ov { position: absolute; border-radius: 1px; }
+.ov.ov-val { border: 1.5px solid var(--brass); background: rgba(217, 164, 65, 0.16); }
+.ov.ov-key { border: 1.5px dashed rgba(138, 106, 44, 0.55); }
+.ov.hot { border-color: var(--stamp); background: rgba(169, 44, 34, 0.22); box-shadow: 0 0 0 2px var(--stamp-soft); }
+.ov.ov-redact {
+  background: #14100b; display: flex; align-items: center; justify-content: center; overflow: hidden;
+  outline: 2px solid #14100b;
+}
+.ov.ov-redact span {
+  color: #f2ecdd; font-family: "Courier Prime", monospace; font-size: 8px;
+  letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.85; white-space: nowrap;
+}
+.kv-hint { margin: -2px 0 6px; }
+table.kv tr[data-i] { cursor: pointer; }
+table.kv tr[data-i]:hover td { background: var(--brass-soft); }
+
+/* ---- the processing receipt: a till slip ---- */
+.receipt {
+  font-family: "Courier Prime", ui-monospace, monospace; font-size: 12px;
+  background: var(--folder); border: 1px solid var(--border); border-radius: 3px;
+  padding: 10px 12px; display: grid; gap: 4px;
+}
+.r-line { display: flex; gap: 8px; justify-content: space-between; color: var(--ink-2); }
+.r-line .r-qty { color: var(--ink-3); margin-left: auto; }
+.r-line .r-amt { min-width: 64px; text-align: right; color: var(--ink); }
+.r-total { border-top: 1px dashed var(--border); padding-top: 5px; margin-top: 2px; font-weight: 700; }
+.r-total .r-amt { color: var(--stamp); }
+
+/* your anonymous documents */
+#my-docs { margin-top: 16px; }
+.my-doc { cursor: pointer; font: inherit; font-size: 12px; }
+.my-doc:hover { border-color: var(--brass); }
+
 ul.proof { margin: 12px 0 0; padding-left: 20px; display: grid; gap: 8px; font-size: 14px; color: var(--ink-2); }
 ul.proof li::marker { color: var(--brass); }
 

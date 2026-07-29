@@ -31,11 +31,16 @@ resource "aws_apigatewayv2_authorizer" "cognito" {
 }
 
 locals {
-  # Anonymous routes only read the already-paid-for index from DynamoDB. The
-  # single route that spends money (uploads) requires a valid Cognito JWT.
+  # Public reads only touch the already-paid-for index in DynamoDB. Spending
+  # routes come in two tiers: the credentialed one (Cognito JWT at the
+  # gateway) and the anonymous taste tier, which the Lambda fences by hashed
+  # viewer IP + its own daily pool + the shared global kill switch, same
+  # pattern as planks 6 and 12.
   routes = {
     "GET /api/public/documents"      = { auth = false }
     "GET /api/public/documents/{id}" = { auth = false }
+    "POST /api/public/uploads"       = { auth = false }
+    "GET /api/public/uploads/quota"  = { auth = false }
     "POST /api/uploads"              = { auth = true }
     "GET /api/me/quota"              = { auth = true }
   }

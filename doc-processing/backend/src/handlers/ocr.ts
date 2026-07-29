@@ -6,12 +6,13 @@ import {
 } from '@aws-sdk/client-textract';
 import { GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { PDFDocument } from 'pdf-lib';
-import { putDoc, updateDoc, type DocRecord, type KvPair } from '../lib/store.js';
+import { putDoc, updateDoc, type Box, type DocRecord, type KvPair } from '../lib/store.js';
 
 const BUCKET = process.env.DOCS_BUCKET!;
 const MAX_UPLOAD_BYTES = Number(process.env.MAX_UPLOAD_BYTES ?? 4 * 1024 * 1024);
 const MAX_PAGES = Number(process.env.MAX_PAGES ?? 6);
 const MAX_POLLS = 40; // × the state machine's 4s wait ≈ 2.7 min OCR budget
+const PRICE_TEXTRACT_PER_PAGE = Number(process.env.PRICE_TEXTRACT_PER_PAGE ?? 0.05);
 
 // Everything the async Textract API accepts. The page/size caps below are the
 // plank's Textract cost ceiling: nothing over MAX_PAGES ever starts a job.
@@ -54,7 +55,8 @@ async function start({ bucket, key }: StartInput): Promise<PipelineOutput> {
 
   const head = await s3.send(new HeadObjectCommand({ Bucket: bucket, Key: key }));
   const sizeBytes = head.ContentLength ?? 0;
-  const source = head.Metadata?.source === 'seed' ? 'seed' : 'upload';
+  const metaSource = head.Metadata?.source;
+  const source = metaSource === 'seed' ? 'seed' : metaSource === 'anon' ? 'anon' : 'upload';
 
   const base: DocRecord = {
     docId,
@@ -134,20 +136,9 @@ async function poll({ docId, jobId, pollCount }: PollInput): Promise<PipelineOut
     nextToken = page.NextToken;
   }
 
-  const lines = blocks.filter((b) => b.BlockType === 'LINE');
-  const byPage = new Map<number, string[]>();
-  for (const line of lines) {
-    const page = line.Page ?? 1;
-    if (!byPage.has(page)) byPage.set(page, []);
-    byPage.get(page)!.push(line.Text ?? '');
-  }
-  const pageTexts = [...byPage.entries()].sort((a, b) => a[0] - b[0]).map(([, l]) => l.join('\n'));
-  const text = pageTexts.join('\n\n');
-  const avgConfidence = lines.length
-    ? lines.reduce((sum, l) => sum + (l.Confidence ?? 0), 0) / lines.length
-    : 0;
-
+  const { text, pageTexts, words, avgConfidence } = assembleText(blocks);
   const kv = parseForms(blocks);
+  const pages = first.DocumentMetadata?.Pages ?? pageTexts.length;
 
   const extractKey = `extracted/${docId}.json`;
   await s3.send(
@@ -155,24 +146,108 @@ async function poll({ docId, jobId, pollCount }: PollInput): Promise<PipelineOut
       Bucket: BUCKET,
       Key: extractKey,
       ContentType: 'application/json',
-      Body: JSON.stringify({ docId, text, pages: pageTexts, kv, avgConfidence }),
+      // `words` maps every character offset of `text` back to page geometry —
+      // the enrich step turns Comprehend PII offsets into redaction boxes.
+      Body: JSON.stringify({ docId, text, pages: pageTexts, kv, avgConfidence, words }),
     })
   );
 
   await updateDoc(
     docId,
     {
-      pages: first.DocumentMetadata?.Pages ?? pageTexts.length,
+      pages,
       ocrConfidence: Math.round(avgConfidence * 10) / 10,
       textChars: text.length,
       textPreview: text.slice(0, 600),
       kvPairs: kv.slice(0, 40),
       extractKey,
+      costTextract: round6(pages * PRICE_TEXTRACT_PER_PAGE),
     },
     'ocr-complete'
   );
 
   return { docId, rejected: false, jobId, pollCount, done: true };
+}
+
+const round6 = (n: number) => Math.round(n * 1e6) / 1e6;
+const round4 = (n: number) => Math.round(n * 1e4) / 1e4;
+
+function bbox(block: Block): Box | undefined {
+  const b = block.Geometry?.BoundingBox;
+  if (!b) return undefined;
+  return {
+    p: block.Page ?? 1,
+    l: round4(b.Left ?? 0),
+    t: round4(b.Top ?? 0),
+    w: round4(b.Width ?? 0),
+    h: round4(b.Height ?? 0),
+  };
+}
+
+export interface WordRef {
+  start: number;
+  end: number;
+  box: Box;
+}
+
+/**
+ * Rebuild the document text from each LINE's child WORD blocks (rather than
+ * trusting LINE.Text) so every word's character offsets in the final string
+ * are exact — the offsets Comprehend returns later index into this exact
+ * string, and the word map is how they become redaction geometry.
+ */
+function assembleText(blocks: Block[]): {
+  text: string;
+  pageTexts: string[];
+  words: WordRef[];
+  avgConfidence: number;
+} {
+  const byId = new Map(blocks.map((b) => [b.Id!, b]));
+  const lines = blocks.filter((b) => b.BlockType === 'LINE');
+  const byPage = new Map<number, Block[]>();
+  for (const line of lines) {
+    const page = line.Page ?? 1;
+    if (!byPage.has(page)) byPage.set(page, []);
+    byPage.get(page)!.push(line);
+  }
+
+  const words: WordRef[] = [];
+  const pageTexts: string[] = [];
+  let cursor = 0;
+
+  for (const [, pageLines] of [...byPage.entries()].sort((a, b) => a[0] - b[0])) {
+    if (pageTexts.length) cursor += 2; // the '\n\n' page joiner
+    let pageText = '';
+    for (const line of pageLines) {
+      if (pageText) {
+        pageText += '\n';
+        cursor += 1;
+      }
+      const lineWords = (line.Relationships ?? [])
+        .filter((r) => r.Type === 'CHILD')
+        .flatMap((r) => r.Ids ?? [])
+        .map((id) => byId.get(id))
+        .filter((b): b is Block => b?.BlockType === 'WORD' && Boolean(b.Text));
+      lineWords.forEach((word, i) => {
+        if (i > 0) {
+          pageText += ' ';
+          cursor += 1;
+        }
+        const t = word.Text!;
+        const box = bbox(word);
+        if (box) words.push({ start: cursor, end: cursor + t.length, box });
+        pageText += t;
+        cursor += t.length;
+      });
+    }
+    pageTexts.push(pageText);
+  }
+
+  const avgConfidence = lines.length
+    ? lines.reduce((sum, l) => sum + (l.Confidence ?? 0), 0) / lines.length
+    : 0;
+
+  return { text: pageTexts.join('\n\n'), pageTexts, words, avgConfidence };
 }
 
 /** Standard Textract FORMS walk: KEY blocks → their VALUE blocks → child words. */
@@ -197,15 +272,19 @@ function parseForms(blocks: Block[]): KvPair[] {
     if (block.BlockType !== 'KEY_VALUE_SET' || !block.EntityTypes?.includes('KEY')) continue;
     const key = childText(block).replace(/[:：]\s*$/, '').trim();
     if (!key) continue;
-    const value = (block.Relationships ?? [])
+    const valueBlocks = (block.Relationships ?? [])
       .filter((r) => r.Type === 'VALUE')
       .flatMap((r) => r.Ids ?? [])
       .map((id) => byId.get(id))
-      .filter((v): v is Block => Boolean(v))
-      .map(childText)
-      .join(' ')
-      .trim();
-    pairs.push({ key, value, confidence: Math.round((block.Confidence ?? 0) * 10) / 10 });
+      .filter((v): v is Block => Boolean(v));
+    const value = valueBlocks.map(childText).join(' ').trim();
+    pairs.push({
+      key,
+      value,
+      confidence: Math.round((block.Confidence ?? 0) * 10) / 10,
+      keyBox: bbox(block),
+      valueBox: valueBlocks.map(bbox).find(Boolean),
+    });
   }
   return pairs.sort((a, b) => b.confidence - a.confidence);
 }

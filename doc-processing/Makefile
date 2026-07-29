@@ -35,13 +35,17 @@ deploy: build init creds
 	$(MAKE) publish
 	$(MAKE) seed
 
-## Upload frontend + runtime config, then invalidate CloudFront
+## Upload frontend + runtime config, then invalidate CloudFront. The vendored
+## pdf.js modules need an explicit JS content type: module import() refuses
+## the octet-stream the S3 mime guess gives .mjs files.
 publish:
 	@BUCKET=$$($(TF) output -raw site_bucket); \
 	DIST=$$($(TF) output -raw distribution_id); \
 	$(TF) output -json | jq '{region: "us-east-1", userPoolClientId: .user_pool_client_id.value}' \
 		> frontend/config.json; \
 	aws s3 sync frontend "s3://$$BUCKET" --delete; \
+	aws s3 cp "s3://$$BUCKET/vendor" "s3://$$BUCKET/vendor" --recursive --exclude "*" \
+		--include "*.mjs" --content-type text/javascript --metadata-directive REPLACE > /dev/null; \
 	aws cloudfront create-invalidation --distribution-id "$$DIST" --paths "/*" --no-cli-pager --output text > /dev/null; \
 	echo "published → $$($(TF) output -raw site_url)"
 

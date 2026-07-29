@@ -42,20 +42,34 @@ variable "model_id" {
 # ---- AI/OCR cost guardrails (defense in depth behind the Cognito gate) ----
 #
 # Textract FORMS is the expensive unit here (~$0.05/page), so the caps bound
-# pages, not just requests: global_daily_limit × max_pages × $0.05 ≈ $6/day
+# pages, not just requests: global_daily_limit × max_pages × $0.05 ≈ $9/day
 # worst case even if the (unpublished) credential leaks. Size and page caps
-# are enforced BEFORE any Textract job starts.
+# are enforced BEFORE any Textract job starts. The anonymous taste tier
+# (5/day per hashed IP, 10/day pool) counts into the same global cap, so it
+# adds reach without moving the worst-case day.
 
 variable "user_daily_limit" {
-  description = "Max accepted document uploads per user per UTC day"
+  description = "Max accepted document uploads per signed-in user per UTC day"
   type        = number
-  default     = 8
+  default     = 15
 }
 
 variable "global_daily_limit" {
-  description = "Max accepted uploads across ALL users per UTC day — the kill switch that bounds worst-case daily OCR spend"
+  description = "Max accepted uploads across ALL users AND visitors per UTC day — the kill switch that bounds worst-case daily OCR spend"
   type        = number
-  default     = 20
+  default     = 30
+}
+
+variable "anon_daily_limit" {
+  description = "Max anonymous uploads per hashed viewer IP per UTC day (the no-sign-in taste tier; same fence as planks 6 and 12)"
+  type        = number
+  default     = 5
+}
+
+variable "anon_global_daily_limit" {
+  description = "Max anonymous uploads across ALL visitors per UTC day; every one also counts against global_daily_limit"
+  type        = number
+  default     = 10
 }
 
 variable "max_upload_bytes" {
@@ -68,4 +82,32 @@ variable "max_pages" {
   description = "Per-document page cap, checked by parsing the PDF before the Textract job is started"
   type        = number
   default     = 6
+}
+
+# ---- processing receipt prices (display math only, never billing logic) ----
+#
+# Every document's record carries an itemized receipt of what its run cost.
+# Sources (verified 2026-07-29): Textract Analyze Document FORMS tier 1 =
+# $0.05/page; Comprehend DetectEntities and DetectPiiEntities = $0.0001 per
+# 100-char unit, 3-unit minimum per request; Claude Haiku 4.5 on Bedrock =
+# $1 in / $5 out per MTok (same figures planks 6 and 12 use).
+
+variable "textract_price_per_page" {
+  type    = number
+  default = 0.05
+}
+
+variable "comprehend_price_per_unit" {
+  type    = number
+  default = 0.0001
+}
+
+variable "price_in_per_mtok" {
+  type    = number
+  default = 1
+}
+
+variable "price_out_per_mtok" {
+  type    = number
+  default = 5
 }

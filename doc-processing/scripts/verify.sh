@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 # End-to-end verification against the LIVE deployment. The plank isn't done
 # until every check here passes — including the cost-guardrail checks
-# (anonymous 401, self-signup disabled, size/page caps, daily cap 429) and a
-# real document pushed through the whole pipeline.
+# (self-signup disabled, size/page caps, daily cap 429s on both tiers), the
+# under-glass exhibits (extraction geometry, PII redaction boxes, processing
+# receipt), and real documents pushed through the whole pipeline on both the
+# credentialed and the anonymous tier. NOTE: the anonymous round trip spends
+# 1 of this machine's 5 daily visitor uploads.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
@@ -54,10 +57,21 @@ ORIG=$(echo "$DETAIL" | jq -r '.originalUrl')
 ORIG_CODE=$(curl -sS -o /dev/null -w '%{http_code}' "$ORIG")
 [ "$ORIG_CODE" = "200" ]; check $? "presigned link serves the original PDF"
 
+# ---- 3b. under glass: geometry, redaction boxes, and the receipt ----
+echo "$DETAIL" | jq -e '[.kvPairs[] | select(.valueBox.w > 0)] | length > 3' > /dev/null; check $? "extracted fields carry page geometry (valueBox)"
+[ "$(echo "$DETAIL" | jq '.cost.total > 0 and .cost.textract > 0 and .cost.bedrock > 0')" = "true" ]; check $? "processing receipt itemized (total \$$(echo "$DETAIL" | jq -r '.cost.total'))"
+[ "$(echo "$DETAIL" | jq '.tokensOut > 0 and .comprehendUnits > 0')" = "true" ]; check $? "receipt quantities present (tokens, Comprehend units)"
+
+LETTER_ID=$(echo "$LIST" | jq -r '[.documents[] | select(.docId | startswith("seed-str-renewal-letter"))][0].docId')
+LETTER=$(curl -sS "$SITE/api/public/documents/$LETTER_ID")
+[ "$(echo "$LETTER" | jq '.hasPii')" = "true" ]; check $? "Comprehend flagged PII on the renewal letter"
+echo "$LETTER" | jq -e '[.piiEntities[].boxes[]] | length >= 3' > /dev/null; check $? "PII spans mapped to redaction geometry ($(echo "$LETTER" | jq '[.piiEntities[].boxes[]] | length') boxes)"
+echo "$LETTER" | jq -e '.piiEntities[] | select(.type == "PHONE" or .type == "EMAIL")' > /dev/null; check $? "phone/email among the detected PII types"
+
 # ---- 4. the token gate ----
 CODE=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$SITE/api/uploads" \
   -H 'content-type: application/json' -d '{"filename":"x.pdf","contentType":"application/pdf","sizeBytes":100}')
-[ "$CODE" = "401" ]; check $? "anonymous upload is rejected (401) — no free OCR"
+[ "$CODE" = "401" ]; check $? "credentialed route without a JWT is rejected (401)"
 
 SIGNUP_ERR=$(aws cognito-idp sign-up --client-id "$CLIENT" \
   --username "stranger-$RANDOM@example.com" --password 'Str4nger-Pass!xyz' 2>&1)
@@ -132,6 +146,45 @@ CAP_CODE=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$SITE/api/uploads" \
 aws dynamodb delete-item --table-name "$TABLE" --no-cli-pager \
   --key "{\"PK\":{\"S\":\"USAGE#$TODAY\"},\"SK\":{\"S\":\"USER#$SUB\"}}" > /dev/null
 
+# ---- 6b. the anonymous taste tier ----
+AQUOTA=$(curl -sS "$SITE/api/public/uploads/quota")
+[ "$(echo "$AQUOTA" | jq -r '.anonLimit')" = "5" ]; check $? "anonymous quota endpoint answers (5/day per visitor)"
+ANONID=$(echo "$AQUOTA" | jq -r '.anonId')
+[ -n "$ANONID" ] && [ "$ANONID" != "null" ]; check $? "visitor identity is a hashed IP (anonId $ANONID)"
+
+AGRANT=$(curl -sS -X POST "$SITE/api/public/uploads" -H 'content-type: application/json' \
+  -d "{\"filename\":\"anon-verify.pdf\",\"contentType\":\"application/pdf\",\"sizeBytes\":$(stat -f%z "$TESTPDF")}")
+ADOCID=$(echo "$AGRANT" | jq -r '.docId')
+case "$ADOCID" in anon-*) true;; *) false;; esac; check $? "anonymous upload grant issued without sign-in (docId $ADOCID)"
+
+AS3_FORM=$(echo "$AGRANT" | jq -r '.upload.fields | to_entries | map("-F \(.key)=\(.value|@sh)") | join(" ")')
+AS3_CODE=$(eval curl -sS -o /dev/null -w "'%{http_code}'" "$AS3_FORM" -F "file=@$TESTPDF" "$(echo "$AGRANT" | jq -r '.upload.url')")
+[ "$AS3_CODE" = "204" ]; check $? "anonymous presigned POST accepted by S3"
+
+ANON_STATUS=""
+for i in $(seq 1 50); do
+  ANON_DOC=$(curl -sS "$SITE/api/public/documents/$ADOCID")
+  ANON_STATUS=$(echo "$ANON_DOC" | jq -r '.status // empty')
+  [ "$ANON_STATUS" = "INDEXED" ] || [ "$ANON_STATUS" = "FAILED" ] || [ "$ANON_STATUS" = "REJECTED" ] && break
+  sleep 5
+done
+[ "$ANON_STATUS" = "INDEXED" ]; check $? "anonymous document went through the full pipeline (status: $ANON_STATUS)"
+[ "$(echo "$ANON_DOC" | jq -r '.source')" = "anon" ]; check $? "record is marked as an anonymous upload"
+[ "$(echo "$ANON_DOC" | jq '.ttl > 0')" = "true" ]; check $? "anonymous record carries its 24h TTL backstop"
+
+PUB_LIST=$(curl -sS "$SITE/api/public/documents")
+[ "$(echo "$PUB_LIST" | jq "[.documents[] | select(.docId==\"$ADOCID\")] | length")" = "0" ]; check $? "anonymous document stays OUT of the public index"
+
+# per-visitor cap: force this IP's counter to the limit, expect 429, clear it
+aws dynamodb put-item --table-name "$TABLE" --no-cli-pager \
+  --item "{\"PK\":{\"S\":\"USAGE#$TODAY\"},\"SK\":{\"S\":\"ANON#$ANONID\"},\"count\":{\"N\":\"5\"}}" > /dev/null
+ACAP_CODE=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$SITE/api/public/uploads" \
+  -H 'content-type: application/json' \
+  -d '{"filename":"one-more.pdf","contentType":"application/pdf","sizeBytes":100}')
+[ "$ACAP_CODE" = "429" ]; check $? "per-visitor daily cap returns 429 at the limit"
+aws dynamodb delete-item --table-name "$TABLE" --no-cli-pager \
+  --key "{\"PK\":{\"S\":\"USAGE#$TODAY\"},\"SK\":{\"S\":\"ANON#$ANONID\"}}" > /dev/null
+
 # ---- 7. nightly reset purges uploads, keeps seeds ----
 OUT=$(mktemp)
 aws lambda invoke --function-name "$($TF output -raw reset_function)" \
@@ -140,6 +193,8 @@ PURGED=$(jq -r '.purged' "$OUT"); rm -f "$OUT"
 [ "$PURGED" -ge 1 ]; check $? "reset purged the verification uploads ($PURGED)"
 AFTER=$(curl -sS "$SITE/api/public/documents")
 [ "$(echo "$AFTER" | jq "[.documents[] | select(.docId==\"$DOCID\")] | length")" = "0" ]; check $? "uploaded document is gone from the index"
+ANON_AFTER=$(curl -sS -o /dev/null -w '%{http_code}' "$SITE/api/public/documents/$ADOCID")
+[ "$ANON_AFTER" = "404" ]; check $? "anonymous document purged by the reset too"
 [ "$(echo "$AFTER" | jq '[.documents[] | select(.source=="seed" and .status=="INDEXED")] | length')" -ge 8 ]; check $? "seed corpus survived the reset"
 
 echo

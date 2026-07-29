@@ -1,7 +1,7 @@
 import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
-import { ComprehendClient, ContainsPiiEntitiesCommand, DetectEntitiesCommand } from '@aws-sdk/client-comprehend';
+import { ComprehendClient, DetectEntitiesCommand, DetectPiiEntitiesCommand } from '@aws-sdk/client-comprehend';
 import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
-import { getDoc, updateDoc, type Entity } from '../lib/store.js';
+import { getDoc, updateDoc, type Box, type Entity, type PiiHit } from '../lib/store.js';
 
 const BUCKET = process.env.DOCS_BUCKET!;
 const MODEL_ID = process.env.MODEL_ID!;
@@ -12,6 +12,13 @@ const ANALYSIS_CHARS = 9000;
 const CLASSIFY_EXCERPT_CHARS = 2800;
 const MAX_ENTITIES = 30;
 const MIN_ENTITY_SCORE = 0.5;
+const MIN_PII_SCORE = 0.5;
+const MAX_PII_HITS = 40;
+
+// Receipt inputs (see ../infra/variables.tf for the sourced prices)
+const PRICE_COMPREHEND_PER_UNIT = Number(process.env.PRICE_COMPREHEND_PER_UNIT ?? 0.0001);
+const PRICE_IN_PER_MTOK = Number(process.env.PRICE_IN_PER_MTOK ?? 1);
+const PRICE_OUT_PER_MTOK = Number(process.env.PRICE_OUT_PER_MTOK ?? 5);
 
 const DOC_TYPES = [
   'permit-application',
@@ -28,6 +35,9 @@ const s3 = new S3Client({});
 const comprehend = new ComprehendClient({});
 const bedrock = new BedrockRuntimeClient({});
 
+const round6 = (n: number) => Math.round(n * 1e6) / 1e6;
+const round4 = (n: number) => Math.round(n * 1e4) / 1e4;
+
 interface EnrichInput {
   step: 'entities' | 'classify' | 'index';
   docId: string;
@@ -40,23 +50,65 @@ export async function handler(event: EnrichInput): Promise<{ docId: string }> {
   return { docId: event.docId };
 }
 
-async function extractedText(docId: string): Promise<string> {
-  const obj = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: `extracted/${docId}.json` }));
-  const extraction = JSON.parse(await obj.Body!.transformToString()) as { text: string };
-  return extraction.text;
+interface WordRef {
+  start: number;
+  end: number;
+  box: Box;
 }
 
-/** Comprehend pass: named entities for the facet index, plus a PII flag. */
+interface Extraction {
+  text: string;
+  words?: WordRef[];
+}
+
+async function extraction(docId: string): Promise<Extraction> {
+  const obj = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: `extracted/${docId}.json` }));
+  return JSON.parse(await obj.Body!.transformToString()) as Extraction;
+}
+
+/**
+ * Turn one Comprehend PII span into page boxes via the OCR word map: collect
+ * the words the span overlaps, then merge horizontal runs (same page, same
+ * baseline) into single bars. Offsets index into the exact string the OCR
+ * step assembled, so for the ASCII text these documents produce the mapping
+ * is exact; a multibyte drift would only nudge a bar by a word.
+ */
+function spanBoxes(words: WordRef[], begin: number, end: number): Box[] {
+  const hit = words.filter((w) => w.start < end && w.end > begin).map((w) => w.box);
+  const boxes: Box[] = [];
+  for (const b of hit) {
+    const prev = boxes[boxes.length - 1];
+    const sameLine = prev && prev.p === b.p && Math.abs(prev.t - b.t) < Math.max(prev.h, b.h) * 0.6;
+    if (sameLine) {
+      const right = Math.max(prev.l + prev.w, b.l + b.w);
+      const bottom = Math.max(prev.t + prev.h, b.t + b.h);
+      prev.l = Math.min(prev.l, b.l);
+      prev.t = Math.min(prev.t, b.t);
+      prev.w = round4(right - prev.l);
+      prev.h = round4(bottom - prev.t);
+    } else {
+      boxes.push({ ...b });
+    }
+  }
+  return boxes;
+}
+
+/** Comprehend pass: named entities for the facet index, plus PII spans mapped to redaction geometry. */
 async function entities(docId: string): Promise<void> {
-  const text = (await extractedText(docId)).slice(0, ANALYSIS_CHARS);
+  const ex = await extraction(docId);
+  const text = ex.text.slice(0, ANALYSIS_CHARS);
   if (!text.trim()) {
-    await updateDoc(docId, { entities: [], entityCount: 0, hasPii: false, piiLabels: [] }, 'entities-complete');
+    await updateDoc(
+      docId,
+      { entities: [], entityCount: 0, hasPii: false, piiLabels: [], piiEntities: [], comprehendUnits: 0, costComprehend: 0 },
+      'entities-complete'
+    );
     return;
   }
 
   const [detected, pii] = await Promise.all([
     comprehend.send(new DetectEntitiesCommand({ Text: text, LanguageCode: 'en' })),
-    comprehend.send(new ContainsPiiEntitiesCommand({ Text: text, LanguageCode: 'en' })),
+    comprehend.send(new DetectPiiEntitiesCommand({ Text: text, LanguageCode: 'en' })),
   ]);
 
   const seen = new Set<string>();
@@ -70,13 +122,38 @@ async function entities(docId: string): Promise<void> {
     if (found.length >= MAX_ENTITIES) break;
   }
 
-  const piiLabels = (pii.Labels ?? [])
-    .filter((l) => (l.Score ?? 0) >= 0.6 && l.Name)
-    .map((l) => String(l.Name));
+  // The record keeps the TYPE and the page geometry of each PII span, never
+  // the detected value: the public API can then drive redaction bars without
+  // itself becoming a PII disclosure.
+  const words = ex.words ?? [];
+  const piiEntities: PiiHit[] = [];
+  for (const p of (pii.Entities ?? []).sort((a, b) => (a.BeginOffset ?? 0) - (b.BeginOffset ?? 0))) {
+    if ((p.Score ?? 0) < MIN_PII_SCORE || !p.Type || p.BeginOffset === undefined || p.EndOffset === undefined) continue;
+    piiEntities.push({
+      type: p.Type,
+      score: Math.round((p.Score ?? 0) * 100) / 100,
+      boxes: spanBoxes(words, p.BeginOffset, p.EndOffset),
+    });
+    if (piiEntities.length >= MAX_PII_HITS) break;
+  }
+  const piiLabels = [...new Set(piiEntities.map((p) => p.type))];
+
+  // Both detection calls ran over the same window: units = 2 × ceil(chars/100)
+  // with Comprehend's 3-unit minimum per request.
+  const unitsPerCall = Math.max(3, Math.ceil(text.length / 100));
+  const comprehendUnits = unitsPerCall * 2;
 
   await updateDoc(
     docId,
-    { entities: found, entityCount: found.length, hasPii: piiLabels.length > 0, piiLabels },
+    {
+      entities: found,
+      entityCount: found.length,
+      hasPii: piiEntities.length > 0,
+      piiLabels,
+      piiEntities,
+      comprehendUnits,
+      costComprehend: round6(comprehendUnits * PRICE_COMPREHEND_PER_UNIT),
+    },
     'entities-complete'
   );
 }
@@ -86,7 +163,7 @@ const CLASSIFY_SYSTEM = `You classify scanned municipal documents for a records-
 
 /** Bedrock pass: document type, display title, summary, and primary date. */
 async function classify(docId: string): Promise<void> {
-  const [doc, text] = await Promise.all([getDoc(docId), extractedText(docId)]);
+  const [doc, ex] = await Promise.all([getDoc(docId), extraction(docId)]);
 
   const kvLines = (doc?.kvPairs ?? [])
     .slice(0, 20)
@@ -105,15 +182,20 @@ async function classify(docId: string): Promise<void> {
         messages: [
           {
             role: 'user',
-            content: `Filename: ${doc?.filename ?? 'unknown'}\n\nForm fields:\n${kvLines || '(none detected)'}\n\nText excerpt:\n${text.slice(0, CLASSIFY_EXCERPT_CHARS)}`,
+            content: `Filename: ${doc?.filename ?? 'unknown'}\n\nForm fields:\n${kvLines || '(none detected)'}\n\nText excerpt:\n${ex.text.slice(0, CLASSIFY_EXCERPT_CHARS)}`,
           },
         ],
       }),
     })
   );
 
-  const payload = JSON.parse(new TextDecoder().decode(res.body)) as { content: { type: string; text?: string }[] };
+  const payload = JSON.parse(new TextDecoder().decode(res.body)) as {
+    content: { type: string; text?: string }[];
+    usage?: { input_tokens?: number; output_tokens?: number };
+  };
   const raw = payload.content.filter((b) => b.type === 'text').map((b) => b.text ?? '').join('');
+  const tokensIn = payload.usage?.input_tokens ?? 0;
+  const tokensOut = payload.usage?.output_tokens ?? 0;
 
   let parsed: { docType?: string; confidence?: number; title?: string; summary?: string; docDate?: string | null } = {};
   try {
@@ -130,17 +212,33 @@ async function classify(docId: string): Promise<void> {
       title: String(parsed.title ?? doc?.filename ?? docId).slice(0, 90),
       summary: String(parsed.summary ?? 'No summary available.').slice(0, 400),
       docDate: /^\d{4}-\d{2}-\d{2}$/.test(String(parsed.docDate)) ? parsed.docDate : null,
+      tokensIn,
+      tokensOut,
+      costBedrock: round6((tokensIn * PRICE_IN_PER_MTOK + tokensOut * PRICE_OUT_PER_MTOK) / 1e6),
     },
     'classified'
   );
 }
 
-/** Final state flip: the document becomes visible as INDEXED in the search UI. */
+/** Final state flip: assemble the processing receipt and become INDEXED. */
 async function index(docId: string): Promise<void> {
   const doc = await getDoc(docId);
-  const fields: Record<string, unknown> = { status: 'INDEXED' };
+  const textract = doc?.costTextract ?? 0;
+  const comprehendCost = doc?.costComprehend ?? 0;
+  const bedrockCost = doc?.costBedrock ?? 0;
+  const fields: Record<string, unknown> = {
+    status: 'INDEXED',
+    cost: {
+      textract,
+      comprehend: comprehendCost,
+      bedrock: bedrockCost,
+      total: round6(textract + comprehendCost + bedrockCost),
+    },
+  };
   // Uploads are transient demo artifacts: TTL is the backstop, the nightly
-  // reset is the broom. Seeds are the permanent browsable corpus.
+  // reset is the broom. Anonymous uploads live 24h at most; credentialed ones
+  // 72h. Seeds are the permanent browsable corpus.
   if (doc?.source === 'upload') fields.ttl = Math.floor(Date.now() / 1000) + 72 * 3600;
+  if (doc?.source === 'anon') fields.ttl = Math.floor(Date.now() / 1000) + 24 * 3600;
   await updateDoc(docId, fields, 'indexed');
 }

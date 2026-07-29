@@ -13,10 +13,25 @@ export const docKey = (docId: string) => ({ PK: `DOC#${docId}`, SK: 'META' });
 // timeline so the UI can replay exactly what happened to a document and when.
 export type DocStatus = 'PROCESSING' | 'INDEXED' | 'REJECTED' | 'FAILED';
 
+/**
+ * A region on a page, in Textract's normalized page coordinates (0-1 from the
+ * top-left). `p` is the 1-based page number. Kept terse because boxes ride on
+ * DynamoDB records and the public API.
+ */
+export interface Box {
+  p: number;
+  l: number;
+  t: number;
+  w: number;
+  h: number;
+}
+
 export interface KvPair {
   key: string;
   value: string;
   confidence: number;
+  keyBox?: Box;
+  valueBox?: Box;
 }
 
 export interface Entity {
@@ -25,13 +40,32 @@ export interface Entity {
   score: number;
 }
 
+/**
+ * One PII finding mapped back onto the page. Deliberately carries NO text:
+ * the type and where to draw the redaction bars are all the UI needs, and the
+ * detected value itself never lands in DynamoDB or the public API.
+ */
+export interface PiiHit {
+  type: string;
+  score: number;
+  boxes: Box[];
+}
+
+/** Per-document processing receipt, assembled at the index step. */
+export interface CostReceipt {
+  textract: number;
+  comprehend: number;
+  bedrock: number;
+  total: number;
+}
+
 export interface DocRecord {
   docId: string;
   status: DocStatus;
   filename: string;
   contentType: string;
   sizeBytes: number;
-  source: 'seed' | 'upload';
+  source: 'seed' | 'upload' | 'anon';
   uploadedBy?: string;
   createdAt: string;
   s3Key: string;
@@ -46,6 +80,14 @@ export interface DocRecord {
   entityCount?: number;
   hasPii?: boolean;
   piiLabels?: string[];
+  piiEntities?: PiiHit[];
+  costTextract?: number;
+  costComprehend?: number;
+  comprehendUnits?: number;
+  costBedrock?: number;
+  tokensIn?: number;
+  tokensOut?: number;
+  cost?: CostReceipt;
   docType?: string;
   docTypeConfidence?: number;
   title?: string;

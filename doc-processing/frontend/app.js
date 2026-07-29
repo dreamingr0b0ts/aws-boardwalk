@@ -1,8 +1,11 @@
 // Alpenglow Document Intelligence — zero-build frontend.
-// Browsing the processed index is public (free DynamoDB reads). Uploading —
-// the only operation that spends money — sits behind a Cognito gate; auth is
-// a plain InitiateAuth call, and the file itself goes straight to S3 with a
-// presigned POST. Everything else is same-origin /api/* behind CloudFront.
+// Browsing the processed index is public (free DynamoDB reads). Uploading
+// comes in two tiers: an anonymous taste tier (5 documents/day per visitor,
+// private to the uploader, fenced server-side by hashed IP) and a Cognito
+// gate for the credentialed allowance. Files go straight to S3 with a
+// presigned POST; everything else is same-origin /api/* behind CloudFront.
+// The document viewer renders the original in-page (pdf.js for PDFs, both
+// self-hosted) and draws the pipeline's extraction geometry on top of it.
 
 const $ = (id) => document.getElementById(id);
 
@@ -27,6 +30,8 @@ let allDocs = [];
 let activeType = null; // facet filter
 let searchTerm = '';
 
+const signedIn = () => Boolean(idToken && tokenExp * 1000 > Date.now() + 60_000);
+
 init();
 
 async function init() {
@@ -34,6 +39,9 @@ async function init() {
 
   $('login-form').addEventListener('submit', onLogin);
   $('logout-btn').addEventListener('click', logout);
+  $('show-login-btn').addEventListener('click', () => {
+    $('login-panel').hidden = !$('login-panel').hidden;
+  });
   $('search').addEventListener('input', (e) => {
     searchTerm = e.target.value.trim().toLowerCase();
     renderGrid();
@@ -54,7 +62,20 @@ async function init() {
     if (e.target === $('doc-dialog')) $('doc-dialog').close();
   });
 
-  if (idToken && tokenExp * 1000 > Date.now() + 60_000) showUploader();
+  for (const btn of document.querySelectorAll('.v-mode')) {
+    btn.addEventListener('click', () => setViewerMode(btn.dataset.mode));
+  }
+  $('v-prev').addEventListener('click', () => gotoPage(viewer.page - 1));
+  $('v-next').addEventListener('click', () => gotoPage(viewer.page + 1));
+  $('v-download').addEventListener('click', downloadRedactedPage);
+  const kvTable = $('d-kv');
+  kvTable.addEventListener('mouseover', (e) => hoverKvRow(e.target.closest('tr'), true));
+  kvTable.addEventListener('mouseout', (e) => hoverKvRow(e.target.closest('tr'), false));
+  kvTable.addEventListener('click', (e) => jumpToKvRow(e.target.closest('tr')));
+
+  if (signedIn()) showSignedIn();
+  else showAnon();
+  renderMyDocs();
   await loadIndex();
 }
 
@@ -128,6 +149,7 @@ function renderGrid() {
       d.pages ? `${d.pages} page${d.pages > 1 ? 's' : ''}` : null,
       d.ocrConfidence ? `OCR ${d.ocrConfidence}%` : null,
       d.entityCount ? `${d.entityCount} entities` : null,
+      d.cost?.total ? `$${d.cost.total.toFixed(3)}` : null,
       d.source === 'upload' ? 'uploaded' : 'seed corpus',
     ].filter(Boolean).join(' · ');
     card.innerHTML = `
@@ -144,7 +166,13 @@ async function openDoc(docId) {
   let d;
   try {
     const res = await fetch(`/api/public/documents/${encodeURIComponent(docId)}`);
-    if (!res.ok) throw new Error();
+    if (!res.ok) {
+      if (res.status === 404 && myDocs().some((m) => m.docId === docId)) {
+        forgetMyDoc(docId);
+        renderMyDocs();
+      }
+      throw new Error();
+    }
     d = await res.json();
   } catch {
     return;
@@ -169,6 +197,12 @@ async function openDoc(docId) {
     p.textContent = `PII: ${(d.piiLabels ?? []).join(', ').toLowerCase() || 'detected'}`;
     badges.appendChild(p);
   }
+  if (d.source === 'anon') {
+    const a = document.createElement('span');
+    a.className = 'badge';
+    a.textContent = 'private · purges in 24h';
+    badges.appendChild(a);
+  }
 
   $('d-summary').textContent = d.summary ?? d.rejectReason ?? d.error ?? '';
   $('d-meta').innerHTML = [
@@ -176,13 +210,15 @@ async function openDoc(docId) {
     d.pages ? `<span><strong>${d.pages}</strong> page${d.pages > 1 ? 's' : ''}</span>` : null,
     d.ocrConfidence ? `<span>OCR confidence <strong>${d.ocrConfidence}%</strong></span>` : null,
     `<span>file <strong>${esc(d.filename)}</strong> (${(d.sizeBytes / 1024).toFixed(0)} KB)</span>`,
-    `<span>source <strong>${d.source === 'upload' ? 'demo upload' : 'seed corpus'}</strong></span>`,
+    `<span>source <strong>${d.source === 'seed' ? 'seed corpus' : d.source === 'anon' ? 'anonymous upload' : 'demo upload'}</strong></span>`,
   ].filter(Boolean).join('');
 
   const kv = $('d-kv');
-  kv.innerHTML = (d.kvPairs ?? []).map((p) =>
-    `<tr><td>${esc(p.key)}</td><td>${esc(p.value || '—')} <span class="conf">${p.confidence}%</span></td></tr>`
+  kv.innerHTML = (d.kvPairs ?? []).map((p, i) =>
+    `<tr data-i="${i}" data-page="${p.valueBox?.p ?? p.keyBox?.p ?? ''}">
+      <td>${esc(p.key)}</td><td>${esc(p.value || '—')} <span class="conf">${p.confidence}%</span></td></tr>`
   ).join('') || '<tr><td class="muted">none detected</td><td></td></tr>';
+  $('d-kv-hint').hidden = !(d.kvPairs ?? []).some((p) => p.valueBox || p.keyBox);
 
   const ents = $('d-entities');
   ents.innerHTML = (d.entities ?? []).map((e) =>
@@ -195,10 +231,239 @@ async function openDoc(docId) {
     `<li>${esc(st.name)} <span class="t">+${((new Date(st.at).getTime() - t0) / 1000).toFixed(1)}s</span></li>`
   ).join('');
 
+  renderReceipt(d);
+
   $('d-original').href = d.originalUrl;
   $('d-preview').textContent = d.textPreview ?? '';
   $('d-preview-label').hidden = !d.textPreview;
   $('doc-dialog').showModal();
+
+  openViewer(d); // async; renders when the bytes and pdf.js arrive
+}
+
+// ---- the processing receipt ------------------------------------------------
+
+function renderReceipt(d) {
+  const el = $('d-receipt');
+  if (!d.cost) {
+    el.innerHTML = '<span class="muted">not itemized</span>';
+    return;
+  }
+  const money = (n) => `$${(n ?? 0).toFixed(4)}`;
+  const rows = [
+    ['OCR · Textract FORMS', `${d.pages ?? '?'} page${d.pages === 1 ? '' : 's'}`, money(d.cost.textract)],
+    ['NLP · Comprehend ×2', `${d.comprehendUnits ?? '?'} units`, money(d.cost.comprehend)],
+    ['Classify · Claude Haiku', `${d.tokensIn ?? '?'} in / ${d.tokensOut ?? '?'} out`, money(d.cost.bedrock)],
+  ];
+  el.innerHTML =
+    rows.map(([svc, qty, amt]) =>
+      `<div class="r-line"><span>${esc(svc)}</span><span class="r-qty">${esc(qty)}</span><span class="r-amt">${amt}</span></div>`
+    ).join('') +
+    `<div class="r-line r-total"><span>total, this document</span><span class="r-qty"></span><span class="r-amt">${money(d.cost.total)}</span></div>`;
+}
+
+// ---- the viewer: source under glass ----------------------------------------
+
+const viewer = {
+  session: 0,     // bumped per openDoc; stale async renders bail out
+  doc: null,
+  pdf: null,
+  bitmap: null,
+  page: 1,
+  pages: 1,
+  mode: 'fields',
+};
+
+let pdfjsPromise = null;
+function pdfjs() {
+  pdfjsPromise ??= import('/vendor/pdf.min.mjs').then((lib) => {
+    lib.GlobalWorkerOptions.workerSrc = '/vendor/pdf.worker.min.mjs';
+    return lib;
+  });
+  return pdfjsPromise;
+}
+
+function viewerNote(text) {
+  $('v-note').textContent = text;
+  $('v-note').hidden = !text;
+}
+
+async function openViewer(d) {
+  const session = ++viewer.session;
+  viewer.doc = d;
+  viewer.pdf = null;
+  viewer.bitmap = null;
+  viewer.page = 1;
+  $('d-viewer').hidden = true;
+  viewerNote('');
+
+  if (!d.originalUrl || d.status === 'REJECTED') return;
+  if (d.contentType === 'image/tiff') return; // browsers cannot decode TIFF
+
+  try {
+    const res = await fetch(d.originalUrl);
+    if (!res.ok) throw new Error(`fetch ${res.status}`);
+    const buf = await res.arrayBuffer();
+    if (session !== viewer.session) return;
+
+    if (d.contentType === 'application/pdf') {
+      const lib = await pdfjs();
+      const pdf = await lib.getDocument({ data: buf }).promise;
+      if (session !== viewer.session) { pdf.destroy(); return; }
+      viewer.pdf = pdf;
+      viewer.pages = pdf.numPages;
+    } else {
+      viewer.bitmap = await createImageBitmap(new Blob([buf], { type: d.contentType }));
+      if (session !== viewer.session) return;
+      viewer.pages = 1;
+    }
+  } catch {
+    return; // the "view the original" link still works
+  }
+
+  const hasKvBoxes = (d.kvPairs ?? []).some((p) => p.valueBox || p.keyBox);
+  const hasPiiBoxes = (d.piiEntities ?? []).some((p) => (p.boxes ?? []).length);
+  viewer.mode = hasKvBoxes ? 'fields' : hasPiiBoxes ? 'redact' : 'none';
+  $('v-mode-fields').disabled = !hasKvBoxes;
+  $('v-mode-redact').disabled = !hasPiiBoxes;
+
+  $('d-viewer').hidden = false;
+  await renderViewerPage(session);
+}
+
+function setViewerMode(mode) {
+  viewer.mode = mode;
+  renderViewerPage(viewer.session);
+}
+
+function gotoPage(n) {
+  if (n < 1 || n > viewer.pages) return;
+  viewer.page = n;
+  renderViewerPage(viewer.session);
+}
+
+async function renderViewerPage(session) {
+  const canvas = $('page-canvas');
+
+  if (viewer.pdf) {
+    const page = await viewer.pdf.getPage(viewer.page);
+    if (session !== viewer.session) return;
+    const base = page.getViewport({ scale: 1 });
+    const scale = Math.min(2.2, 1400 / base.width);
+    const vp = page.getViewport({ scale });
+    canvas.width = Math.round(vp.width);
+    canvas.height = Math.round(vp.height);
+    await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+    if (session !== viewer.session) return;
+  } else if (viewer.bitmap) {
+    const bm = viewer.bitmap;
+    const scale = Math.min(1, 2000 / bm.width);
+    canvas.width = Math.round(bm.width * scale);
+    canvas.height = Math.round(bm.height * scale);
+    canvas.getContext('2d').drawImage(bm, 0, 0, canvas.width, canvas.height);
+  } else {
+    return;
+  }
+
+  $('v-page-label').textContent = `page ${viewer.page} of ${viewer.pages}`;
+  $('v-prev').disabled = viewer.page <= 1;
+  $('v-next').disabled = viewer.page >= viewer.pages;
+
+  for (const btn of document.querySelectorAll('.v-mode')) {
+    btn.classList.toggle('on', btn.dataset.mode === viewer.mode);
+  }
+
+  renderOverlays();
+}
+
+function pctBox(box) {
+  return `left:${box.l * 100}%;top:${box.t * 100}%;width:${box.w * 100}%;height:${box.h * 100}%`;
+}
+
+function pagePiiBoxes() {
+  return (viewer.doc?.piiEntities ?? [])
+    .flatMap((p) => (p.boxes ?? []).map((b) => ({ type: p.type, box: b })))
+    .filter((x) => x.box.p === viewer.page);
+}
+
+function renderOverlays() {
+  const layer = $('page-overlays');
+  layer.innerHTML = '';
+  const d = viewer.doc;
+
+  if (viewer.mode === 'fields') {
+    (d.kvPairs ?? []).forEach((p, i) => {
+      for (const [cls, box] of [['ov-key', p.keyBox], ['ov-val', p.valueBox]]) {
+        if (!box || box.p !== viewer.page) continue;
+        const div = document.createElement('div');
+        div.className = `ov ${cls}`;
+        div.dataset.i = i;
+        div.style.cssText = pctBox(box);
+        div.title = `${p.key}: ${p.value || '(empty)'}`;
+        layer.appendChild(div);
+      }
+    });
+    viewerNote('Brass boxes are values, dashed boxes their labels, exactly where Textract read them.');
+  } else if (viewer.mode === 'redact') {
+    for (const { type, box } of pagePiiBoxes()) {
+      const div = document.createElement('div');
+      div.className = 'ov ov-redact';
+      div.style.cssText = pctBox(box);
+      div.innerHTML = `<span>${esc(type.replaceAll('_', ' '))}</span>`;
+      layer.appendChild(div);
+    }
+    viewerNote('Every bar is a PII span Comprehend found, mapped back to the page. This is the pass a records office runs before releasing a copy.');
+  } else {
+    viewerNote('');
+  }
+
+  $('v-download').hidden = !(viewer.mode === 'redact' && pagePiiBoxes().length);
+}
+
+function hoverKvRow(row, on) {
+  if (!row?.dataset.i) return;
+  for (const ov of document.querySelectorAll(`.ov[data-i="${row.dataset.i}"]`)) {
+    ov.classList.toggle('hot', on);
+  }
+}
+
+function jumpToKvRow(row) {
+  if (!row?.dataset.i || $('d-viewer').hidden) return;
+  const p = Number(row.dataset.page);
+  const flash = () => {
+    hoverKvRow(row, true);
+    $('page-stage').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    setTimeout(() => hoverKvRow(row, false), 1600);
+  };
+  if (viewer.mode !== 'fields') viewer.mode = 'fields';
+  if (p && p !== viewer.page) {
+    viewer.page = p;
+    renderViewerPage(viewer.session).then(flash);
+  } else {
+    renderViewerPage(viewer.session).then(flash);
+  }
+}
+
+function downloadRedactedPage() {
+  const src = $('page-canvas');
+  const out = document.createElement('canvas');
+  out.width = src.width;
+  out.height = src.height;
+  const ctx = out.getContext('2d');
+  ctx.drawImage(src, 0, 0);
+  ctx.fillStyle = '#14100b';
+  for (const { box } of pagePiiBoxes()) {
+    const pad = 2;
+    ctx.fillRect(box.l * out.width - pad, box.t * out.height - pad, box.w * out.width + pad * 2, box.h * out.height + pad * 2);
+  }
+  out.toBlob((blob) => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    const stem = (viewer.doc?.filename ?? 'document').replace(/\.[^.]+$/, '');
+    a.download = `${stem}-redacted-p${viewer.page}.png`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
+  }, 'image/png');
 }
 
 // ---- auth ---------------------------------------------------------------
@@ -233,7 +498,8 @@ async function onLogin(e) {
     sessionStorage.setItem('idp.idToken', idToken);
     sessionStorage.setItem('idp.exp', String(tokenExp));
     $('login-password').value = '';
-    showUploader();
+    $('login-panel').hidden = true;
+    showSignedIn();
   } catch (err) {
     const el = $('login-error');
     el.textContent = err.message === 'Incorrect username or password.'
@@ -249,14 +515,23 @@ function logout() {
   sessionStorage.removeItem('idp.idToken');
   sessionStorage.removeItem('idp.exp');
   idToken = null;
-  $('upload-panel').hidden = true;
-  $('login-panel').hidden = false;
+  showAnon();
 }
 
-function showUploader() {
-  $('login-panel').hidden = true;
-  $('upload-panel').hidden = false;
+function showSignedIn() {
+  $('show-login-btn').hidden = true;
+  $('logout-btn').hidden = false;
+  $('dropzone-note').textContent =
+    'PDF · PNG · JPEG · TIFF, up to 4 MB and 6 pages. Signed-in uploads join the public index until the nightly reset.';
   refreshQuota();
+}
+
+function showAnon() {
+  $('show-login-btn').hidden = false;
+  $('logout-btn').hidden = true;
+  $('dropzone-note').textContent =
+    'PDF · PNG · JPEG · TIFF, up to 4 MB and 6 pages. Anonymous uploads are private to you and purge within 24 hours.';
+  refreshAnonQuota();
 }
 
 async function refreshQuota() {
@@ -265,9 +540,24 @@ async function refreshQuota() {
   } catch { /* non-fatal */ }
 }
 
+async function refreshAnonQuota() {
+  try {
+    const res = await fetch('/api/public/uploads/quota');
+    if (!res.ok) return;
+    renderQuota(await res.json());
+  } catch { /* non-fatal */ }
+}
+
 function renderQuota(q) {
-  $('quota-line').textContent =
-    `Your documents today: ${q.userUsed}/${q.userLimit} · demo-wide budget: ${q.globalUsed}/${q.globalLimit}`;
+  if (q.anonLimit !== undefined) {
+    const left = Math.max(0, q.anonLimit - q.anonUsed);
+    $('quota-line').textContent =
+      `Anonymous documents today: ${left} of ${q.anonLimit} left · visitor pool ${q.poolUsed}/${q.poolLimit}` +
+      (q.globalExhausted ? ' · daily budget exhausted' : '');
+  } else {
+    $('quota-line').textContent =
+      `Your documents today: ${q.userUsed}/${q.userLimit} · demo-wide budget: ${q.globalUsed}/${q.globalLimit}`;
+  }
 }
 
 async function api(method, path, body) {
@@ -292,6 +582,43 @@ async function api(method, path, body) {
   return data;
 }
 
+// ---- your anonymous documents (this browser only) --------------------------
+
+function myDocs() {
+  let list = [];
+  try { list = JSON.parse(localStorage.getItem('idp.myDocs') || '[]'); } catch { /* fresh start */ }
+  const cutoff = Date.now() - 24 * 3600 * 1000;
+  const fresh = list.filter((m) => m.at > cutoff);
+  if (fresh.length !== list.length) localStorage.setItem('idp.myDocs', JSON.stringify(fresh));
+  return fresh;
+}
+
+function saveMyDoc(docId, filename) {
+  const list = myDocs().filter((m) => m.docId !== docId);
+  list.unshift({ docId, filename, at: Date.now() });
+  localStorage.setItem('idp.myDocs', JSON.stringify(list.slice(0, 10)));
+  renderMyDocs();
+}
+
+function forgetMyDoc(docId) {
+  localStorage.setItem('idp.myDocs', JSON.stringify(myDocs().filter((m) => m.docId !== docId)));
+}
+
+function renderMyDocs() {
+  const list = myDocs();
+  $('my-docs').hidden = !list.length;
+  const chips = $('my-doc-chips');
+  chips.innerHTML = '';
+  for (const m of list) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'ent my-doc';
+    b.innerHTML = `${esc(m.filename)} <span class="et">${new Date(m.at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>`;
+    b.addEventListener('click', () => openDoc(m.docId));
+    chips.appendChild(b);
+  }
+}
+
 // ---- upload & live pipeline tracking -----------------------------------
 
 const EXT_TYPES = {
@@ -314,13 +641,22 @@ async function onUpload(file) {
     return showUploadError('That file is over the 4 MB demo cap.');
   }
 
+  const anon = !signedIn();
   zone.classList.add('busy');
   try {
-    const grant = await api('POST', '/api/uploads', {
-      filename: file.name,
-      contentType,
-      sizeBytes: file.size,
-    });
+    const payload = { filename: file.name, contentType, sizeBytes: file.size };
+    let grant;
+    if (anon) {
+      const res = await fetch('/api/public/uploads', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      grant = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(grant.message || `Request failed (${res.status})`);
+    } else {
+      grant = await api('POST', '/api/uploads', payload);
+    }
     renderQuota(grant.quota);
 
     const form = new FormData();
@@ -329,7 +665,8 @@ async function onUpload(file) {
     const s3res = await fetch(grant.upload.url, { method: 'POST', body: form });
     if (!s3res.ok) throw new Error(`S3 rejected the upload (${s3res.status})`);
 
-    trackPipeline(grant.docId);
+    if (anon) saveMyDoc(grant.docId, file.name);
+    trackPipeline(grant.docId, anon);
   } catch (err) {
     showUploadError(err.message);
   } finally {
@@ -344,7 +681,7 @@ function showUploadError(message) {
   el.hidden = false;
 }
 
-async function trackPipeline(docId) {
+async function trackPipeline(docId, anon) {
   const tracker = $('pipeline-tracker');
   const result = $('pipeline-result');
   tracker.hidden = false;
@@ -365,22 +702,24 @@ async function trackPipeline(docId) {
     updateTracker(doc.steps ?? []);
 
     if (doc.status === 'INDEXED') {
-      result.textContent = '✓ Indexed. It is now in the searchable list above.';
+      result.textContent = anon
+        ? '✓ Indexed. This document is private to you: it never joins the public list, and only this browser holds its catalog number.'
+        : '✓ Indexed. It is now in the searchable list above.';
       result.hidden = false;
-      await loadIndex();
+      if (!anon) await loadIndex();
       openDoc(docId);
       return;
     }
     if (doc.status === 'REJECTED') {
       result.textContent = `✗ Rejected before OCR: ${doc.rejectReason}`;
       result.hidden = false;
-      await loadIndex();
+      if (!anon) await loadIndex();
       return;
     }
     if (doc.status === 'FAILED') {
       result.textContent = '✗ The pipeline failed on this document. See its record for details.';
       result.hidden = false;
-      await loadIndex();
+      if (!anon) await loadIndex();
       return;
     }
   }

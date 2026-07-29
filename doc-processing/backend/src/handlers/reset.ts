@@ -8,9 +8,10 @@ const s3 = new S3Client({});
 
 /**
  * Nightly broom (EventBridge 09:00 UTC, same hour as plank 1): purge every
- * user-uploaded document — DynamoDB record, original file, and extraction —
- * so the browsable index resets to the seeded corpus. Item TTL is the backstop
- * if this ever fails; seeds are never touched.
+ * non-seed document — credentialed and anonymous uploads alike; DynamoDB
+ * record, original file, and extraction — so the browsable index resets to
+ * the seeded corpus. Item TTL is the backstop if this ever fails; seeds are
+ * never touched.
  */
 export async function handler(): Promise<{ purged: number }> {
   const uploads: DocRecord[] = [];
@@ -19,9 +20,9 @@ export async function handler(): Promise<{ purged: number }> {
     const page = await ddb.send(
       new ScanCommand({
         TableName: TABLE,
-        FilterExpression: 'SK = :meta AND #src = :upload',
+        FilterExpression: 'SK = :meta AND #src <> :seed',
         ExpressionAttributeNames: { '#src': 'source' },
-        ExpressionAttributeValues: { ':meta': 'META', ':upload': 'upload' },
+        ExpressionAttributeValues: { ':meta': 'META', ':seed': 'seed' },
         ExclusiveStartKey: startKey,
       })
     );

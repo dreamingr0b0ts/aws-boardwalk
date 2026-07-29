@@ -53,15 +53,16 @@ resource "aws_s3_bucket_public_access_block" "docs" {
   restrict_public_buckets = true
 }
 
-# The browser talks to this bucket exactly once per document: the presigned
-# POST. Reads of originals go through short-lived presigned GET links (plain
-# navigation, no CORS needed).
+# The browser talks to this bucket twice per document: the presigned POST on
+# the way in, and a presigned GET the page-viewer fetch()es so the original
+# can be rendered under the extraction overlays (a CORS read, unlike the old
+# plain-navigation link, which still works too).
 resource "aws_s3_bucket_cors_configuration" "docs" {
   bucket = aws_s3_bucket.docs.id
 
   cors_rule {
     allowed_origins = ["https://${var.site_hostname}"]
-    allowed_methods = ["POST"]
+    allowed_methods = ["GET", "POST"]
     allowed_headers = ["*"]
     expose_headers  = ["ETag"]
     max_age_seconds = 3600

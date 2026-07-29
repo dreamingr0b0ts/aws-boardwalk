@@ -26,11 +26,13 @@ resource "aws_lambda_function" "api" {
 
   environment {
     variables = {
-      TABLE_NAME         = aws_dynamodb_table.documents.name
-      DOCS_BUCKET        = aws_s3_bucket.docs.bucket
-      MAX_UPLOAD_BYTES   = tostring(var.max_upload_bytes)
-      USER_DAILY_LIMIT   = tostring(var.user_daily_limit)
-      GLOBAL_DAILY_LIMIT = tostring(var.global_daily_limit)
+      TABLE_NAME              = aws_dynamodb_table.documents.name
+      DOCS_BUCKET             = aws_s3_bucket.docs.bucket
+      MAX_UPLOAD_BYTES        = tostring(var.max_upload_bytes)
+      USER_DAILY_LIMIT        = tostring(var.user_daily_limit)
+      GLOBAL_DAILY_LIMIT      = tostring(var.global_daily_limit)
+      ANON_DAILY_LIMIT        = tostring(var.anon_daily_limit)
+      ANON_GLOBAL_DAILY_LIMIT = tostring(var.anon_global_daily_limit)
     }
   }
 
@@ -52,10 +54,11 @@ resource "aws_lambda_function" "ocr" {
 
   environment {
     variables = {
-      TABLE_NAME       = aws_dynamodb_table.documents.name
-      DOCS_BUCKET      = aws_s3_bucket.docs.bucket
-      MAX_UPLOAD_BYTES = tostring(var.max_upload_bytes)
-      MAX_PAGES        = tostring(var.max_pages)
+      TABLE_NAME              = aws_dynamodb_table.documents.name
+      DOCS_BUCKET             = aws_s3_bucket.docs.bucket
+      MAX_UPLOAD_BYTES        = tostring(var.max_upload_bytes)
+      MAX_PAGES               = tostring(var.max_pages)
+      PRICE_TEXTRACT_PER_PAGE = tostring(var.textract_price_per_page)
     }
   }
 
@@ -77,9 +80,12 @@ resource "aws_lambda_function" "enrich" {
 
   environment {
     variables = {
-      TABLE_NAME  = aws_dynamodb_table.documents.name
-      DOCS_BUCKET = aws_s3_bucket.docs.bucket
-      MODEL_ID    = var.model_id
+      TABLE_NAME                = aws_dynamodb_table.documents.name
+      DOCS_BUCKET               = aws_s3_bucket.docs.bucket
+      MODEL_ID                  = var.model_id
+      PRICE_COMPREHEND_PER_UNIT = tostring(var.comprehend_price_per_unit)
+      PRICE_IN_PER_MTOK         = tostring(var.price_in_per_mtok)
+      PRICE_OUT_PER_MTOK        = tostring(var.price_out_per_mtok)
     }
   }
 

@@ -137,7 +137,7 @@ resource "aws_iam_role_policy" "enrich_all" {
         # Comprehend has no resource-level permissions for detection APIs
         Sid      = "EntityAndPiiDetection"
         Effect   = "Allow"
-        Action   = ["comprehend:DetectEntities", "comprehend:ContainsPiiEntities"]
+        Action   = ["comprehend:DetectEntities", "comprehend:DetectPiiEntities"]
         Resource = "*"
       },
       {

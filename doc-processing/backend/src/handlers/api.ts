@@ -3,14 +3,16 @@ import { GetCommand, ScanCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { createPresignedPost } from '@aws-sdk/s3-presigned-post';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { claims, HttpError, json, parseBody, requireString, router, type ApiEvent } from '../lib/http.js';
 import { ddb, TABLE, type DocRecord } from '../lib/store.js';
 
 const BUCKET = process.env.DOCS_BUCKET!;
 const MAX_UPLOAD_BYTES = Number(process.env.MAX_UPLOAD_BYTES ?? 4 * 1024 * 1024);
 const USER_DAILY_LIMIT = Number(process.env.USER_DAILY_LIMIT ?? 8);
-const GLOBAL_DAILY_LIMIT = Number(process.env.GLOBAL_DAILY_LIMIT ?? 20);
+const GLOBAL_DAILY_LIMIT = Number(process.env.GLOBAL_DAILY_LIMIT ?? 30);
+const ANON_DAILY_LIMIT = Number(process.env.ANON_DAILY_LIMIT ?? 5);
+const ANON_GLOBAL_DAILY_LIMIT = Number(process.env.ANON_GLOBAL_DAILY_LIMIT ?? 10);
 
 const CONTENT_TYPES: Record<string, string[]> = {
   'application/pdf': ['pdf'],
@@ -26,6 +28,7 @@ const s3 = new S3Client({});
 const LIST_FIELDS = [
   'docId', 'status', 'filename', 'title', 'docType', 'docTypeConfidence', 'summary', 'pages',
   'ocrConfidence', 'hasPii', 'source', 'createdAt', 'entityCount', 'docDate', 'sizeBytes', 'rejectReason',
+  'cost',
 ] as const;
 
 async function scanDocs(): Promise<DocRecord[]> {
@@ -43,7 +46,12 @@ async function scanDocs(): Promise<DocRecord[]> {
     docs.push(...((page.Items ?? []) as DocRecord[]));
     startKey = page.LastEvaluatedKey as Record<string, unknown> | undefined;
   } while (startKey);
-  return docs.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1)).slice(0, 200);
+  // Anonymous uploads are private to their uploader: reachable only through
+  // the unguessable docId the uploader was handed, never listed or counted.
+  return docs
+    .filter((d) => d.source !== 'anon')
+    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
+    .slice(0, 200);
 }
 
 async function listDocuments() {
@@ -77,7 +85,22 @@ async function getDocument(event: ApiEvent) {
   return json(200, { ...publicDoc, PK: undefined, SK: undefined, originalUrl });
 }
 
-// ---- authenticated routes (each accepted upload spends Textract/AI money) ----
+// ---- upload grants (each accepted upload spends Textract/AI money) ----
+
+// Visitor identity: the viewer IP reduced to a truncated hash, so counters
+// and metadata count visitors without storing addresses. CloudFront appends
+// the true viewer IP and API Gateway appends CloudFront's, so the second-
+// from-last X-Forwarded-For entry cannot be spoofed by a client-sent header.
+// (Same fence as planks 6 and 12.)
+function visitor(event: ApiEvent): { sub: string; email: string } {
+  const xff = (event.headers?.['x-forwarded-for'] ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const ip = xff.length >= 2 ? xff[xff.length - 2] : (xff[0] ?? event.requestContext.http.sourceIp ?? 'unknown');
+  const sub = createHash('sha256').update(ip).digest('hex').slice(0, 16);
+  return { sub, email: `visitor:${sub.slice(0, 8)}` };
+}
 
 async function bumpCounter(date: string, sk: string, limit: number): Promise<number> {
   const res = await ddb.send(
@@ -103,6 +126,15 @@ async function readCounter(date: string, sk: string): Promise<number> {
   return Number(res.Item?.count ?? 0);
 }
 
+async function bumpOr429(date: string, sk: string, limit: number, message: string): Promise<number> {
+  try {
+    return await bumpCounter(date, sk, limit);
+  } catch (err) {
+    if (err instanceof ConditionalCheckFailedException) throw new HttpError(429, message);
+    throw err;
+  }
+}
+
 interface UploadRequest {
   filename: string;
   contentType: string;
@@ -110,12 +142,15 @@ interface UploadRequest {
 }
 
 /**
- * The cost gate, in order: JWT (API Gateway) → request validation → per-user
- * daily cap → global daily kill switch → only then a presigned POST whose
- * conditions re-pin key, content type, and size at the S3 door.
+ * The cost gate, in order: identity (Cognito JWT at the gateway, or the
+ * hashed viewer IP for the anonymous taste tier) → request validation → the
+ * tier's daily caps → global daily kill switch → only then a presigned POST
+ * whose conditions re-pin key, content type, and size at the S3 door.
+ * Anonymous uploads share the same global cap, so opening the taste tier
+ * moved the worst-case day's page count not one page.
  */
-async function createUpload(event: ApiEvent) {
-  const who = claims(event);
+async function issueUpload(event: ApiEvent, anon: boolean) {
+  const who = anon ? visitor(event) : claims(event);
   const body = parseBody<UploadRequest>(event);
   const filename = requireString(body.filename, 'filename', 1, 120);
 
@@ -128,26 +163,25 @@ async function createUpload(event: ApiEvent) {
   }
 
   const today = new Date().toISOString().slice(0, 10);
-  let userCount: number;
-  try {
-    userCount = await bumpCounter(today, `USER#${who.sub}`, USER_DAILY_LIMIT);
-  } catch (err) {
-    if (err instanceof ConditionalCheckFailedException) {
-      throw new HttpError(429, `Daily demo limit reached (${USER_DAILY_LIMIT} documents). Resets at 00:00 UTC.`);
-    }
-    throw err;
+  let tierUsed: number;
+  let poolUsed = 0;
+  if (anon) {
+    tierUsed = await bumpOr429(today, `ANON#${who.sub}`, ANON_DAILY_LIMIT,
+      `Daily anonymous limit reached (${ANON_DAILY_LIMIT} documents). Resets at 00:00 UTC, or sign in with demo credentials.`);
+    poolUsed = await bumpOr429(today, 'ANON-GLOBAL', ANON_GLOBAL_DAILY_LIMIT,
+      'The anonymous pool is exhausted for today. Try again after 00:00 UTC, or sign in with demo credentials.');
+  } else {
+    tierUsed = await bumpOr429(today, `USER#${who.sub}`, USER_DAILY_LIMIT,
+      `Daily demo limit reached (${USER_DAILY_LIMIT} documents). Resets at 00:00 UTC.`);
   }
-  let globalCount: number;
-  try {
-    globalCount = await bumpCounter(today, 'GLOBAL', GLOBAL_DAILY_LIMIT);
-  } catch (err) {
-    if (err instanceof ConditionalCheckFailedException) {
-      throw new HttpError(429, 'The demo has reached its global daily budget. Try again after 00:00 UTC.');
-    }
-    throw err;
-  }
+  const globalUsed = await bumpOr429(today, 'GLOBAL', GLOBAL_DAILY_LIMIT,
+    'The demo has reached its global daily budget. Try again after 00:00 UTC.');
 
-  const docId = `${today.replaceAll('-', '')}-${randomUUID().slice(0, 8)}`;
+  // Anonymous docIds are full UUIDs on purpose: the id is the only key to a
+  // private document, so it has to be unguessable.
+  const docId = anon
+    ? `anon-${today.replaceAll('-', '')}-${randomUUID()}`
+    : `${today.replaceAll('-', '')}-${randomUUID().slice(0, 8)}`;
   const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, '-');
 
   const post = await createPresignedPost(s3, {
@@ -159,7 +193,7 @@ async function createUpload(event: ApiEvent) {
     ],
     Fields: {
       'Content-Type': body.contentType,
-      'x-amz-meta-source': 'upload',
+      'x-amz-meta-source': anon ? 'anon' : 'upload',
       'x-amz-meta-uploader': who.email,
     },
     Expires: 300,
@@ -168,7 +202,9 @@ async function createUpload(event: ApiEvent) {
   return json(200, {
     docId,
     upload: { url: post.url, fields: post.fields },
-    quota: { userUsed: userCount, userLimit: USER_DAILY_LIMIT, globalUsed: globalCount, globalLimit: GLOBAL_DAILY_LIMIT },
+    quota: anon
+      ? { anonUsed: tierUsed, anonLimit: ANON_DAILY_LIMIT, poolUsed, poolLimit: ANON_GLOBAL_DAILY_LIMIT }
+      : { userUsed: tierUsed, userLimit: USER_DAILY_LIMIT, globalUsed, globalLimit: GLOBAL_DAILY_LIMIT },
   });
 }
 
@@ -187,9 +223,29 @@ async function getQuota(event: ApiEvent) {
   });
 }
 
+async function getAnonQuota(event: ApiEvent) {
+  const who = visitor(event);
+  const today = new Date().toISOString().slice(0, 10);
+  const [anonUsed, poolUsed, globalUsed] = await Promise.all([
+    readCounter(today, `ANON#${who.sub}`),
+    readCounter(today, 'ANON-GLOBAL'),
+    readCounter(today, 'GLOBAL'),
+  ]);
+  return json(200, {
+    anonId: who.sub,
+    anonUsed,
+    anonLimit: ANON_DAILY_LIMIT,
+    poolUsed,
+    poolLimit: ANON_GLOBAL_DAILY_LIMIT,
+    globalExhausted: globalUsed >= GLOBAL_DAILY_LIMIT,
+  });
+}
+
 export const handler = router({
   'GET /api/public/documents': listDocuments,
   'GET /api/public/documents/{id}': getDocument,
-  'POST /api/uploads': createUpload,
+  'POST /api/public/uploads': (event) => issueUpload(event, true),
+  'GET /api/public/uploads/quota': getAnonQuota,
+  'POST /api/uploads': (event) => issueUpload(event, false),
   'GET /api/me/quota': getQuota,
 });

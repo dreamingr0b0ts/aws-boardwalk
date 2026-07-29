@@ -29,7 +29,8 @@
     <h1>Alpenglow Document Intelligence</h1>
     <p class="lede">Drop in any PDF or image and watch it become structured, searchable data:
     Textract OCR and form extraction, Comprehend entity and PII detection, Bedrock classification,
-    and a faceted metadata index, orchestrated by Step Functions and visible step by step.</p>
+    and a faceted metadata index, orchestrated by Step Functions and visible step by step.
+    Five anonymous documents a day, no sign-in required.</p>
     <div class="hero-meta">
       <div><strong id="stat-docs">–</strong>documents indexed</div>
       <div><strong id="stat-pages">–</strong>pages OCR'd</div>
@@ -58,18 +59,30 @@
     </div>
   </section>
 
-  <!-- Upload panel. Credentials are intentionally NOT printed here: every
-       accepted upload spends real Textract/Comprehend/Bedrock money, so
-       access is handed out by Planetek during demos rather than published. -->
+  <!-- Intake desk. Two tiers: an anonymous taste tier (5 documents/day per
+       visitor, private to the uploader, purged within 24h) and the
+       credentialed tier. Credentials are intentionally NOT printed here:
+       every accepted upload spends real Textract/Comprehend/Bedrock money,
+       so the full allowance is handed out by Planetek during demos. -->
   <section class="panel" id="upload-section">
     <p class="sect-label">File 02 · Intake</p>
     <h2>Put your own document through the pipeline</h2>
+    <p class="muted">Five anonymous documents a day are on the house, no sign-in needed. Anonymous
+    uploads stay private to you: they never join the public index, only this browser keeps their
+    catalog number, and they purge within 24 hours. Every tier is size-capped, page-capped,
+    rate-limited, and budget-capped; Planetek demo credentials raise the daily allowance.</p>
 
-    <div id="login-panel">
-      <p class="muted">Demo access is provided by Planetek. Credentials are shared during demos and
-      proposals rather than published, because an endpoint that costs money per document should never
-      be anonymous. Uploads behind this gate are still size-capped, page-capped, rate-limited, and
-      budget-capped, and are purged nightly.</p>
+    <div class="chat-head">
+      <p class="muted" id="quota-line">–</p>
+      <div>
+        <button id="show-login-btn" class="quiet-btn">Sign in</button>
+        <button id="logout-btn" class="quiet-btn" hidden>Sign out</button>
+      </div>
+    </div>
+
+    <div id="login-panel" hidden>
+      <p class="muted">Demo credentials are shared during demos and proposals rather than published.
+      Signed-in uploads are filed in the public index until the nightly reset.</p>
       <form id="login-form" autocomplete="off">
         <label>Email <input type="email" id="login-email" required placeholder="you@example.org"></label>
         <label>Password <input type="password" id="login-password" required placeholder="••••••••••••"></label>
@@ -78,29 +91,27 @@
       </form>
     </div>
 
-    <div id="upload-panel" hidden>
-      <div class="chat-head">
-        <p class="muted" id="quota-line">–</p>
-        <button id="logout-btn" class="quiet-btn">Sign out</button>
-      </div>
+    <label id="dropzone" for="file-input">
+      <input type="file" id="file-input" accept=".pdf,.png,.jpg,.jpeg,.tif,.tiff" hidden>
+      <strong>Choose a PDF or image</strong>
+      <span class="muted" id="dropzone-note">PDF · PNG · JPEG · TIFF, up to 4 MB and 6 pages.
+      Anonymous uploads are private to you and purge within 24 hours.</span>
+    </label>
+    <p id="upload-error" class="error" hidden></p>
 
-      <label id="dropzone" for="file-input">
-        <input type="file" id="file-input" accept=".pdf,.png,.jpg,.jpeg,.tif,.tiff" hidden>
-        <strong>Choose a PDF or image</strong>
-        <span class="muted">PDF · PNG · JPEG · TIFF, up to 4 MB and 6 pages. It will appear in the
-        public index until the nightly reset.</span>
-      </label>
-      <p id="upload-error" class="error" hidden></p>
+    <ol id="pipeline-tracker" class="tracker" hidden>
+      <li data-step="received">Received<span class="t"></span></li>
+      <li data-step="ocr-started">OCR started (Textract)<span class="t"></span></li>
+      <li data-step="ocr-complete">Text &amp; form fields extracted<span class="t"></span></li>
+      <li data-step="entities-complete">Entities &amp; PII detected (Comprehend)<span class="t"></span></li>
+      <li data-step="classified">Classified (Bedrock)<span class="t"></span></li>
+      <li data-step="indexed">Indexed &amp; searchable<span class="t"></span></li>
+    </ol>
+    <p id="pipeline-result" class="muted" hidden></p>
 
-      <ol id="pipeline-tracker" class="tracker" hidden>
-        <li data-step="received">Received<span class="t"></span></li>
-        <li data-step="ocr-started">OCR started (Textract)<span class="t"></span></li>
-        <li data-step="ocr-complete">Text &amp; form fields extracted<span class="t"></span></li>
-        <li data-step="entities-complete">Entities &amp; PII detected (Comprehend)<span class="t"></span></li>
-        <li data-step="classified">Classified (Bedrock)<span class="t"></span></li>
-        <li data-step="indexed">Indexed &amp; searchable<span class="t"></span></li>
-      </ol>
-      <p id="pipeline-result" class="muted" hidden></p>
+    <div id="my-docs" hidden>
+      <h4>Your anonymous documents</h4>
+      <div id="my-doc-chips" class="entities"></div>
     </div>
   </section>
 
@@ -123,15 +134,22 @@
       <li><strong>Document automation end to end:</strong> S3 event → EventBridge → Step Functions
       orchestration with per-stage failure handling. Every document carries its own step-by-step
       timeline as evidence.</li>
-      <li><strong>OCR &amp; form intelligence:</strong> Textract asynchronous FORMS analysis turns
-      scans into text plus labeled key/value pairs with confidence scores.</li>
-      <li><strong>NLP &amp; governance:</strong> Comprehend entity extraction feeds the facet index;
-      a PII detector flags documents that would need handling care in a real records system.</li>
+      <li><strong>OCR &amp; form intelligence, under glass:</strong> Textract asynchronous FORMS
+      analysis turns scans into text plus labeled key/value pairs with confidence scores, and the
+      page geometry is kept: hover any extracted field and see the exact spot on the original it
+      was read from.</li>
+      <li><strong>NLP &amp; governance:</strong> Comprehend entity extraction feeds the facet index,
+      and PII detection is mapped back onto the page as a redaction exhibit: the same black-bar
+      pass a records office runs before releasing a document under an open-records request.</li>
       <li><strong>AI classification:</strong> Claude Haiku on Bedrock assigns a document type, title,
       summary, and primary date: the metadata a records clerk would otherwise key in by hand.</li>
-      <li><strong>Cost containment in depth:</strong> Cognito JWT gate (no anonymous uploads, no
-      self-signup), size and page caps enforced before OCR starts, per-user daily caps, and a global
-      daily kill switch that bounds worst-case spend even if a credential leaks.</li>
+      <li><strong>Cost transparency:</strong> every document carries an itemized processing receipt:
+      Textract pages, Comprehend units, and Bedrock tokens, priced to the fraction of a cent.</li>
+      <li><strong>Cost containment in depth:</strong> the anonymous tier is fenced per visitor
+      (5/day by hashed IP) and by its own daily pool, both counting into the same global kill
+      switch as the credentialed tier, so opening it moved the worst-case day by zero pages. Size
+      and page caps are enforced before OCR starts, self-signup is disabled, and anonymous
+      documents stay out of the public index and purge within 24 hours.</li>
     </ul>
     <p class="muted small">All infrastructure is Terraform in the public
     <a href="https://github.com/dreamingr0b0ts/aws-boardwalk">aws-boardwalk repo</a>. Back to the
@@ -151,9 +169,36 @@
   <p id="d-summary" class="d-summary"></p>
   <div id="d-meta" class="d-meta"></div>
 
+  <!-- Source under glass: the original rendered in-page with the extraction
+       geometry drawn on top of it. Hover a form field to see where on the
+       page it came from; redaction mode bars every detected PII span. -->
+  <div id="d-viewer" class="viewer" hidden>
+    <div class="viewer-bar">
+      <div class="v-modes" role="group" aria-label="Overlay mode">
+        <button type="button" id="v-mode-fields" class="v-mode" data-mode="fields">Form fields</button>
+        <button type="button" id="v-mode-redact" class="v-mode" data-mode="redact">Redacted copy</button>
+        <button type="button" id="v-mode-none" class="v-mode" data-mode="none">Clean page</button>
+      </div>
+      <div class="v-pages">
+        <button type="button" id="v-prev" class="quiet-btn" aria-label="Previous page">&#9668;</button>
+        <span id="v-page-label">page 1 of 1</span>
+        <button type="button" id="v-next" class="quiet-btn" aria-label="Next page">&#9658;</button>
+      </div>
+      <button type="button" id="v-download" class="quiet-btn" hidden>Download redacted page</button>
+    </div>
+    <div id="page-stage" class="page-stage">
+      <div class="page-inner">
+        <canvas id="page-canvas"></canvas>
+        <div id="page-overlays" class="page-overlays"></div>
+      </div>
+    </div>
+    <p class="muted small" id="v-note" hidden></p>
+  </div>
+
   <div class="d-cols">
     <div>
       <h4>Extracted form fields</h4>
+      <p class="muted small kv-hint" id="d-kv-hint" hidden>Hover a row to light up where on the page it was read.</p>
       <table id="d-kv" class="kv"></table>
     </div>
     <div>
@@ -161,6 +206,8 @@
       <div id="d-entities" class="entities"></div>
       <h4>Pipeline timeline</h4>
       <ol id="d-steps" class="timeline"></ol>
+      <h4>Processing receipt</h4>
+      <div id="d-receipt" class="receipt"><span class="muted">not itemized</span></div>
     </div>
   </div>
   <p class="muted small"><a id="d-original" href="#" target="_blank" rel="noopener">View the original file</a>
@@ -180,7 +227,8 @@
       <ul class="foot-list">
         <li>AWS: Textract · Comprehend · Bedrock · Step Functions · Lambda · DynamoDB</li>
         <li>Infrastructure as code: Terraform</li>
-        <li>Uploaded documents purge nightly at 3am MT</li>
+        <li>Uploads purge nightly at 3am MT; anonymous uploads within 24 hours</li>
+        <li>In-page PDF rendering: <a href="https://mozilla.github.io/pdf.js/">pdf.js</a> (Apache-2.0, self-hosted)</li>
         <li>Hero photo: <a href="https://unsplash.com/photos/Y3KEBQlB1Zk">Erol Ahmed, Unsplash</a></li>
         <li>Card catalog: <a href="https://unsplash.com/photos/lRoX0shwjUQ">Jan Antonin Kolar, Unsplash</a></li>
       </ul>

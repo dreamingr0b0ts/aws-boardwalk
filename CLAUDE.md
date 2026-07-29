@@ -24,7 +24,7 @@ committed — plank 6 messages cost Bedrock tokens, plank 7 uploads cost Textrac
 plank 12 runs fan one prompt out to four Bedrock models.
 Each lives in `<plank>/.demo-creds` (gitignored, on the Mac); `make -C <plank> creds-show` prints it.
 Self-signup is disabled on those pools, and per-user + global daily DynamoDB counters cap spend even
-if a credential leaks (gai: 40/200 messages; idp: 8/20 documents, plus 4 MB + 6-page caps enforced
+if a credential leaks (gai: 40/200 messages; idp: 15/30 documents, plus 4 MB + 6-page caps enforced
 before OCR starts; fmw: 30/120 runs, 500-output-token ceiling). Keep it that way for any future
 plank whose requests cost real money.
 Exception (owner-approved 2026-07-28): plank 12 additionally has a **visitor tier** so the bench is
@@ -36,6 +36,12 @@ Plank 6 gained the same tier 2026-07-29: 5 curated questions/day per hashed IP v
 `/api/public/chat` (curated `questionId` only, no history, 300-token ceiling, 30/day anonymous
 pool, counts into the global 200). Its verify run consumes 2 of the runner IP's 5 daily visitor
 questions.
+Plank 7 gained a visitor tier 2026-07-29 with one twist: anonymous uploads are real visitor
+files (5/day per hashed IP via `/api/public/uploads`, 10/day anonymous pool, counts into the
+global 30), so instead of curated-inputs fencing they are **private to the uploader** — never
+listed in the public index or stats, reachable only by their unguessable full-UUID docId, 24h
+TTL, purged by the same nightly reset. Its verify run consumes 1 of the runner IP's 5 daily
+visitor uploads.
 
 ## Build order (from Projects/AWS_SHOWCASE_PROJECTS.md)
 
