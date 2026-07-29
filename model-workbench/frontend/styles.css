@@ -302,6 +302,25 @@ footer {
   font-size: 11.5px; color: #8b95a1;
 }
 
+/* ---- bench records: one long-exposure trace per channel ---- */
+.records-grid { margin-top: 16px; display: grid; gap: 12px; grid-template-columns: 1fr; }
+@media (min-width: 640px) { .records-grid { grid-template-columns: 1fr 1fr; } }
+.rec-card {
+  border: 1px solid var(--border); border-left: 3px solid var(--ch);
+  border-radius: 10px; padding: 12px 14px; background: var(--bg);
+}
+.rec-card .head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.rec-card svg { display: block; width: 100%; height: 56px; margin-top: 8px; }
+.spark-line { fill: none; stroke: var(--ch); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.spark-dot { fill: none; stroke: var(--ch); stroke-width: 6; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.spark-base { stroke: var(--border); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.rec-readout { margin-top: 6px; font-variant-numeric: tabular-nums; min-height: 1.2em; }
+.records-table-wrap { margin-top: 14px; }
+.records-table-wrap summary { cursor: pointer; font-size: 13px; color: var(--ink-2); }
+.records-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; font-variant-numeric: tabular-nums; }
+.records-table th, .records-table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+.records-table th { color: var(--ink-3); font-weight: 600; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.06em; }
+
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
 }

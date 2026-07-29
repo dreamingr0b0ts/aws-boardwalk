@@ -28,6 +28,14 @@ const ANON_DAILY_LIMIT = Number(process.env.ANON_DAILY_LIMIT ?? 5);
 const ANON_GLOBAL_DAILY_LIMIT = Number(process.env.ANON_GLOBAL_DAILY_LIMIT ?? 40);
 const ANON_MAX_OUTPUT_TOKENS = Number(process.env.ANON_MAX_OUTPUT_TOKENS ?? 300);
 const MAX_PROMPT_CHARS = 2000;
+const GUARDRAIL_ID = process.env.GUARDRAIL_ID ?? "";
+const GUARDRAIL_VERSION = process.env.GUARDRAIL_VERSION ?? "";
+const JUDGE_MODEL_KEY = process.env.JUDGE_MODEL_KEY ?? "nova-lite";
+const JUDGE_MAX_TOKENS = 400;
+
+// Fallback rubric for custom prompts; scenarios carry their own.
+const GENERIC_RUBRIC =
+  "How well does the answer do what the prompt asked? Reward faithfulness to the instructions and constraints, factual care, clarity, and appropriate length. Penalize invented facts, ignored instructions, and padding.";
 
 const bedrock = new BedrockRuntimeClient({});
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
@@ -88,7 +96,17 @@ async function readCounter(date, sk) {
 
 const round6 = (n) => Math.round(n * 1e6) / 1e6;
 
-async function invokeModel(model, system, prompt, inferenceConfig) {
+// With a guardrail attached (trace enabled), summarize what it did so the
+// card can say "4 identifiers masked" instead of making the visitor diff text.
+function guardrailSummary(res) {
+  if (!res?.trace?.guardrail) return null;
+  const t = JSON.stringify(res.trace.guardrail);
+  const masked = (t.match(/"action":"ANONYMIZED"/g) ?? []).length;
+  const intervened = res.stopReason === "guardrail_intervened" || t.includes('"action":"BLOCKED"');
+  return { applied: true, masked, intervened };
+}
+
+async function invokeModel(model, system, prompt, inferenceConfig, guardrailConfig) {
   const started = Date.now();
   try {
     const res = await bedrock.send(
@@ -97,6 +115,7 @@ async function invokeModel(model, system, prompt, inferenceConfig) {
         ...(system ? { system: [{ text: system }] } : {}),
         messages: [{ role: "user", content: [{ text: prompt }] }],
         inferenceConfig,
+        ...(guardrailConfig ? { guardrailConfig } : {}),
       })
     );
     const text = (res.output?.message?.content ?? [])
@@ -116,6 +135,7 @@ async function invokeModel(model, system, prompt, inferenceConfig) {
       latencyMs: Date.now() - started,
       usage: { inputTokens, outputTokens },
       costUsd: round6((inputTokens * model.inPerM + outputTokens * model.outPerM) / 1e6),
+      guardrail: guardrailSummary(res),
     };
   } catch (err) {
     console.error("invoke failed", model.key, err);
@@ -127,6 +147,84 @@ async function invokeModel(model, system, prompt, inferenceConfig) {
       error: String(err.name ?? "InvokeError"),
       latencyMs: Date.now() - started,
     };
+  }
+}
+
+// ---- the judge pass ---------------------------------------------------------
+// One extra call to the cheapest roster model AFTER the fan-out: it scores
+// every answer against the scenario's rubric without knowing which model
+// wrote which (answers are shuffled and labeled A-D). Blind, criteria-based,
+// and itself audited: the judge's tokens and cost land in the ledger too.
+
+async function judgeResults(rubric, taskText, results) {
+  const judgeModel = MODELS.find((m) => m.key === JUDGE_MODEL_KEY);
+  const answered = results.filter((r) => r.ok && r.text);
+  if (!judgeModel || answered.length < 2) return null;
+
+  const shuffled = [...answered].sort(() => Math.random() - 0.5);
+  const label = (i) => String.fromCharCode(65 + i);
+  const labels = shuffled.map((_, i) => label(i));
+  // Small judge models will happily score just the first answer unless the
+  // output contract is spelled out entry by entry — so spell it out.
+  const skeleton = `{"scores":[${labels.map((l) => `{"label":"${l}","score":<integer 1-10>,"note":"<under 12 words>"}`).join(",")}]}`;
+  const started = Date.now();
+  try {
+    const res = await bedrock.send(
+      new ConverseCommand({
+        modelId: judgeModel.id,
+        system: [
+          {
+            text:
+              `You are a strict, fair evaluator scoring ${shuffled.length} anonymous answers (${labels.join(", ")}) against a rubric. You do not know which AI wrote which answer. Respond with ONLY this JSON object, no code fences, exactly one entry per answer: ${skeleton}`,
+          },
+        ],
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                text:
+                  `Rubric:\n${rubric}\n\nTask the answers respond to:\n${taskText.slice(0, 4000)}\n\n` +
+                  shuffled.map((r, i) => `Answer ${label(i)}:\n${r.text}`).join("\n\n") +
+                  `\n\nScore all ${shuffled.length} answers: ${labels.join(", ")}.`,
+              },
+            ],
+          },
+        ],
+        inferenceConfig: { maxTokens: JUDGE_MAX_TOKENS, temperature: 0 },
+      })
+    );
+    const raw = (res.output?.message?.content ?? []).map((b) => b.text ?? "").join("");
+    const parsed = JSON.parse(raw.slice(raw.indexOf("{"), raw.lastIndexOf("}") + 1));
+    const seen = new Set();
+    const scores = (parsed.scores ?? [])
+      .map((s) => {
+        const idx = String(s.label ?? "").trim().toUpperCase().charCodeAt(0) - 65;
+        const r = shuffled[idx];
+        if (!r || seen.has(r.key)) return null;
+        seen.add(r.key);
+        return {
+          key: r.key,
+          score: Math.max(1, Math.min(10, Math.round(Number(s.score) || 0))),
+          note: String(s.note ?? "").slice(0, 120),
+        };
+      })
+      .filter(Boolean);
+    if (scores.length !== shuffled.length) throw new Error(`judge scored ${scores.length}/${shuffled.length}`);
+    const usage = res.usage ?? {};
+    const inputTokens = usage.inputTokens ?? 0;
+    const outputTokens = usage.outputTokens ?? 0;
+    return {
+      ok: true,
+      model: judgeModel.key,
+      scores,
+      latencyMs: Date.now() - started,
+      usage: { inputTokens, outputTokens },
+      costUsd: round6((inputTokens * judgeModel.inPerM + outputTokens * judgeModel.outPerM) / 1e6),
+    };
+  } catch (err) {
+    console.error("judge failed", err);
+    return { ok: false, model: judgeModel.key, error: String(err.name ?? "JudgeError"), latencyMs: Date.now() - started };
   }
 }
 
@@ -146,12 +244,14 @@ async function postRun(event, anon) {
   let system = null;
   let prompt;
   let scenarioId = null;
+  let rubric = GENERIC_RUBRIC;
   if (body.scenarioId) {
     const s = SCENARIOS.find((x) => x.id === body.scenarioId);
     if (!s) throw new HttpError(400, `Unknown scenario: ${body.scenarioId}`);
     scenarioId = s.id;
     system = s.system;
     prompt = s.prompt;
+    rubric = s.rubric ?? GENERIC_RUBRIC;
   } else if (anon) {
     throw new HttpError(403, "Custom prompts require sign-in. Pick a scenario from the library, or sign in.");
   } else {
@@ -174,6 +274,13 @@ async function postRun(event, anon) {
   const maxTokens = body.maxTokens === undefined ? Math.min(300, tokenCeiling) : Number(body.maxTokens);
   if (!(maxTokens >= 50 && maxTokens <= tokenCeiling))
     throw new HttpError(400, `maxTokens must be 50–${tokenCeiling}`);
+
+  const useGuardrail = Boolean(body.guardrail);
+  const guardrailConfig =
+    useGuardrail && GUARDRAIL_ID && GUARDRAIL_VERSION
+      ? { guardrailIdentifier: GUARDRAIL_ID, guardrailVersion: GUARDRAIL_VERSION, trace: "enabled" }
+      : undefined;
+  if (useGuardrail && !guardrailConfig) throw new HttpError(503, "The guardrail is not configured on this deployment");
 
   // ---- cost guardrails: per-caller cap, then the global kill switch. A
   // visitor run must clear THREE counters (per-visitor, anonymous pool,
@@ -214,10 +321,16 @@ async function postRun(event, anon) {
 
   // ---- the fan-out: same prompt, same parameters, every selected model ----
   const inferenceConfig = { maxTokens, temperature };
-  const results = await Promise.all(selected.map((m) => invokeModel(m, system, prompt, inferenceConfig)));
+  const results = await Promise.all(selected.map((m) => invokeModel(m, system, prompt, inferenceConfig, guardrailConfig)));
+
+  // ---- the judge pass: blind, rubric-based, only when there is a comparison
+  const judge = await judgeResults(rubric, (system ? system + "\n\n" : "") + prompt, results);
 
   const runId = randomUUID();
   const now = new Date().toISOString();
+
+  // Whole-run cost includes the judge call: the evaluation is itself metered.
+  const totalCostUsd = round6(results.reduce((a, r) => a + (r.costUsd ?? 0), 0) + (judge?.ok ? judge.costUsd : 0));
 
   // The audit ledger: parameters + per-model outcome (not the full response
   // text — the ledger is about accountability, not transcript storage).
@@ -234,6 +347,7 @@ async function postRun(event, anon) {
         promptPreview: prompt.slice(0, 90),
         temperature,
         maxTokens,
+        guardrail: useGuardrail,
         results: results.map((r) => ({
           key: r.key,
           ok: r.ok,
@@ -242,8 +356,12 @@ async function postRun(event, anon) {
           outputTokens: r.usage?.outputTokens ?? 0,
           costUsd: r.costUsd ?? 0,
           stopReason: r.stopReason ?? r.error ?? null,
+          ...(useGuardrail ? { guardrailMasked: r.guardrail?.masked ?? 0, guardrailIntervened: r.guardrail?.intervened ?? false } : {}),
         })),
-        totalCostUsd: round6(results.reduce((a, r) => a + (r.costUsd ?? 0), 0)),
+        ...(judge?.ok
+          ? { judge: { model: judge.model, scores: judge.scores.map(({ key, score }) => ({ key, score })), costUsd: judge.costUsd } }
+          : {}),
+        totalCostUsd,
         ttl: Math.floor(Date.now() / 1000) + 30 * 86400,
       },
     })
@@ -253,8 +371,10 @@ async function postRun(event, anon) {
     runId,
     scenarioId: scenarioId ?? "custom",
     params: { temperature, maxTokens },
+    guardrail: useGuardrail,
     results,
-    totalCostUsd: round6(results.reduce((a, r) => a + (r.costUsd ?? 0), 0)),
+    judge,
+    totalCostUsd,
     quota: {
       tier: anon ? "visitor" : "user",
       userUsed: userCount,
@@ -285,7 +405,9 @@ async function getRuns(event) {
       promptPreview: it.promptPreview,
       temperature: it.temperature,
       maxTokens: it.maxTokens,
+      guardrail: it.guardrail ?? false,
       results: it.results,
+      judge: it.judge ?? null,
       totalCostUsd: it.totalCostUsd,
     })),
   });

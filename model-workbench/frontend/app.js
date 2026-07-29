@@ -25,6 +25,7 @@ async function init() {
   $('scenario').addEventListener('change', onScenarioChange);
   $('temperature').addEventListener('input', () => ($('temperature-out').textContent = $('temperature').value));
   applyTier();
+  loadRecords();
 }
 
 // Reshape the bench for the current tier: which prompt sources exist, the
@@ -235,6 +236,7 @@ async function onRun() {
       models,
       temperature: Number($('temperature').value),
       maxTokens: Number($('max-tokens').value),
+      guardrail: $('guardrail-box').checked,
     };
     const res = a ? await api('POST', '/api/run', payload) : await publicApi('POST', '/api/public/run', payload);
     renderResults(res);
@@ -276,7 +278,49 @@ function renderPending(models) {
   }
 }
 
+// Deterministic grader for the structured-extraction scenario: does the raw
+// answer parse as JSON on its own, and does it match the schema the system
+// prompt demanded? Plain code, zero cost, no judgment calls.
+function gradeStrictJson(text) {
+  const kinds = ['building', 'electrical', 'plumbing', 'mechanical', 'solar', 'demolition'];
+  const schemaError = (o) => {
+    if (typeof o !== 'object' || o === null || Array.isArray(o)) return 'not an object';
+    if (typeof o.applicant !== 'string') return 'applicant';
+    if (typeof o.address !== 'string') return 'address';
+    if (!kinds.includes(o.permit_type)) return 'permit_type';
+    if (typeof o.valuation_usd !== 'number') return 'valuation_usd';
+    if (!(o.contractor_license === null || typeof o.contractor_license === 'string')) return 'contractor_license';
+    if (!Array.isArray(o.flags) || !o.flags.every((f) => typeof f === 'string')) return 'flags';
+    return null;
+  };
+
+  let obj = null;
+  let mode = 'strict';
+  try {
+    obj = JSON.parse(text);
+  } catch {
+    const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (fenced) {
+      try { obj = JSON.parse(fenced[1]); mode = 'fenced'; } catch { /* fall through */ }
+    }
+    if (!obj) {
+      const braced = text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1);
+      if (braced) {
+        try { obj = JSON.parse(braced); mode = 'wrapped'; } catch { /* fall through */ }
+      }
+    }
+  }
+  if (!obj) return [['not JSON', 'bad']];
+  const pills = mode === 'strict' ? [['strict JSON', 'ok']] : [[mode === 'fenced' ? 'JSON in fences' : 'JSON in chat wrapper', 'warn']];
+  const err = schemaError(obj);
+  pills.push(err ? [`schema: ${err}`, 'bad'] : ['schema valid', 'ok']);
+  return pills;
+}
+
 function renderResults(res) {
+  const scen = info?.scenarios.find((s) => s.id === res.scenarioId);
+  const judgeScore = (key) => (res.judge?.ok ? res.judge.scores.find((s) => s.key === key) : null);
+
   const grid = $('results');
   grid.replaceChildren();
   for (const r of res.results) {
@@ -301,7 +345,16 @@ function renderResults(res) {
         pill(`${r.usage.inputTokens}→${r.usage.outputTokens} tok`),
         pill(`$${r.costUsd.toFixed(5)}`, 'ok'),
       );
-      if (r.stopReason && r.stopReason !== 'end_turn') metrics.append(pill(r.stopReason, 'warn'));
+      if (r.stopReason && r.stopReason !== 'end_turn' && r.stopReason !== 'guardrail_intervened')
+        metrics.append(pill(r.stopReason, 'warn'));
+      if (r.guardrail?.applied) {
+        if (r.guardrail.intervened) metrics.append(pill('guardrail: blocked', 'bad'));
+        else if (r.guardrail.masked > 0) metrics.append(pill(`guardrail: ${r.guardrail.masked} masked`, 'warn'));
+        else metrics.append(pill('guardrail: clean pass', 'ok'));
+      }
+      if (scen?.check === 'strict-json') for (const [t, cls] of gradeStrictJson(r.text)) metrics.append(pill(t, cls));
+      const js = judgeScore(r.key);
+      if (js) metrics.append(pill(`judge ${js.score}/10`, js.score >= 8 ? 'ok' : js.score <= 4 ? 'bad' : ''));
     } else {
       metrics.append(pill(r.error ?? 'failed', 'bad'));
     }
@@ -311,6 +364,13 @@ function renderResults(res) {
     answer.textContent = r.ok ? r.text : 'The invocation failed. See the error badge above.';
 
     card.append(head, metrics, answer);
+    const js = r.ok ? judgeScore(r.key) : null;
+    if (js?.note) {
+      const note = document.createElement('div');
+      note.className = 'muted small';
+      note.textContent = `judge: ${js.note}`;
+      card.appendChild(note);
+    }
     grid.appendChild(card);
   }
 
@@ -327,6 +387,25 @@ function renderResults(res) {
       pill(`${(priciest.costUsd / Math.max(cheapest.costUsd, 1e-9)).toFixed(0)}× cost spread`, 'warn'),
       pill(`whole run: $${res.totalCostUsd.toFixed(5)}`),
     );
+    if (res.judge?.ok) {
+      const top = [...res.judge.scores].sort((a, b) => b.score - a.score)[0];
+      const topModel = info?.models.find((m) => m.key === top.key);
+      strip.append(pill(`judge's pick: ${topModel?.label ?? top.key} (${top.score}/10)`, 'ok'));
+    }
+  }
+
+  const jl = $('judge-line');
+  if (res.judge?.ok) {
+    const jm = info?.models.find((m) => m.key === res.judge.model);
+    jl.textContent =
+      `Blind judge: ${jm?.label ?? res.judge.model} scored ${res.judge.scores.length} shuffled, unattributed answers against the rubric ` +
+      `(${(res.judge.latencyMs / 1000).toFixed(1)}s, $${res.judge.costUsd.toFixed(5)}, included in the run total).`;
+    jl.hidden = false;
+  } else if (res.judge) {
+    jl.textContent = 'The judge pass did not complete this run; scores are omitted.';
+    jl.hidden = false;
+  } else {
+    jl.hidden = true;
   }
 }
 
@@ -378,14 +457,172 @@ async function refreshLedger() {
       const li = document.createElement('li');
       li.className = r.ok ? 'ok' : 'no';
       li.dataset.key = r.key;
-      li.textContent = `${m?.label ?? r.key}: ${r.inputTokens}→${r.outputTokens} tok, $${(r.costUsd ?? 0).toFixed(5)}, ${(r.latencyMs / 1000).toFixed(1)}s (${r.stopReason ?? '–'})`;
+      const js = run.judge?.scores?.find((s) => s.key === r.key);
+      li.textContent =
+        `${m?.label ?? r.key}: ${r.inputTokens}→${r.outputTokens} tok, $${(r.costUsd ?? 0).toFixed(5)}, ` +
+        `${(r.latencyMs / 1000).toFixed(1)}s (${r.stopReason ?? '–'})${js ? `, judge ${js.score}/10` : ''}` +
+        `${r.guardrailMasked ? `, ${r.guardrailMasked} masked` : ''}`;
       ul.appendChild(li);
     }
     const meta = document.createElement('p');
     meta.className = 'muted small';
     meta.style.marginTop = '6px';
-    meta.textContent = `temperature ${run.temperature} · maxTokens ${run.maxTokens} · prompt: "${run.promptPreview}…"`;
+    meta.textContent = `temperature ${run.temperature} · maxTokens ${run.maxTokens}${run.guardrail ? ' · guardrail on' : ''} · prompt: "${run.promptPreview}…"`;
     det.append(ul, meta);
     list.appendChild(det);
   }
+}
+
+// ---- bench records ----------------------------------------------------------
+// Thirty days of the ledger, drawn as one sparkline per model (median latency
+// per day) plus the aggregate numbers as text and a table. Single series per
+// card, model name as the direct label, values in ink rather than the series
+// color; the channel color carries identity only.
+
+const SVGNS = 'http://www.w3.org/2000/svg';
+const fmtLat = (ms) => (ms == null ? '–' : `${(ms / 1000).toFixed(1)}s`);
+const fmtDay = (d) => new Date(`${d}T00:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+
+function sparkline(m, days, readout, summaryText) {
+  const W = 240;
+  const H = 56;
+  const P = 6;
+  const svg = document.createElementNS(SVGNS, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.setAttribute('role', 'img');
+  svg.setAttribute('aria-label', `${m.label}: median latency per day over the last ${days.length} days`);
+  svg.setAttribute('preserveAspectRatio', 'none');
+
+  const vals = m.p50Series;
+  const nums = vals.filter((v) => v != null);
+  const base = document.createElementNS(SVGNS, 'line');
+  base.setAttribute('x1', P);
+  base.setAttribute('x2', W - P);
+  base.setAttribute('y1', H - P);
+  base.setAttribute('y2', H - P);
+  base.setAttribute('class', 'spark-base');
+  svg.appendChild(base);
+  if (!nums.length) return svg;
+
+  const lo = Math.min(...nums);
+  const hi = Math.max(...nums);
+  const x = (i) => (days.length === 1 ? W / 2 : P + (i * (W - 2 * P)) / (days.length - 1));
+  const y = (v) => (hi === lo ? H / 2 : P + ((hi - v) * (H - 2 * P - 6)) / (hi - lo));
+
+  let d = '';
+  let pen = false;
+  vals.forEach((v, i) => {
+    if (v == null) {
+      pen = false;
+      return;
+    }
+    d += `${pen ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)} `;
+    pen = true;
+  });
+  const path = document.createElementNS(SVGNS, 'path');
+  path.setAttribute('d', d.trim());
+  path.setAttribute('class', 'spark-line');
+  svg.appendChild(path);
+
+  // isolated single-day points and the most recent point get a dot; drawn as
+  // zero-length round-capped strokes so preserveAspectRatio="none" cannot
+  // stretch them into ellipses
+  vals.forEach((v, i) => {
+    const isolated = v != null && vals[i - 1] == null && vals[i + 1] == null;
+    const isLast = v != null && vals.slice(i + 1).every((n) => n == null);
+    if (!isolated && !isLast) return;
+    const dot = document.createElementNS(SVGNS, 'path');
+    dot.setAttribute('d', `M${x(i).toFixed(1)},${y(v).toFixed(1)} l0.01,0`);
+    dot.setAttribute('class', 'spark-dot');
+    svg.appendChild(dot);
+  });
+
+  // hover strips: one wide hit target per day, readout does the talking
+  days.forEach((day, i) => {
+    const strip = document.createElementNS(SVGNS, 'rect');
+    strip.setAttribute('x', (i === 0 ? 0 : (x(i) + x(i - 1)) / 2).toFixed(1));
+    strip.setAttribute('width', (W / days.length + 1).toFixed(1));
+    strip.setAttribute('y', 0);
+    strip.setAttribute('height', H);
+    strip.setAttribute('fill', 'transparent');
+    strip.addEventListener('mouseenter', () => {
+      readout.textContent =
+        vals[i] == null ? `${fmtDay(day)} · no runs` : `${fmtDay(day)} · p50 ${fmtLat(vals[i])} · ${m.runSeries[i]} run${m.runSeries[i] === 1 ? '' : 's'}`;
+    });
+    strip.addEventListener('mouseleave', () => {
+      readout.textContent = summaryText;
+    });
+    svg.appendChild(strip);
+  });
+  return svg;
+}
+
+async function loadRecords() {
+  let data;
+  try {
+    data = await publicApi('GET', '/api/public/records');
+  } catch {
+    return; // the section stays quietly empty if the API is unreachable
+  }
+  const grid = $('records-grid');
+  grid.replaceChildren();
+  if (!data.totals.runs) {
+    $('records-empty').hidden = false;
+    return;
+  }
+
+  for (const m of data.models) {
+    const card = document.createElement('div');
+    card.className = 'rec-card';
+    card.dataset.key = m.key;
+
+    const head = document.createElement('div');
+    head.className = 'head';
+    const name = document.createElement('strong');
+    name.textContent = m.label;
+    const vendor = document.createElement('span');
+    vendor.className = 'muted small';
+    vendor.textContent = m.vendor;
+    head.append(name, vendor);
+
+    const readout = document.createElement('div');
+    readout.className = 'rec-readout muted small';
+    const summaryText = m.runs
+      ? `p50 ${fmtLat(m.p50LatencyMs)} · ${m.runs} runs · avg $${(m.avgCostUsd ?? 0).toFixed(5)}/run`
+      : 'no runs in the window yet';
+    readout.textContent = summaryText;
+
+    card.append(head, sparkline(m, data.days, readout, summaryText), readout);
+    grid.appendChild(card);
+  }
+
+  const table = $('records-table');
+  table.replaceChildren();
+  const thead = document.createElement('thead');
+  const hrow = document.createElement('tr');
+  for (const h of ['Model', 'Runs', 'p50 latency', 'Avg cost/run', '30-day cost']) {
+    const th = document.createElement('th');
+    th.textContent = h;
+    hrow.appendChild(th);
+  }
+  thead.appendChild(hrow);
+  const tbody = document.createElement('tbody');
+  for (const m of data.models) {
+    const tr = document.createElement('tr');
+    for (const v of [m.label, m.runs, fmtLat(m.p50LatencyMs), m.avgCostUsd == null ? '–' : `$${m.avgCostUsd.toFixed(5)}`, `$${m.totalCostUsd.toFixed(4)}`]) {
+      const td = document.createElement('td');
+      td.textContent = String(v);
+      tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
+  }
+  const totals = document.createElement('tr');
+  for (const v of ['All runs', data.totals.runs, '', '', `$${data.totals.costUsd.toFixed(4)}`]) {
+    const td = document.createElement('td');
+    td.textContent = String(v);
+    totals.appendChild(td);
+  }
+  tbody.appendChild(totals);
+  table.append(thead, tbody);
+  $('records-table-wrap').hidden = false;
 }

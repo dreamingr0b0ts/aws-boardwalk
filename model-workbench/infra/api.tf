@@ -42,12 +42,13 @@ locals {
   # visitor tier: scenario-library prompts only, per-visitor and pooled
   # daily caps, and the same global kill switch as signed-in runs.
   routes = {
-    "GET /api/public/info"  = { fn = "public", auth = false }
-    "POST /api/run"         = { fn = "run", auth = true }
-    "POST /api/public/run"  = { fn = "run", auth = false }
-    "GET /api/runs"         = { fn = "run", auth = true }
-    "GET /api/me/quota"     = { fn = "run", auth = true }
-    "GET /api/public/quota" = { fn = "run", auth = false }
+    "GET /api/public/info"    = { fn = "public", auth = false }
+    "GET /api/public/records" = { fn = "public", auth = false }
+    "POST /api/run"           = { fn = "run", auth = true }
+    "POST /api/public/run"    = { fn = "run", auth = false }
+    "GET /api/runs"           = { fn = "run", auth = true }
+    "GET /api/me/quota"       = { fn = "run", auth = true }
+    "GET /api/public/quota"   = { fn = "run", auth = false }
   }
 }
 

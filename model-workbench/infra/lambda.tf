@@ -30,6 +30,8 @@ resource "aws_lambda_function" "run" {
       ANON_DAILY_LIMIT        = tostring(var.anon_daily_limit)
       ANON_GLOBAL_DAILY_LIMIT = tostring(var.anon_global_daily_limit)
       ANON_MAX_OUTPUT_TOKENS  = tostring(var.anon_max_output_tokens)
+      GUARDRAIL_ID            = aws_bedrock_guardrail.workbench.guardrail_id
+      GUARDRAIL_VERSION       = aws_bedrock_guardrail_version.workbench.version
     }
   }
 

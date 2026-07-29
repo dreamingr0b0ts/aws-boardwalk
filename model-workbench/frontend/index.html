@@ -94,13 +94,18 @@
       <div class="ctl-row">
         <label>temperature <input type="range" id="temperature" min="0" max="1" step="0.1" value="0.2"> <span id="temperature-out">0.2</span></label>
         <label>max tokens <input type="number" id="max-tokens" min="50" max="500" step="50" value="300" style="width:90px"></label>
+        <label title="Bedrock Guardrail: masks emails, phone numbers, and SSNs; blocks legal-advice requests"><input type="checkbox" id="guardrail-box"> apply guardrail</label>
         <button class="btn" id="run-btn" type="button">Run on selected models</button>
       </div>
+      <p class="muted small">Every comparison also gets a <strong>blind judge</strong>: the cheapest
+      roster model scores each answer 1-10 against the scenario's rubric without knowing which model
+      wrote which. The judge call is metered and lands in the ledger like everything else.</p>
       <p class="err-line" id="run-error" hidden></p>
     </div>
 
     <div class="res-grid" id="results"></div>
     <div class="compare-strip" id="compare"></div>
+    <p class="muted small" id="judge-line" hidden></p>
     <p class="quota-line" id="quota-line"></p>
 
     <div class="ledger">
@@ -137,9 +142,25 @@
     Tāmaki Paenga Hira, via Unsplash.</figcaption>
   </figure>
 
+  <!-- Bench records -->
+  <section class="panel" id="records-panel">
+    <p class="sect-label">CH 05 · Bench records</p>
+    <h2>Thirty days on the bench</h2>
+    <p class="muted">Long-exposure traces from the audit ledger, aggregated on request: runs, median
+    latency, and average cost per model over the trailing 30 days. Counts and timings only; no
+    prompts, no identities. Each trace is that model's median latency per day.</p>
+    <div class="records-grid" id="records-grid"></div>
+    <details class="records-table-wrap" id="records-table-wrap" hidden>
+      <summary>The same numbers as a table</summary>
+      <table class="records-table" id="records-table"></table>
+    </details>
+    <p class="muted small" id="records-empty" hidden>No runs in the window yet. The first
+    comparison of the month starts the trace.</p>
+  </section>
+
   <!-- Proof -->
   <section class="panel">
-    <p class="sect-label">CH 05 · Evidence</p>
+    <p class="sect-label">CH 06 · Evidence</p>
     <h2>What this plank proves</h2>
     <ul class="proof">
       <li><strong>Model selection as an engineering discipline:</strong> the same prompt, the same
@@ -160,6 +181,18 @@
       <li><strong>Grounding differences made visible:</strong> the refusal-test scenario shows which
       models admit "the excerpt doesn't say" and which ones confidently invent. For civic AI that
       is the single most important behavior.</li>
+      <li><strong>Evaluation with criteria, not vibes:</strong> every comparison is scored by a
+      blind judge model against the scenario's written rubric (answers shuffled and anonymized so
+      the judge cannot play favorites), and the JSON scenario is additionally graded by plain code:
+      does it parse, does it match the schema. Two different proofs that "which answer is better"
+      can be a measured question.</li>
+      <li><strong>Guardrails you can watch working:</strong> flip one switch and the same prompt
+      runs through a Bedrock Guardrail that masks emails, phone numbers, and SSNs and refuses
+      legal-advice requests. Policy enforced in the platform, outside the model's discretion,
+      visible in the answer text.</li>
+      <li><strong>Operations leave a public record:</strong> thirty days of runs, median latency,
+      and cost per model, aggregated straight from the audit ledger onto this page. The bench
+      publishes its own track record.</li>
     </ul>
   </section>
 

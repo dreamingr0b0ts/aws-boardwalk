@@ -61,6 +61,12 @@ resource "aws_iam_role_policy" "run" {
         Action   = ["bedrock:InvokeModel"]
         Resource = local.model_invoke_arns
       },
+      {
+        Sid      = "ApplyWorkbenchGuardrailOnly"
+        Effect   = "Allow"
+        Action   = ["bedrock:ApplyGuardrail"]
+        Resource = [aws_bedrock_guardrail.workbench.guardrail_arn]
+      },
     ]
   })
 }
@@ -69,12 +75,14 @@ resource "aws_iam_role_policy" "public" {
   name = "aggregate-counters-only"
   role = aws_iam_role.public.id
 
+  # GetItem for the landing counters, Query for the 30-day bench-records
+  # aggregation. Still read-only and still zero Bedrock permissions.
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Sid      = "ReadDailyCounters"
+      Sid      = "ReadCountersAndLedger"
       Effect   = "Allow"
-      Action   = ["dynamodb:GetItem"]
+      Action   = ["dynamodb:GetItem", "dynamodb:Query"]
       Resource = aws_dynamodb_table.workbench.arn
     }]
   })

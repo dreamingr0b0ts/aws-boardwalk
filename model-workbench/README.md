@@ -12,7 +12,20 @@ what it cost) — the explainable accountability trail responsible-AI policies a
 The scenario library is shaped like the public-sector GenAI work in Planetek's
 pipeline: plan-review triage against code excerpts, grounded code Q&A with a
 deliberate **refusal test** (which models admit "the excerpt doesn't say"?),
-determination letters, structured extraction to strict JSON, plain-language rewrites.
+determination letters, structured extraction to strict JSON, plain-language rewrites,
+and a **guardrail exhibit** (a complaint full of fake PII, run raw vs through a
+Bedrock Guardrail that masks emails/phones/SSNs and denies legal-advice topics).
+
+Three evaluation layers on every comparison:
+
+- **Blind judge:** one extra call to the cheapest roster model scores each answer
+  1-10 against the scenario's written rubric; answers are shuffled and anonymized
+  (A-D) so the judge cannot favor a vendor. The judge's own tokens and cost are
+  metered and land in the ledger.
+- **Deterministic grading:** the extraction scenario is also graded by plain code
+  in the frontend: strict parse vs fenced vs chat-wrapped, then schema validation.
+- **Bench records:** a public 30-day per-model record (runs, median latency, avg
+  cost) aggregated from the audit ledger, drawn as one latency sparkline per model.
 
 **Two tiers.** Visitors get **5 free runs a day with no sign-in** — scenario-library
 prompts only, counted per hashed IP, drawn from a 40-run/day anonymous pool. Signing
@@ -30,9 +43,13 @@ ceiling, and the ledger view.
   worst-case day by $0.
 - Per-user 30 runs/day + global 120 runs/day (DynamoDB conditional counters), hard
   500-output-token ceiling, 2,000-char prompt cap, 5 rps edge throttle, noindex.
+- The judge call (Nova Lite, 400-token cap) and the optional guardrail ride inside
+  the same run counters; both add well under a cent per run.
 - Worst-case leaked-credential day: 120 runs × 4 models ≈ **$2-3**.
 - The run role's IAM allows `bedrock:InvokeModel` on exactly the four roster
-  profiles; the `/api/public/info` route's role has no Bedrock permissions at all.
+  profiles plus `bedrock:ApplyGuardrail` on the one workbench guardrail; the
+  public routes' role has no Bedrock permissions at all (bench records are pure
+  DynamoDB reads of counts and timings, never prompts or identities).
 
 ## Layout
 

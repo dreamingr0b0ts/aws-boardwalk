@@ -99,11 +99,28 @@ echo "$RUN" | jq -e '.results | all(.latencyMs > 0)' > /dev/null; check $? "late
 echo "$RUN" | jq -e '.results[0].text | test("applicant"; "i")' > /dev/null
 check $? "extraction scenario yields JSON-shaped output"
 
+# the blind judge scored the comparison (runs on every >=2-model comparison)
+echo "$RUN" | jq -e '.judge.ok == true and (.judge.scores | length == 2)' > /dev/null
+check $? "blind judge scored both answers ($(echo "$RUN" | jq -r '[.judge.scores[] | "\(.key) \(.score)/10"] | join(", ")'))"
+echo "$RUN" | jq -e '.judge.scores | all(.score >= 1 and .score <= 10)' > /dev/null
+check $? "judge scores are bounded 1-10 and keyed to models"
+echo "$RUN" | jq -e '.judge.costUsd > 0 and .totalCostUsd > .judge.costUsd' > /dev/null
+check $? "judge call is metered and included in the run total"
+
 # custom prompt across the same two cheap models
 RUN2=$(curl -sS -X POST "$SITE/api/run" \
   -H "authorization: Bearer $TOKEN" -H 'content-type: application/json' \
   -d '{"prompt":"Reply with exactly the word OK and nothing else.","models":["nova-lite","llama"],"maxTokens":50}')
 echo "$RUN2" | jq -e '.results | all(.ok)' > /dev/null; check $? "custom prompt runs on the roster"
+
+# ---- 4b. the guardrail exhibit: same scenario, PII masked ----
+GRUN=$(curl -sS -X POST "$SITE/api/run" \
+  -H "authorization: Bearer $TOKEN" -H 'content-type: application/json' \
+  -d '{"scenarioId":"guardrail-pii","models":["nova-lite"],"temperature":0,"maxTokens":250,"guardrail":true}')
+echo "$GRUN" | jq -e '.guardrail == true and .results[0].ok' > /dev/null
+check $? "guarded run executes with the guardrail attached"
+echo "$GRUN" | jq -e '.results[0] | (.guardrail.masked > 0) or (.text | test("\\{(EMAIL|PHONE|US_SOCIAL_SECURITY_NUMBER)\\}"))' > /dev/null
+check $? "guardrail masked PII in the answer ($(echo "$GRUN" | jq -r '.results[0].guardrail.masked') identifiers anonymized)"
 
 # ---- 5. validation fences ----
 BADMODEL=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$SITE/api/run" \
@@ -123,6 +140,16 @@ RUNS=$(curl -sS "$SITE/api/runs" -H "authorization: Bearer $TOKEN")
 [ "$(echo "$RUNS" | jq '.runs | length')" -ge 2 ]; check $? "audit ledger lists today's runs"
 echo "$RUNS" | jq -e '.runs[0].results | all(has("costUsd") and has("latencyMs"))' > /dev/null
 check $? "ledger rows carry tokens, cost, and latency per model"
+echo "$RUNS" | jq -e '[.runs[] | select(.judge)] | length >= 1' > /dev/null
+check $? "judge verdicts land in the ledger"
+
+# ---- 6b. public bench records (no auth, aggregates only) ----
+RECORDS=$(curl -sS "$SITE/api/public/records")
+[ "$(echo "$RECORDS" | jq '.models | length')" = "4" ]; check $? "bench records aggregate all four models"
+echo "$RECORDS" | jq -e '.days | length == 30' > /dev/null; check $? "bench records cover a 30-day window"
+echo "$RECORDS" | jq -e '.totals.runs >= 1 and ([.models[] | select(.p50LatencyMs != null)] | length >= 1)' > /dev/null
+check $? "bench records carry real medians ($(echo "$RECORDS" | jq -r '.totals.runs') runs in window)"
+echo "$RECORDS" | grep -qv "promptPreview" || [ $? -eq 141 ]; check $? "bench records expose no prompts or identities"
 
 # ---- 7. the daily cap actually bites ----
 TODAY=$(date -u +%F)
