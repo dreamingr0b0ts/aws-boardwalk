@@ -7,10 +7,16 @@
 // The gate order is deliberate: cheap validation first, then the DynamoDB
 // counters, and only if both caps admit the run do we touch Bedrock. Even a
 // leaked credential is bounded to GLOBAL_DAILY_LIMIT runs/day.
+//
+// Two tiers share this handler. Signed-in users get custom prompts and the
+// full ceilings. Visitors (the /api/public/* routes, no JWT) get a taste:
+// scenario-library prompts only, a lower token ceiling, 5 runs per visitor
+// per day, all drawn from a small anonymous pool that ALSO counts against
+// the global kill switch — opening the door does not raise the spend ceiling.
 import { BedrockRuntimeClient, ConverseCommand } from "@aws-sdk/client-bedrock-runtime";
 import { DynamoDBClient, ConditionalCheckFailedException } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { SCENARIOS } from "./scenarios.mjs";
 
 const TABLE = process.env.TABLE_NAME;
@@ -18,6 +24,9 @@ const MODELS = JSON.parse(process.env.MODELS);
 const USER_DAILY_LIMIT = Number(process.env.USER_DAILY_LIMIT ?? 30);
 const GLOBAL_DAILY_LIMIT = Number(process.env.GLOBAL_DAILY_LIMIT ?? 120);
 const MAX_OUTPUT_TOKENS = Number(process.env.MAX_OUTPUT_TOKENS ?? 500);
+const ANON_DAILY_LIMIT = Number(process.env.ANON_DAILY_LIMIT ?? 5);
+const ANON_GLOBAL_DAILY_LIMIT = Number(process.env.ANON_GLOBAL_DAILY_LIMIT ?? 40);
+const ANON_MAX_OUTPUT_TOKENS = Number(process.env.ANON_MAX_OUTPUT_TOKENS ?? 300);
 const MAX_PROMPT_CHARS = 2000;
 
 const bedrock = new BedrockRuntimeClient({});
@@ -40,6 +49,17 @@ const claims = (event) => {
   const c = event.requestContext?.authorizer?.jwt?.claims ?? {};
   if (!c.sub) throw new HttpError(401, "Unauthorized");
   return { sub: c.sub, email: c.email ?? "" };
+};
+
+// Visitor identity: the viewer IP, reduced to a truncated hash so the ledger
+// counts visitors without storing addresses. CloudFront appends the true
+// viewer IP to X-Forwarded-For and API Gateway appends CloudFront's own, so
+// the trustworthy entry is second-from-last — a client-supplied header only
+// pushes the real entries further right.
+const visitor = (event) => {
+  const xff = (event.headers?.["x-forwarded-for"] ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+  const ip = xff.length >= 2 ? xff[xff.length - 2] : xff[0] ?? event.requestContext?.http?.sourceIp ?? "unknown";
+  return { sub: createHash("sha256").update(ip).digest("hex").slice(0, 16) };
 };
 
 // ---- counters --------------------------------------------------------------
@@ -112,8 +132,8 @@ async function invokeModel(model, system, prompt, inferenceConfig) {
 
 // ---- routes ----------------------------------------------------------------
 
-async function postRun(event) {
-  const who = claims(event);
+async function postRun(event, anon) {
+  const who = anon ? visitor(event) : claims(event);
   let body;
   try {
     body = JSON.parse(event.body ?? "{}");
@@ -121,7 +141,8 @@ async function postRun(event) {
     throw new HttpError(400, "Body must be JSON");
   }
 
-  // resolve prompt: a scenario from the library, or a bounded custom prompt
+  // resolve prompt: a scenario from the library, or a bounded custom prompt.
+  // Visitors are scenario-only: nothing a stranger types ever reaches a model.
   let system = null;
   let prompt;
   let scenarioId = null;
@@ -131,6 +152,8 @@ async function postRun(event) {
     scenarioId = s.id;
     system = s.system;
     prompt = s.prompt;
+  } else if (anon) {
+    throw new HttpError(403, "Custom prompts require sign-in. Pick a scenario from the library, or sign in.");
   } else {
     if (typeof body.prompt !== "string" || !body.prompt.trim()) throw new HttpError(400, "Provide scenarioId or prompt");
     if (body.prompt.length > MAX_PROMPT_CHARS) throw new HttpError(400, `Prompt too long (max ${MAX_PROMPT_CHARS} chars)`);
@@ -145,21 +168,40 @@ async function postRun(event) {
   });
   if (selected.length > MODELS.length) throw new HttpError(400, "Too many models");
 
+  const tokenCeiling = anon ? ANON_MAX_OUTPUT_TOKENS : MAX_OUTPUT_TOKENS;
   const temperature = body.temperature === undefined ? 0.2 : Number(body.temperature);
   if (!(temperature >= 0 && temperature <= 1)) throw new HttpError(400, "temperature must be 0–1");
-  const maxTokens = body.maxTokens === undefined ? 300 : Number(body.maxTokens);
-  if (!(maxTokens >= 50 && maxTokens <= MAX_OUTPUT_TOKENS))
-    throw new HttpError(400, `maxTokens must be 50–${MAX_OUTPUT_TOKENS}`);
+  const maxTokens = body.maxTokens === undefined ? Math.min(300, tokenCeiling) : Number(body.maxTokens);
+  if (!(maxTokens >= 50 && maxTokens <= tokenCeiling))
+    throw new HttpError(400, `maxTokens must be 50–${tokenCeiling}`);
 
-  // ---- cost guardrails: per-user cap, then global kill switch ----
+  // ---- cost guardrails: per-caller cap, then the global kill switch. A
+  // visitor run must clear THREE counters (per-visitor, anonymous pool,
+  // global) so the free tier can exhaust itself without touching the
+  // signed-in ceiling, and total worst-case spend never moves. ----
   const today = new Date().toISOString().slice(0, 10);
+  const userLimit = anon ? ANON_DAILY_LIMIT : USER_DAILY_LIMIT;
   let userCount;
   try {
-    userCount = await bumpCounter(today, `USER#${who.sub}`, USER_DAILY_LIMIT);
+    userCount = await bumpCounter(today, anon ? `ANON#${who.sub}` : `USER#${who.sub}`, userLimit);
   } catch (err) {
     if (err instanceof ConditionalCheckFailedException)
-      throw new HttpError(429, `Daily demo limit reached (${USER_DAILY_LIMIT} runs). Resets at 00:00 UTC.`);
+      throw new HttpError(
+        429,
+        anon
+          ? `Free visitor limit reached (${ANON_DAILY_LIMIT} runs/day). Sign in for ${USER_DAILY_LIMIT}/day, or come back after 00:00 UTC.`
+          : `Daily demo limit reached (${USER_DAILY_LIMIT} runs). Resets at 00:00 UTC.`
+      );
     throw err;
+  }
+  if (anon) {
+    try {
+      await bumpCounter(today, "ANON-GLOBAL", ANON_GLOBAL_DAILY_LIMIT);
+    } catch (err) {
+      if (err instanceof ConditionalCheckFailedException)
+        throw new HttpError(429, "Today's free visitor pool is used up. Sign in, or try again after 00:00 UTC.");
+      throw err;
+    }
   }
   let globalCount;
   try {
@@ -186,7 +228,7 @@ async function postRun(event) {
         PK: `RUN#${today}`,
         SK: `${now}#${runId}`,
         runId,
-        email: who.email,
+        email: anon ? `visitor:${who.sub.slice(0, 8)}` : who.email,
         scenarioId: scenarioId ?? "custom",
         promptChars: prompt.length,
         promptPreview: prompt.slice(0, 90),
@@ -213,7 +255,13 @@ async function postRun(event) {
     params: { temperature, maxTokens },
     results,
     totalCostUsd: round6(results.reduce((a, r) => a + (r.costUsd ?? 0), 0)),
-    quota: { userUsed: userCount, userLimit: USER_DAILY_LIMIT, globalUsed: globalCount, globalLimit: GLOBAL_DAILY_LIMIT },
+    quota: {
+      tier: anon ? "visitor" : "user",
+      userUsed: userCount,
+      userLimit,
+      globalUsed: globalCount,
+      globalLimit: GLOBAL_DAILY_LIMIT,
+    },
   });
 }
 
@@ -243,20 +291,31 @@ async function getRuns(event) {
   });
 }
 
-async function getQuota(event) {
-  const who = claims(event);
+async function getQuota(event, anon) {
+  const who = anon ? visitor(event) : claims(event);
   const today = new Date().toISOString().slice(0, 10);
-  const [userUsed, globalUsed] = await Promise.all([readCounter(today, `USER#${who.sub}`), readCounter(today, "GLOBAL")]);
-  return json(200, { userUsed, userLimit: USER_DAILY_LIMIT, globalUsed, globalLimit: GLOBAL_DAILY_LIMIT });
+  const [userUsed, globalUsed] = await Promise.all([
+    readCounter(today, anon ? `ANON#${who.sub}` : `USER#${who.sub}`),
+    readCounter(today, "GLOBAL"),
+  ]);
+  return json(200, {
+    tier: anon ? "visitor" : "user",
+    userUsed,
+    userLimit: anon ? ANON_DAILY_LIMIT : USER_DAILY_LIMIT,
+    globalUsed,
+    globalLimit: GLOBAL_DAILY_LIMIT,
+  });
 }
 
 export const handler = async (event) => {
   const method = event.requestContext?.http?.method ?? "GET";
   const path = event.rawPath ?? "/";
   try {
-    if (method === "POST" && path === "/api/run") return await postRun(event);
+    if (method === "POST" && path === "/api/run") return await postRun(event, false);
+    if (method === "POST" && path === "/api/public/run") return await postRun(event, true);
     if (method === "GET" && path === "/api/runs") return await getRuns(event);
-    if (method === "GET" && path === "/api/me/quota") return await getQuota(event);
+    if (method === "GET" && path === "/api/me/quota") return await getQuota(event, false);
+    if (method === "GET" && path === "/api/public/quota") return await getQuota(event, true);
     return json(404, { message: "Not found" });
   } catch (err) {
     if (err instanceof HttpError) return json(err.status, { message: err.message });

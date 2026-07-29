@@ -14,16 +14,25 @@ pipeline: plan-review triage against code excerpts, grounded code Q&A with a
 deliberate **refusal test** (which models admit "the excerpt doesn't say"?),
 determination letters, structured extraction to strict JSON, plain-language rewrites.
 
+**Two tiers.** Visitors get **5 free runs a day with no sign-in** — scenario-library
+prompts only, counted per hashed IP, drawn from a 40-run/day anonymous pool. Signing
+in (unpublished credential) unlocks 30 runs/day, custom prompts, the 500-token
+ceiling, and the ledger view.
+
 ## Cost guardrails (plank 6's pattern — this surface spends real tokens)
 
 - Bedrock is pay-per-use: **idle cost $0**, so the plank is always-on and in CI.
 - Credential NEVER printed on the site or committed (`.demo-creds`, synced to SSM
   `/boardwalk/model-workbench/demo-password` for keyless CI); self-signup disabled.
+- Visitor tier is fenced: scenario prompts only (nothing a stranger types reaches a
+  model), 5 runs/day per hashed IP + a 40-run/day anonymous pool, 300-token ceiling.
+  Visitor runs ALSO count against the global cap, so the free tier raised the
+  worst-case day by $0.
 - Per-user 30 runs/day + global 120 runs/day (DynamoDB conditional counters), hard
   500-output-token ceiling, 2,000-char prompt cap, 5 rps edge throttle, noindex.
 - Worst-case leaked-credential day: 120 runs × 4 models ≈ **$2-3**.
 - The run role's IAM allows `bedrock:InvokeModel` on exactly the four roster
-  profiles; the public route's role has no Bedrock permissions at all.
+  profiles; the `/api/public/info` route's role has no Bedrock permissions at all.
 
 ## Layout
 

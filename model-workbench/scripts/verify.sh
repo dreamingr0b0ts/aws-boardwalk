@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # End-to-end verification against the LIVE deployment. The plank isn't done
 # until every check here passes — including the abuse-guardrail checks
-# (anonymous 401, self-signup disabled, validation 400s, daily cap 429).
-# The comparison run uses the two cheapest models; a full verify costs well
-# under a cent.
+# (unauthenticated 401, visitor tier fenced to scenarios + its own pool,
+# self-signup disabled, validation 400s, daily cap 429s).
+# Comparison runs use the cheapest models; a full verify costs well under a
+# cent. Note: the visitor-tier checks consume 2 of this IP's 5 free daily runs.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
@@ -40,11 +41,42 @@ check $? "roster spans four vendors"
 # ---- 3. the token gate ----
 CODE=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$SITE/api/run" \
   -H 'content-type: application/json' -d '{"prompt":"hi"}')
-[ "$CODE" = "401" ]; check $? "anonymous /api/run is rejected (401) — no free model invocations"
+[ "$CODE" = "401" ]; check $? "unauthenticated /api/run is rejected (401) — the signed-in tier stays gated"
 
 SIGNUP_ERR=$(aws cognito-idp sign-up --client-id "$CLIENT" \
   --username "stranger-$RANDOM@example.com" --password 'Str4nger-Pass!xyz' 2>&1)
 echo "$SIGNUP_ERR" | grep -q "NotAuthorizedException" || [ $? -eq 141 ]; check $? "public self-signup is disabled (admin-created users only)"
+
+# ---- 3b. the visitor tier: 5 scenario runs/day, no sign-in, hard-bounded ----
+ANONCUSTOM=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$SITE/api/public/run" \
+  -H 'content-type: application/json' -d '{"prompt":"hi"}')
+[ "$ANONCUSTOM" = "403" ]; check $? "visitor custom prompt rejected (403) — scenario library only"
+
+ANONTOK=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$SITE/api/public/run" \
+  -H 'content-type: application/json' -d '{"scenarioId":"extract-json","models":["nova-lite"],"maxTokens":400}')
+[ "$ANONTOK" = "400" ]; check $? "visitor maxTokens ceiling is lower (400 tokens rejected for visitors)"
+
+ANONRUN=$(curl -sS -X POST "$SITE/api/public/run" \
+  -H 'content-type: application/json' \
+  -d '{"scenarioId":"extract-json","models":["nova-lite"],"temperature":0,"maxTokens":200}')
+echo "$ANONRUN" | jq -e '.results | length == 1 and all(.ok)' > /dev/null
+check $? "visitor scenario run succeeds without a credential"
+echo "$ANONRUN" | jq -e '.quota.tier == "visitor" and .quota.userLimit == 5' > /dev/null
+check $? "visitor run is metered against the 5/day tier ($(echo "$ANONRUN" | jq -r '.quota.userUsed') used)"
+
+ANONQ=$(curl -sS "$SITE/api/public/quota")
+echo "$ANONQ" | jq -e '.tier == "visitor" and .userUsed >= 1' > /dev/null
+check $? "visitor quota endpoint tracks the hashed-IP counter"
+
+# the anonymous pool's own kill switch (seed it full, expect 429, reset)
+TODAY=$(date -u +%F)
+aws dynamodb put-item --table-name "$TABLE" --no-cli-pager \
+  --item "{\"PK\":{\"S\":\"USAGE#$TODAY\"},\"SK\":{\"S\":\"ANON-GLOBAL\"},\"count\":{\"N\":\"40\"}}" > /dev/null
+POOL_CODE=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$SITE/api/public/run" \
+  -H 'content-type: application/json' -d '{"scenarioId":"extract-json","models":["nova-lite"]}')
+[ "$POOL_CODE" = "429" ]; check $? "exhausted visitor pool returns 429 (free tier cannot drain the budget)"
+aws dynamodb delete-item --table-name "$TABLE" --no-cli-pager \
+  --key "{\"PK\":{\"S\":\"USAGE#$TODAY\"},\"SK\":{\"S\":\"ANON-GLOBAL\"}}" > /dev/null
 
 # ---- 4. authenticated comparison round trip ----
 AUTH=$(aws cognito-idp admin-initiate-auth --user-pool-id "$POOL" --client-id "$CLIENT" \

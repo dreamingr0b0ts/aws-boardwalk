@@ -10,6 +10,8 @@ const MODELS = JSON.parse(process.env.MODELS);
 const USER_DAILY_LIMIT = Number(process.env.USER_DAILY_LIMIT ?? 30);
 const GLOBAL_DAILY_LIMIT = Number(process.env.GLOBAL_DAILY_LIMIT ?? 120);
 const MAX_OUTPUT_TOKENS = Number(process.env.MAX_OUTPUT_TOKENS ?? 500);
+const ANON_DAILY_LIMIT = Number(process.env.ANON_DAILY_LIMIT ?? 5);
+const ANON_MAX_OUTPUT_TOKENS = Number(process.env.ANON_MAX_OUTPUT_TOKENS ?? 300);
 
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 
@@ -29,7 +31,13 @@ export const handler = async () => {
     body: JSON.stringify({
       models: MODELS,
       scenarios: catalog(),
-      limits: { userDailyRuns: USER_DAILY_LIMIT, globalDailyRuns: GLOBAL_DAILY_LIMIT, maxOutputTokens: MAX_OUTPUT_TOKENS },
+      limits: {
+        userDailyRuns: USER_DAILY_LIMIT,
+        globalDailyRuns: GLOBAL_DAILY_LIMIT,
+        maxOutputTokens: MAX_OUTPUT_TOKENS,
+        anonDailyRuns: ANON_DAILY_LIMIT,
+        anonMaxOutputTokens: ANON_MAX_OUTPUT_TOKENS,
+      },
       stats: { globalUsed },
     }),
   };

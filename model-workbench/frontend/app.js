@@ -1,6 +1,9 @@
 // Alpenglow Model Workbench — zero-build frontend.
 // Auth is a plain Cognito InitiateAuth call (USER_PASSWORD_AUTH over TLS), so
 // no SDK or bundler is needed; the API is same-origin behind CloudFront /api/*.
+// The bench works in two tiers: visitors run scenario prompts against the
+// /api/public/* routes (5/day, no sign-in); signing in unlocks custom prompts,
+// the higher daily limit, and the audit ledger.
 
 const $ = (id) => document.getElementById(id);
 
@@ -8,6 +11,8 @@ let config = null; // { region, userPoolClientId } written at publish time
 let info = null; // /api/public/info payload
 let idToken = sessionStorage.getItem('fmw.idToken') || null;
 let tokenExp = Number(sessionStorage.getItem('fmw.exp') || 0);
+
+const authed = () => Boolean(idToken) && tokenExp * 1000 > Date.now() + 60_000;
 
 init();
 
@@ -19,7 +24,43 @@ async function init() {
   $('run-btn').addEventListener('click', onRun);
   $('scenario').addEventListener('change', onScenarioChange);
   $('temperature').addEventListener('input', () => ($('temperature-out').textContent = $('temperature').value));
-  if (idToken && tokenExp * 1000 > Date.now() + 60_000) showBench();
+  applyTier();
+}
+
+// Reshape the bench for the current tier: which prompt sources exist, the
+// token ceiling, which quota endpoint feeds the meter, ledger vs upsell.
+function applyTier() {
+  const a = authed();
+  $('login-panel').hidden = a;
+  $('logout-btn').hidden = !a;
+  $('bench-mode').hidden = a;
+  $('ledger-upsell').hidden = a;
+  if (!a) $('ledger-list').replaceChildren();
+
+  syncCustomOption(a);
+
+  const cap = a ? (info?.limits?.maxOutputTokens ?? 500) : (info?.limits?.anonMaxOutputTokens ?? 300);
+  const mt = $('max-tokens');
+  mt.max = String(cap);
+  if (Number(mt.value) > cap) mt.value = String(cap);
+
+  refreshQuota();
+  if (a) refreshLedger();
+}
+
+function syncCustomOption(a) {
+  const sel = $('scenario');
+  let opt = [...sel.options].find((o) => o.value === '');
+  if (a && !opt) {
+    opt = document.createElement('option');
+    opt.value = '';
+    opt.textContent = 'Custom prompt…';
+    sel.appendChild(opt);
+  } else if (!a && opt) {
+    if (sel.value === '') sel.value = info?.scenarios[0]?.id ?? '';
+    opt.remove();
+    onScenarioChange();
+  }
 }
 
 async function loadPublicInfo() {
@@ -59,7 +100,8 @@ async function loadPublicInfo() {
     list.appendChild(li);
   }
 
-  // workbench controls
+  // workbench controls (the custom-prompt option is added by tier — see
+  // syncCustomOption; visitors are scenario-only)
   const sel = $('scenario');
   sel.replaceChildren();
   for (const s of info.scenarios) {
@@ -68,10 +110,6 @@ async function loadPublicInfo() {
     opt.textContent = s.title;
     sel.appendChild(opt);
   }
-  const custom = document.createElement('option');
-  custom.value = '';
-  custom.textContent = 'Custom prompt…';
-  sel.appendChild(custom);
   onScenarioChange();
 
   const pick = $('model-pick');
@@ -125,7 +163,7 @@ async function onLogin(e) {
     sessionStorage.setItem('fmw.idToken', idToken);
     sessionStorage.setItem('fmw.exp', String(tokenExp));
     $('login-password').value = '';
-    showBench();
+    applyTier();
   } catch (err) {
     const el = $('login-error');
     el.textContent = err.message === 'Incorrect username or password.' ? 'Incorrect email or password.' : `Could not sign in: ${err.message}`;
@@ -139,19 +177,11 @@ function logout() {
   sessionStorage.removeItem('fmw.idToken');
   sessionStorage.removeItem('fmw.exp');
   idToken = null;
-  $('bench-panel').hidden = true;
-  $('login-panel').hidden = false;
-}
-
-function showBench() {
-  $('login-panel').hidden = true;
-  $('bench-panel').hidden = false;
-  refreshQuota();
-  refreshLedger();
+  applyTier(); // back to the visitor tier, bench stays usable
 }
 
 async function api(method, path, body) {
-  if (!idToken || tokenExp * 1000 < Date.now()) {
+  if (!authed()) {
     logout();
     throw new Error('Session expired. Please sign in again.');
   }
@@ -172,6 +202,18 @@ async function api(method, path, body) {
   return data;
 }
 
+// The visitor tier: same-origin, no Authorization header, /api/public/* only.
+async function publicApi(method, path, body) {
+  const res = await fetch(path, {
+    method,
+    headers: body ? { 'content-type': 'application/json' } : {},
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.message || `Request failed (${res.status})`);
+  return data;
+}
+
 // ---- running ---------------------------------------------------------------
 
 async function onRun() {
@@ -187,15 +229,17 @@ async function onRun() {
   btn.textContent = `Running on ${models.length} model${models.length > 1 ? 's' : ''}…`;
   renderPending(models);
   try {
-    const res = await api('POST', '/api/run', {
+    const a = authed();
+    const payload = {
       ...(scenarioId ? { scenarioId } : { prompt }),
       models,
       temperature: Number($('temperature').value),
       maxTokens: Number($('max-tokens').value),
-    });
+    };
+    const res = a ? await api('POST', '/api/run', payload) : await publicApi('POST', '/api/public/run', payload);
     renderResults(res);
     renderQuota(res.quota);
-    refreshLedger();
+    if (a) refreshLedger();
   } catch (err) {
     $('results').replaceChildren();
     showRunError(err.message);
@@ -290,15 +334,19 @@ function renderResults(res) {
 
 async function refreshQuota() {
   try {
-    renderQuota(await api('GET', '/api/me/quota'));
+    renderQuota(authed() ? await api('GET', '/api/me/quota') : await publicApi('GET', '/api/public/quota'));
   } catch {
     /* non-fatal */
   }
 }
 
 function renderQuota(q) {
+  const yours =
+    q.tier === 'visitor'
+      ? `Free visitor runs today: ${q.userUsed}/${q.userLimit} (sign in for ${info?.limits?.userDailyRuns ?? 30}/day)`
+      : `Your runs today: ${q.userUsed}/${q.userLimit}`;
   $('quota-line').textContent =
-    `Your runs today: ${q.userUsed}/${q.userLimit} · demo-wide budget: ${q.globalUsed}/${q.globalLimit} · each run invokes every selected model once`;
+    `${yours} · demo-wide budget: ${q.globalUsed}/${q.globalLimit} · each run invokes every selected model once`;
 }
 
 async function refreshLedger() {

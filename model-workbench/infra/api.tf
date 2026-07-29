@@ -36,14 +36,18 @@ locals {
     run    = aws_lambda_function.run
   }
 
-  # Every route that can reach Bedrock requires a valid Cognito JWT. The only
-  # anonymous route serves the roster/scenario catalog and aggregate counters —
-  # it cannot spend a token (its role has no bedrock permissions at all).
+  # Custom prompts and the full ceilings require a valid Cognito JWT.
+  # /api/public/info cannot spend a token at all (its role has no bedrock
+  # permissions); /api/public/run CAN, so the run Lambda holds it to the
+  # visitor tier: scenario-library prompts only, per-visitor and pooled
+  # daily caps, and the same global kill switch as signed-in runs.
   routes = {
-    "GET /api/public/info" = { fn = "public", auth = false }
-    "POST /api/run"        = { fn = "run", auth = true }
-    "GET /api/runs"        = { fn = "run", auth = true }
-    "GET /api/me/quota"    = { fn = "run", auth = true }
+    "GET /api/public/info"  = { fn = "public", auth = false }
+    "POST /api/run"         = { fn = "run", auth = true }
+    "POST /api/public/run"  = { fn = "run", auth = false }
+    "GET /api/runs"         = { fn = "run", auth = true }
+    "GET /api/me/quota"     = { fn = "run", auth = true }
+    "GET /api/public/quota" = { fn = "run", auth = false }
   }
 }
 

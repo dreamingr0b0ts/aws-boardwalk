@@ -22,11 +22,14 @@ resource "aws_lambda_function" "run" {
 
   environment {
     variables = {
-      TABLE_NAME         = aws_dynamodb_table.workbench.name
-      MODELS             = jsonencode(local.models)
-      USER_DAILY_LIMIT   = tostring(var.user_daily_limit)
-      GLOBAL_DAILY_LIMIT = tostring(var.global_daily_limit)
-      MAX_OUTPUT_TOKENS  = tostring(var.max_output_tokens)
+      TABLE_NAME              = aws_dynamodb_table.workbench.name
+      MODELS                  = jsonencode(local.models)
+      USER_DAILY_LIMIT        = tostring(var.user_daily_limit)
+      GLOBAL_DAILY_LIMIT      = tostring(var.global_daily_limit)
+      MAX_OUTPUT_TOKENS       = tostring(var.max_output_tokens)
+      ANON_DAILY_LIMIT        = tostring(var.anon_daily_limit)
+      ANON_GLOBAL_DAILY_LIMIT = tostring(var.anon_global_daily_limit)
+      ANON_MAX_OUTPUT_TOKENS  = tostring(var.anon_max_output_tokens)
     }
   }
 
@@ -48,11 +51,13 @@ resource "aws_lambda_function" "public" {
 
   environment {
     variables = {
-      TABLE_NAME         = aws_dynamodb_table.workbench.name
-      MODELS             = jsonencode(local.models)
-      USER_DAILY_LIMIT   = tostring(var.user_daily_limit)
-      GLOBAL_DAILY_LIMIT = tostring(var.global_daily_limit)
-      MAX_OUTPUT_TOKENS  = tostring(var.max_output_tokens)
+      TABLE_NAME             = aws_dynamodb_table.workbench.name
+      MODELS                 = jsonencode(local.models)
+      USER_DAILY_LIMIT       = tostring(var.user_daily_limit)
+      GLOBAL_DAILY_LIMIT     = tostring(var.global_daily_limit)
+      MAX_OUTPUT_TOKENS      = tostring(var.max_output_tokens)
+      ANON_DAILY_LIMIT       = tostring(var.anon_daily_limit)
+      ANON_MAX_OUTPUT_TOKENS = tostring(var.anon_max_output_tokens)
     }
   }
 

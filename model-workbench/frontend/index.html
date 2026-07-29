@@ -56,10 +56,12 @@
   <!-- Login -->
   <section class="panel" id="login-panel">
     <p class="sect-label">CH 02 · Access</p>
-    <h2>Sign in to run comparisons</h2>
-    <p class="muted">Every run fans out to real models and costs real tokens, so this demo requires
-    a credential. It is not printed here, and there is no self-signup; Planetek hands it out with
-    proposals and demos. Runs are capped per user and demo-wide per day.</p>
+    <h2>Try it now, no sign-in needed</h2>
+    <p class="muted">The bench below is live for every visitor: <strong>5 free runs a day</strong>
+    from the scenario library, fanned out to all four models. Every run costs real tokens, so the
+    free tier is deliberately small and drawn from a shared daily pool. Signing in raises the limit
+    to 30 runs a day and unlocks custom prompts; the credential is not printed here and there is no
+    self-signup, Planetek hands it out with proposals and demos.</p>
     <form class="auth" id="login-form">
       <input id="login-email" type="email" autocomplete="username" placeholder="email" required>
       <input id="login-password" type="password" autocomplete="current-password" placeholder="password" required>
@@ -69,14 +71,16 @@
   </section>
 
   <!-- Workbench -->
-  <section class="panel" id="bench-panel" hidden>
+  <section class="panel" id="bench-panel">
     <div class="map-head">
       <div>
         <p class="sect-label">CH 03 · Bench</p>
         <h2>Run a comparison</h2>
       </div>
-      <button class="btn ghost" id="logout-btn" type="button">Sign out</button>
+      <button class="btn ghost" id="logout-btn" type="button" hidden>Sign out</button>
     </div>
+    <p class="muted small" id="bench-mode">Visitor mode: scenario prompts only, 5 free runs a day.
+    <a href="#login-panel">Sign in</a> for 30 runs a day and custom prompts.</p>
 
     <div class="controls">
       <div class="ctl-row">
@@ -101,9 +105,11 @@
 
     <div class="ledger">
       <h3 style="margin-top:20px">Audit ledger: today's runs</h3>
-      <p class="muted small">Model, parameters, tokens, cost, and latency for every run. That is the
-      accountability trail an agency's AI policy (think SB24-205) actually asks for. Rows expire
-      after 30 days.</p>
+      <p class="muted small">Model, parameters, tokens, cost, and latency for every run, including
+      visitor runs (logged by a truncated hash, never an address). That is the accountability trail
+      an agency's AI policy (think SB24-205) actually asks for. Rows expire after 30 days.</p>
+      <p class="muted small" id="ledger-upsell" hidden>Sign in to browse the ledger. Your visitor
+      runs are already in it.</p>
       <div id="ledger-list"></div>
     </div>
   </section>
@@ -145,10 +151,12 @@
       <li><strong>Auditable by construction:</strong> every run is logged with its parameters,
       token usage, and computed cost. That is the explainable audit trail responsible-AI policies
       require, demonstrated rather than promised.</li>
-      <li><strong>Spend that cannot run away:</strong> a Cognito gate with no self-signup and an
-      unpublished credential, per-user and demo-wide daily run caps in DynamoDB, a hard
-      output-token ceiling, and a 5 rps edge throttle. Idle cost is $0; a worst-case
-      leaked-credential day is a few dollars.</li>
+      <li><strong>Spend that cannot run away:</strong> visitors get 5 scenario runs a day (counted
+      by hashed IP) from a small shared pool; custom prompts sit behind a Cognito gate with no
+      self-signup and an unpublished credential. Per-caller and demo-wide daily caps in DynamoDB,
+      a hard output-token ceiling, and a 5 rps edge throttle bound every path. Idle cost is $0,
+      and the free tier draws from the same global daily budget, so opening it raised the
+      worst-case day by nothing.</li>
       <li><strong>Grounding differences made visible:</strong> the refusal-test scenario shows which
       models admit "the excerpt doesn't say" and which ones confidently invent. For civic AI that
       is the single most important behavior.</li>

@@ -27,6 +27,11 @@ Self-signup is disabled on those pools, and per-user + global daily DynamoDB cou
 if a credential leaks (gai: 40/200 messages; idp: 8/20 documents, plus 4 MB + 6-page caps enforced
 before OCR starts; fmw: 30/120 runs, 500-output-token ceiling). Keep it that way for any future
 plank whose requests cost real money.
+Exception (owner-approved 2026-07-28): plank 12 additionally has a **visitor tier** so the bench is
+usable without a credential — 5 runs/day per hashed IP via `/api/public/run`, scenario-library
+prompts ONLY (no visitor-typed text ever reaches a model), 300-token ceiling, a 40-run/day
+anonymous pool, and every visitor run also counts against the global 120 cap, so the worst-case
+day did not move.
 
 ## Build order (from Projects/AWS_SHOWCASE_PROJECTS.md)
 

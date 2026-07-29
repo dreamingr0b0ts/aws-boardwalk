@@ -51,3 +51,25 @@ variable "max_output_tokens" {
   type        = number
   default     = 500
 }
+
+# ---- visitor tier (no sign-in): scenario-library prompts only ----
+# Visitor runs also count against global_daily_limit, so this tier widens the
+# front door without raising the worst-case daily spend at all.
+
+variable "anon_daily_limit" {
+  description = "Max free runs per visitor (hashed IP) per UTC day, no sign-in required"
+  type        = number
+  default     = 5
+}
+
+variable "anon_global_daily_limit" {
+  description = "Max free runs across ALL visitors per UTC day - the anonymous pool exhausts long before the global kill switch"
+  type        = number
+  default     = 40
+}
+
+variable "anon_max_output_tokens" {
+  description = "Output-token ceiling per model for visitor runs (lower than the signed-in ceiling)"
+  type        = number
+  default     = 300
+}
