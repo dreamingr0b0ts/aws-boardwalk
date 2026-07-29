@@ -487,6 +487,7 @@ function sparkline(m, days, readout, summaryText) {
   const W = 240;
   const H = 56;
   const P = 6;
+  const TOP = 12; // headroom so the peak's dot never clips
   const svg = document.createElementNS(SVGNS, 'svg');
   svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
   svg.setAttribute('role', 'img');
@@ -494,7 +495,10 @@ function sparkline(m, days, readout, summaryText) {
   svg.setAttribute('preserveAspectRatio', 'none');
 
   const vals = m.p50Series;
-  const nums = vals.filter((v) => v != null);
+  const pts = [];
+  vals.forEach((v, i) => {
+    if (v != null) pts.push([i, v]);
+  });
   const base = document.createElementNS(SVGNS, 'line');
   base.setAttribute('x1', P);
   base.setAttribute('x2', W - P);
@@ -502,35 +506,50 @@ function sparkline(m, days, readout, summaryText) {
   base.setAttribute('y2', H - P);
   base.setAttribute('class', 'spark-base');
   svg.appendChild(base);
-  if (!nums.length) return svg;
+  if (!pts.length) return svg;
 
-  const lo = Math.min(...nums);
-  const hi = Math.max(...nums);
+  // Zero-based scale: the baseline IS 0s, so a 0.8s vs 0.9s wobble stays a
+  // wobble instead of auto-scaling into a full-height spike.
+  const hi = Math.max(...pts.map((p) => p[1]));
   const x = (i) => (days.length === 1 ? W / 2 : P + (i * (W - 2 * P)) / (days.length - 1));
-  const y = (v) => (hi === lo ? H / 2 : P + ((hi - v) * (H - 2 * P - 6)) / (hi - lo));
+  const y = (v) => H - P - (hi ? (v / hi) * (H - P - TOP) : 0);
 
-  let d = '';
-  let pen = false;
-  vals.forEach((v, i) => {
-    if (v == null) {
-      pen = false;
-      return;
-    }
-    d += `${pen ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)} `;
-    pen = true;
-  });
-  const path = document.createElementNS(SVGNS, 'path');
-  path.setAttribute('d', d.trim());
-  path.setAttribute('class', 'spark-line');
-  svg.appendChild(path);
+  // One continuous trace: solid between consecutive days, dashed where the
+  // segment bridges days with no runs (interpolation made visible, not hidden).
+  let solid = '';
+  let dashed = '';
+  for (let k = 1; k < pts.length; k++) {
+    const [i0, v0] = pts[k - 1];
+    const [i1, v1] = pts[k];
+    const seg = `M${x(i0).toFixed(1)},${y(v0).toFixed(1)} L${x(i1).toFixed(1)},${y(v1).toFixed(1)} `;
+    if (i1 - i0 === 1) solid += seg;
+    else dashed += seg;
+  }
+  const area = document.createElementNS(SVGNS, 'path');
+  area.setAttribute(
+    'd',
+    `M${x(pts[0][0]).toFixed(1)},${(H - P).toFixed(1)} ` +
+      pts.map(([i, v]) => `L${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ') +
+      ` L${x(pts[pts.length - 1][0]).toFixed(1)},${(H - P).toFixed(1)} Z`
+  );
+  area.setAttribute('class', 'spark-area');
+  svg.appendChild(area);
+  if (dashed) {
+    const gap = document.createElementNS(SVGNS, 'path');
+    gap.setAttribute('d', dashed.trim());
+    gap.setAttribute('class', 'spark-line spark-gap');
+    svg.appendChild(gap);
+  }
+  if (solid) {
+    const path = document.createElementNS(SVGNS, 'path');
+    path.setAttribute('d', solid.trim());
+    path.setAttribute('class', 'spark-line');
+    svg.appendChild(path);
+  }
 
-  // isolated single-day points and the most recent point get a dot; drawn as
-  // zero-length round-capped strokes so preserveAspectRatio="none" cannot
-  // stretch them into ellipses
-  vals.forEach((v, i) => {
-    const isolated = v != null && vals[i - 1] == null && vals[i + 1] == null;
-    const isLast = v != null && vals.slice(i + 1).every((n) => n == null);
-    if (!isolated && !isLast) return;
+  // a dot on every day that actually has runs (zero-length round-capped
+  // strokes so preserveAspectRatio="none" cannot stretch them into ellipses)
+  pts.forEach(([i, v]) => {
     const dot = document.createElementNS(SVGNS, 'path');
     dot.setAttribute('d', `M${x(i).toFixed(1)},${y(v).toFixed(1)} l0.01,0`);
     dot.setAttribute('class', 'spark-dot');
@@ -569,6 +588,26 @@ async function loadRecords() {
   if (!data.totals.runs) {
     $('records-empty').hidden = false;
     return;
+  }
+
+  // Trim the leading run-free days (the window can predate the first ledger
+  // row) so the traces use the full width instead of huddling at the right.
+  const firstIdx = Math.min(
+    ...data.models.map((m) => {
+      const i = m.runSeries.findIndex((n) => n > 0);
+      return i === -1 ? Infinity : i;
+    })
+  );
+  if (Number.isFinite(firstIdx) && firstIdx > 0) {
+    data = {
+      ...data,
+      days: data.days.slice(firstIdx),
+      models: data.models.map((m) => ({
+        ...m,
+        p50Series: m.p50Series.slice(firstIdx),
+        runSeries: m.runSeries.slice(firstIdx),
+      })),
+    };
   }
 
   for (const m of data.models) {

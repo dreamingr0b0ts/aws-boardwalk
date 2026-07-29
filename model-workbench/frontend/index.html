@@ -148,7 +148,9 @@
     <h2>Thirty days on the bench</h2>
     <p class="muted">Long-exposure traces from the audit ledger, aggregated on request: runs, median
     latency, and average cost per model over the trailing 30 days. Counts and timings only; no
-    prompts, no identities. Each trace is that model's median latency per day.</p>
+    prompts, no identities. Each trace is that model's median latency per day, rising from a 0s
+    baseline; dots mark days with runs, and dashed spans bridge quiet days. Traces begin at the
+    window's first recorded run.</p>
     <div class="records-grid" id="records-grid"></div>
     <details class="records-table-wrap" id="records-table-wrap" hidden>
       <summary>The same numbers as a table</summary>
