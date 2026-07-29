@@ -58,3 +58,40 @@ variable "global_daily_limit" {
   type        = number
   default     = 200
 }
+
+# ---- visitor tier (no sign-in, curated questions only) ----
+# Mirrors the Model Workbench pattern: nothing a visitor types reaches a
+# model, and every visitor answer also counts against global_daily_limit,
+# so the worst-case day is unchanged.
+
+variable "anon_daily_limit" {
+  description = "Max free questions per visitor (hashed IP) per UTC day"
+  type        = number
+  default     = 5
+}
+
+variable "anon_global_daily_limit" {
+  description = "Max free questions across ALL visitors per UTC day (the anonymous pool)"
+  type        = number
+  default     = 30
+}
+
+variable "anon_max_answer_tokens" {
+  description = "Output-token ceiling for visitor answers (signed-in users get 600)"
+  type        = number
+  default     = 300
+}
+
+# ---- cost-per-answer display ----
+
+variable "price_in_per_mtok" {
+  description = "Answer-model input price, USD per million tokens (Haiku 4.5 list price; global CRIS bills at source-Region rates)"
+  type        = number
+  default     = 1
+}
+
+variable "price_out_per_mtok" {
+  description = "Answer-model output price, USD per million tokens"
+  type        = number
+  default     = 5
+}

@@ -65,6 +65,7 @@ export async function handler(): Promise<IndexMeta> {
 
   const chunks: Chunk[] = [];
   const titles: string[] = [];
+  const docList: { doc: string; title: string; sections: string[] }[] = [];
 
   for (const key of keys) {
     const res = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: key }));
@@ -72,6 +73,7 @@ export async function handler(): Promise<IndexMeta> {
     const docName = key.replace(/^corpus\//, '');
     const parsed = parseMarkdown(docName, raw);
     titles.push(parsed.title);
+    docList.push({ doc: docName, title: parsed.title, sections: parsed.sections.map((s) => s.section) });
 
     for (const { section, text } of parsed.sections) {
       for (const [i, piece] of splitLong(text).entries()) {
@@ -96,6 +98,7 @@ export async function handler(): Promise<IndexMeta> {
     embedModel: EMBED_MODEL_ID,
     updatedAt: new Date().toISOString(),
     titles,
+    docList,
   };
 
   await s3.send(

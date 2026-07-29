@@ -1,8 +1,9 @@
 import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
 import { DynamoDBClient, ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand, PutCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { claims, HttpError, json, parseBody, requireString, router, type ApiEvent } from '../lib/http.js';
+import { QUESTIONS } from '../lib/questions.js';
 import { embed, loadIndex, topK } from '../lib/retrieval.js';
 
 const TABLE = process.env.TABLE_NAME!;
@@ -11,6 +12,15 @@ const MODEL_ID = process.env.MODEL_ID!;
 const EMBED_MODEL_ID = process.env.EMBED_MODEL_ID!;
 const USER_DAILY_LIMIT = Number(process.env.USER_DAILY_LIMIT ?? 40);
 const GLOBAL_DAILY_LIMIT = Number(process.env.GLOBAL_DAILY_LIMIT ?? 200);
+// Visitor tier (no sign-in): curated questions only, its own small pool, and
+// every visitor answer still counts against the signed-in global cap, so the
+// worst-case daily spend does not move.
+const ANON_DAILY_LIMIT = Number(process.env.ANON_DAILY_LIMIT ?? 5);
+const ANON_GLOBAL_DAILY_LIMIT = Number(process.env.ANON_GLOBAL_DAILY_LIMIT ?? 30);
+const ANON_MAX_ANSWER_TOKENS = Number(process.env.ANON_MAX_ANSWER_TOKENS ?? 300);
+// Answer-model list price per million tokens; feeds the cost-per-answer line.
+const PRICE_IN_PER_MTOK = Number(process.env.PRICE_IN_PER_MTOK ?? 1);
+const PRICE_OUT_PER_MTOK = Number(process.env.PRICE_OUT_PER_MTOK ?? 5);
 
 const MAX_QUESTION_CHARS = 1500;
 const MAX_HISTORY_TURNS = 4; // client may send up to 4 prior Q/A pairs
@@ -65,8 +75,23 @@ Rules you must always follow:
 - Keep answers under 200 words, in plain language a resident would understand.`;
 
 interface ChatRequest {
-  question: string;
+  question?: string;
+  questionId?: string;
   history?: { role: 'user' | 'assistant'; content: string }[];
+}
+
+// Visitor identity: the viewer IP reduced to a truncated hash, so counters
+// and logs count visitors without storing addresses. CloudFront appends the
+// true viewer IP and API Gateway appends CloudFront's, so the second-from-
+// last X-Forwarded-For entry cannot be spoofed by a client-sent header.
+function visitor(event: ApiEvent): { sub: string; email: string } {
+  const xff = (event.headers?.['x-forwarded-for'] ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const ip = xff.length >= 2 ? xff[xff.length - 2] : (xff[0] ?? event.requestContext.http.sourceIp ?? 'unknown');
+  const sub = createHash('sha256').update(ip).digest('hex').slice(0, 16);
+  return { sub, email: `visitor:${sub.slice(0, 8)}` };
 }
 
 async function bumpCounter(date: string, sk: string, limit: number): Promise<number> {
@@ -99,12 +124,28 @@ function confidenceLabel(score: number): 'high' | 'medium' | 'low' {
   return 'low';
 }
 
-async function postChat(event: ApiEvent) {
-  const who = claims(event);
+async function postChat(event: ApiEvent, anon: boolean) {
+  const who = anon ? visitor(event) : claims(event);
   const body = parseBody<ChatRequest>(event);
-  const question = requireString(body.question, 'question', 1, MAX_QUESTION_CHARS);
 
-  const history = (body.history ?? []).slice(-MAX_HISTORY_TURNS * 2);
+  // Resolve the question. Visitors are library-only: nothing a stranger
+  // types is ever sent to a model, mirroring the Model Workbench fence.
+  let question: string;
+  if (anon) {
+    if (body.question !== undefined && body.questionId === undefined) {
+      throw new HttpError(403, 'Typed questions require sign-in. Pick a question from the library, or sign in.');
+    }
+    const id = requireString(body.questionId, 'questionId', 1, 64);
+    const curated = QUESTIONS.find((q) => q.id === id);
+    if (!curated) throw new HttpError(400, `Unknown question id: ${id}`);
+    question = curated.question;
+  } else {
+    question = requireString(body.question, 'question', 1, MAX_QUESTION_CHARS);
+  }
+
+  // Conversation history reaches the model verbatim, so visitors get none:
+  // each free question is a single, self-contained exchange.
+  const history = anon ? [] : (body.history ?? []).slice(-MAX_HISTORY_TURNS * 2);
   let historyChars = 0;
   for (const turn of history) {
     if ((turn.role !== 'user' && turn.role !== 'assistant') || typeof turn.content !== 'string') {
@@ -112,18 +153,36 @@ async function postChat(event: ApiEvent) {
     }
     historyChars += turn.content.length;
   }
-  if (historyChars > MAX_HISTORY_CHARS) throw new HttpError(400, 'History too long — start a new conversation');
+  if (historyChars > MAX_HISTORY_CHARS) throw new HttpError(400, 'History too long. Start a new conversation.');
 
-  // ---- cost guardrails: per-user cap, then global kill switch ----
+  // ---- cost guardrails. A visitor answer must clear THREE counters (per
+  // visitor, anonymous pool, global) so the free tier can exhaust itself
+  // without touching the signed-in ceiling, and worst-case spend never moves.
   const today = new Date().toISOString().slice(0, 10);
+  const userLimit = anon ? ANON_DAILY_LIMIT : USER_DAILY_LIMIT;
   let userCount: number;
   try {
-    userCount = await bumpCounter(today, `USER#${who.sub}`, USER_DAILY_LIMIT);
+    userCount = await bumpCounter(today, anon ? `ANON#${who.sub}` : `USER#${who.sub}`, userLimit);
   } catch (err) {
     if (err instanceof ConditionalCheckFailedException) {
-      throw new HttpError(429, `Daily demo limit reached (${USER_DAILY_LIMIT} messages). Resets at 00:00 UTC.`);
+      throw new HttpError(
+        429,
+        anon
+          ? `Free visitor limit reached (${ANON_DAILY_LIMIT} questions/day). Sign in for ${USER_DAILY_LIMIT}/day, or come back after 00:00 UTC.`
+          : `Daily demo limit reached (${USER_DAILY_LIMIT} messages). Resets at 00:00 UTC.`
+      );
     }
     throw err;
+  }
+  if (anon) {
+    try {
+      await bumpCounter(today, 'ANON-GLOBAL', ANON_GLOBAL_DAILY_LIMIT);
+    } catch (err) {
+      if (err instanceof ConditionalCheckFailedException) {
+        throw new HttpError(429, "Today's free visitor pool is used up. Sign in, or try again after 00:00 UTC.");
+      }
+      throw err;
+    }
   }
   let globalCount: number;
   try {
@@ -155,12 +214,19 @@ async function postChat(event: ApiEvent) {
         content: `Context passages:\n\n${contextBlock}\n\nQuestion: ${question}`,
       },
     ],
-    MAX_ANSWER_TOKENS
+    anon ? ANON_MAX_ANSWER_TOKENS : MAX_ANSWER_TOKENS
   );
   const answer = response.content
     .filter((block) => block.type === 'text')
     .map((block) => block.text ?? '')
     .join('');
+
+  // Which retrieved passages did the answer actually cite? Uncited hits are
+  // the interesting half of the exhibit: retrieved, weighed, and left out.
+  const citedNs = new Set([...answer.matchAll(/\[(\d+)\]/g)].map((m) => Number(m[1])));
+
+  const usd =
+    (response.usage.input_tokens * PRICE_IN_PER_MTOK + response.usage.output_tokens * PRICE_OUT_PER_MTOK) / 1_000_000;
 
   const messageId = randomUUID();
   const now = new Date().toISOString();
@@ -174,6 +240,7 @@ async function postChat(event: ApiEvent) {
         SK: `${now}#${messageId}`,
         messageId,
         email: who.email,
+        tier: anon ? 'visitor' : 'user',
         question,
         answer,
         topScore: Math.round(topScore * 1000) / 1000,
@@ -188,18 +255,39 @@ async function postChat(event: ApiEvent) {
 
   return json(200, {
     messageId,
+    tier: anon ? 'visitor' : 'user',
     answer,
     confidence: confidenceLabel(topScore),
-    citations: hits.map((h, i) => ({
+    citations: hits
+      .map((h, i) => ({
+        n: i + 1,
+        doc: h.chunk.doc,
+        title: h.chunk.title,
+        section: h.chunk.section,
+        score: Math.round(h.score * 100) / 100,
+      }))
+      .filter((c) => citedNs.has(c.n)),
+    // Retrieval under glass: every passage the cosine search surfaced, its
+    // similarity, and whether the answer cited it.
+    passages: hits.map((h, i) => ({
       n: i + 1,
       doc: h.chunk.doc,
       title: h.chunk.title,
       section: h.chunk.section,
-      score: Math.round(h.score * 100) / 100,
+      score: Math.round(h.score * 1000) / 1000,
+      cited: citedNs.has(i + 1),
+      text: h.chunk.text,
     })),
+    cost: {
+      inputTokens: response.usage.input_tokens,
+      outputTokens: response.usage.output_tokens,
+      usd: Math.round(usd * 1_000_000) / 1_000_000,
+    },
+    latencyMs: Date.now() - started,
     quota: {
+      tier: anon ? 'visitor' : 'user',
       userUsed: userCount,
-      userLimit: USER_DAILY_LIMIT,
+      userLimit,
       globalUsed: globalCount,
       globalLimit: GLOBAL_DAILY_LIMIT,
     },
@@ -236,23 +324,35 @@ async function postFeedback(event: ApiEvent) {
   return json(200, { ok: true });
 }
 
-async function getQuota(event: ApiEvent) {
-  const who = claims(event);
+async function getQuota(event: ApiEvent, anon: boolean) {
+  const who = anon ? visitor(event) : claims(event);
   const today = new Date().toISOString().slice(0, 10);
   const [userUsed, globalUsed] = await Promise.all([
-    readCounter(today, `USER#${who.sub}`),
+    readCounter(today, anon ? `ANON#${who.sub}` : `USER#${who.sub}`),
     readCounter(today, 'GLOBAL'),
   ]);
   return json(200, {
+    tier: anon ? 'visitor' : 'user',
     userUsed,
-    userLimit: USER_DAILY_LIMIT,
+    userLimit: anon ? ANON_DAILY_LIMIT : USER_DAILY_LIMIT,
     globalUsed,
     globalLimit: GLOBAL_DAILY_LIMIT,
   });
 }
 
+// The library itself is public and static: serving it costs nothing and
+// never touches S3 or Bedrock.
+async function getQuestions() {
+  return json(200, {
+    questions: QUESTIONS.map((q) => ({ id: q.id, label: q.label, question: q.question, offCorpus: !!q.offCorpus })),
+  });
+}
+
 export const handler = router({
-  'POST /api/chat': postChat,
+  'POST /api/chat': (e) => postChat(e, false),
+  'POST /api/public/chat': (e) => postChat(e, true),
   'POST /api/feedback': postFeedback,
-  'GET /api/me/quota': getQuota,
+  'GET /api/me/quota': (e) => getQuota(e, false),
+  'GET /api/public/quota': (e) => getQuota(e, true),
+  'GET /api/public/questions': getQuestions,
 });

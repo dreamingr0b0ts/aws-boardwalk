@@ -24,6 +24,8 @@ export interface IndexMeta {
   embedModel: string;
   updatedAt: string;
   titles: string[];
+  // Reading-room table of contents; also the allowlist for /api/public/doc.
+  docList?: { doc: string; title: string; sections: string[] }[];
 }
 
 const s3 = new S3Client({});

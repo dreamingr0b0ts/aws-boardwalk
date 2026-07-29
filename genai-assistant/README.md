@@ -7,15 +7,25 @@ City of Alpenglow's permitting & licensing handbook, which ties into plank 1's p
 Citation-grounded answers, confidence display, prompt guardrails, conversation logging, and a
 human-feedback loop — the responsible-AI pattern set, built free-tier-first.
 
+Three transparency exhibits ship with every answer: a **visitor tier** (5 curated questions a
+day, no sign-in, nothing a stranger types ever reaches a model), **retrieval under glass**
+(every retrieved passage with its cosine score and a cited/not-used flag), and a **cost line**
+(input/output tokens priced per answer). The **reading room** publishes the full corpus on the
+page, and citations click through to their source section.
+
 ## Architecture
 
 ```
 Browser ── CloudFront (HSTS/CSP, X-Robots-Tag: noindex)
    │            ├── S3 (static page, OAC-locked)
    │            └── /api/* ── HTTP API (edge throttle 5 rps)
-   │                             ├── GET /api/public/info ──► public λ ──► S3 index/meta.json only
-   │                             └── JWT authorizer (Cognito) ──► chat λ
-   │                                    1. per-user daily counter (DynamoDB, conditional ADD)
+   │                             ├── GET /api/public/info ─────► public λ ──► S3 meta.json
+   │                             ├── GET /api/public/doc ──────► public λ ──► S3 corpus/*.md
+   │                             ├── GET /api/public/questions ► chat λ (static library, no AI)
+   │                             ├── POST /api/public/chat ────► chat λ (curated questions ONLY;
+   │                             │        5/day per hashed IP + 30/day anon pool + global cap)
+   │                             └── JWT authorizer (Cognito) ──► chat λ (typed questions)
+   │                                    1. per-caller daily counter (DynamoDB, conditional ADD)
    │                                    2. global daily kill switch (DynamoDB, conditional ADD)
    │                                    3. Titan v2 embed query ──► cosine top-4 over S3 vector index
    │                                    4. Claude Haiku 4.5 (Bedrock) with cited-passages-only prompt
@@ -27,24 +37,31 @@ ingest λ (make corpus): corpus/*.md ──► chunk by H2 ──► Titan v2 �
 
 ## Why nobody can burn tokens for free
 
-The spec for this plank is "Cognito gate (no anonymous token burn)" — implemented as four
-layers, so no single failure exposes the Bedrock bill:
+The spec for this plank is "no anonymous token burn" — implemented as four layers, so no
+single failure exposes the Bedrock bill:
 
-1. **No anonymous surface.** Every route that can reach Bedrock requires a valid Cognito JWT.
-   The one public route serves static corpus metadata and its Lambda role can't call Bedrock.
+1. **No free-text anonymous surface.** Typed questions require a valid Cognito JWT. The
+   visitor tier can reach Bedrock without one, but only with questions from the curated
+   library (the Model Workbench fence: nothing a stranger types is ever sent to a model, and
+   visitors get no conversation history either, since history also reaches the model). The
+   metadata/reading-room routes run on a Lambda whose role can't call Bedrock at all.
 2. **No way in without the owner.** Self-signup is disabled (`allow_admin_create_user_only`),
    and — deliberately unlike plank 1 — the demo credential is *not* printed on the login page
    or committed to this repo. It lives in the untracked `.demo-creds` file and is handed out
    during demos (`make creds-show`).
-3. **Hard caps even for valid logins.** Per-user daily cap (default 40 messages) and a global
-   daily kill switch (default 200) enforced with DynamoDB conditional atomic counters, plus
-   API-edge throttling (5 rps), capped input length, capped history, and capped `max_tokens`.
-   Worst case if a credential leaks: ~$2/day, inside the account's $35 budget tripwire.
+3. **Hard caps for every caller.** Visitors: 5 questions/day per hashed IP (sha256-truncated;
+   no raw addresses stored), a 30/day anonymous pool, and a 300-token answer ceiling. Logins:
+   per-user daily cap (default 40) and the full 600-token ceiling. Both tiers count into the
+   same global daily kill switch (default 200), so the visitor tier moved worst-case spend by
+   zero. All counters are DynamoDB conditional atomic ADDs, on top of API-edge throttling
+   (5 rps), the shared WAF per-IP rate limit, capped input length, and capped history.
+   Worst case if a credential leaks: ~$2/day, inside the account's budget tripwire.
 4. **Not discoverable.** `robots.txt` disallows all crawling and CloudFront stamps
    `X-Robots-Tag: noindex, nofollow` on every response.
 
-`make verify` proves the guardrails live: anonymous 401, signup NotAuthorizedException, and a
-forced-counter 429.
+`make verify` proves the guardrails live: anonymous free-text 401/403, signup
+NotAuthorizedException, and forced-counter 429s on both the per-user cap and the anonymous
+pool. Note: a verify run consumes 2 of the runner IP's 5 daily visitor questions.
 
 ## Cost profile
 
@@ -84,7 +101,7 @@ Hero photo: snow peak under the Milky Way by [Benjamin Voros](https://unsplash.c
 make deploy      # build lambdas, terraform apply, publish site, load corpus
 make creds-show  # demo URL + credential (never committed; .demo-creds is gitignored)
 make corpus      # re-sync + re-embed the corpus
-make verify      # 16 end-to-end checks against the live URL
+make verify      # 33 end-to-end checks against the live URL
 make destroy     # tear down (corpus + site buckets force_destroy)
 ```
 

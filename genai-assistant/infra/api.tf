@@ -36,13 +36,21 @@ locals {
     chat   = aws_lambda_function.chat
   }
 
-  # Every route that can reach Bedrock requires a valid Cognito JWT. The only
-  # anonymous route serves static corpus metadata and cannot spend a token.
+  # Typed questions require a valid Cognito JWT. The visitor tier
+  # (POST /api/public/chat) can reach Bedrock without one, but only with
+  # curated library questions, and behind three DynamoDB counters: 5/day per
+  # hashed IP, a 30/day anonymous pool, and the same global kill switch, so
+  # worst-case daily spend is unchanged. The remaining anonymous routes serve
+  # corpus metadata and documents and cannot spend a token.
   routes = {
-    "GET /api/public/info" = { fn = "public", auth = false }
-    "POST /api/chat"       = { fn = "chat", auth = true }
-    "POST /api/feedback"   = { fn = "chat", auth = true }
-    "GET /api/me/quota"    = { fn = "chat", auth = true }
+    "GET /api/public/info"      = { fn = "public", auth = false }
+    "GET /api/public/doc"       = { fn = "public", auth = false }
+    "GET /api/public/questions" = { fn = "chat", auth = false }
+    "POST /api/public/chat"     = { fn = "chat", auth = false }
+    "GET /api/public/quota"     = { fn = "chat", auth = false }
+    "POST /api/chat"            = { fn = "chat", auth = true }
+    "POST /api/feedback"        = { fn = "chat", auth = true }
+    "GET /api/me/quota"         = { fn = "chat", auth = true }
   }
 }
 

@@ -56,36 +56,27 @@
 
 <main class="wrap">
 
-  <!-- Sign-in panel. Credentials are intentionally NOT printed here: this
-       plank spends real AI tokens per message, so access is handed out by
-       Planetek during demos rather than published like plank 1. -->
-  <section id="login-panel" class="panel">
-    <h2>Sign in to try it</h2>
-    <p class="muted">Demo access is provided by Planetek. Credentials are shared during demos and
-    proposals rather than published, because an AI endpoint that costs money per request should never
-    be anonymous. Every request behind this gate is still rate-limited and budget-capped.</p>
-    <em class="tagline">The records room never closes.</em>
-    <form id="login-form" autocomplete="off">
-      <label>Email <input type="email" id="login-email" required placeholder="you@example.org"></label>
-      <label>Password <input type="password" id="login-password" required placeholder="••••••••••••"></label>
-      <button type="submit" id="login-btn">Sign in</button>
-      <p id="login-error" class="error" hidden></p>
-    </form>
-  </section>
-
-  <!-- Chat panel (revealed after auth) -->
-  <section id="chat-panel" class="panel" hidden>
+  <!-- Chat panel. Works two ways: visitors get 5 questions/day from the
+       curated library (nothing a stranger types ever reaches a model);
+       signing in unlocks typed questions and 40/day. -->
+  <section id="chat-panel" class="panel">
     <div class="chat-head">
       <div>
         <h2>Ask about Alpenglow permits &amp; licensing</h2>
         <p class="muted" id="quota-line">–</p>
       </div>
-      <button id="logout-btn" class="quiet-btn">Sign out</button>
+      <button id="logout-btn" class="quiet-btn" hidden>Sign out</button>
     </div>
+
+    <p class="muted" id="visitor-note">Try it without signing in: five questions a day from the
+    library below. Each answer shows its sources, its retrieval trace, and what it cost to
+    generate. Signing in unlocks typed questions.</p>
+
+    <div id="question-chips" class="chips" aria-label="Question library"></div>
 
     <div id="messages" aria-live="polite"></div>
 
-    <form id="chat-form">
+    <form id="chat-form" hidden>
       <input type="text" id="chat-input" maxlength="1500" required
              placeholder="e.g. Do I need a permit to replace my water heater?">
       <button type="submit" id="chat-btn">Ask</button>
@@ -95,6 +86,37 @@
     half of the responsible-AI pattern.</p>
   </section>
 
+  <!-- Sign-in panel. Credentials are intentionally NOT printed here: this
+       plank spends real AI tokens per message, so access is handed out by
+       Planetek during demos rather than published like plank 1. -->
+  <section id="login-panel" class="panel">
+    <h2>Sign in for the full desk</h2>
+    <p class="muted">Signed-in users can type their own questions, hold a conversation, and ask up
+    to 40 a day. Access is provided by Planetek: credentials are shared during demos and proposals
+    rather than published, because an open AI endpoint that costs money per request should never be
+    anonymous. Every request behind this gate is still rate-limited and budget-capped.</p>
+    <em class="tagline">The records room never closes.</em>
+    <form id="login-form" autocomplete="off">
+      <label>Email <input type="email" id="login-email" required placeholder="you@example.org"></label>
+      <label>Password <input type="password" id="login-password" required placeholder="••••••••••••"></label>
+      <button type="submit" id="login-btn">Sign in</button>
+      <p id="login-error" class="error" hidden></p>
+    </form>
+  </section>
+
+  <!-- Reading room: the corpus itself, browsable. Citation chips link here. -->
+  <section id="reading-room" class="panel">
+    <h2>The reading room</h2>
+    <p class="muted">The complete knowledge base the assistant answers from, eight documents for
+    the fictional City of Alpenglow. Open any citation on an answer to land on its source
+    section here. What you can read is exactly what the assistant can cite; there is nothing else.</p>
+    <div id="doc-toc" class="chips" aria-label="Corpus documents"></div>
+    <article id="doc-view" class="doc-article" hidden>
+      <h3 id="doc-title"></h3>
+      <div id="doc-body"></div>
+    </article>
+  </section>
+
   <section class="panel">
     <h2>What this plank proves</h2>
     <ul class="proof">
@@ -102,9 +124,15 @@
       vector index. No vector database, $0 idle.</li>
       <li><strong>Grounded answers:</strong> Claude Haiku 4.5 on Amazon Bedrock, constrained to cited
       passages with prompt guardrails and a confidence score from retrieval similarity.</li>
-      <li><strong>Cost containment in depth:</strong> Cognito JWT gate (no anonymous access, no
-      self-signup), API-edge throttling, per-user daily caps, and a global daily kill switch that
-      bounds worst-case spend even if a credential leaks.</li>
+      <li><strong>Retrieval under glass:</strong> every answer opens to show the exact passages the
+      cosine search surfaced, their similarity scores, which ones the answer cited, and what the
+      answer cost to generate, down to the token.</li>
+      <li><strong>A free tier that cannot be abused:</strong> visitors get 5 questions a day from a
+      curated library; nothing a stranger types ever reaches a model, and visitor traffic draws from
+      its own small daily pool inside the global budget, so worst-case spend is unchanged.</li>
+      <li><strong>Cost containment in depth:</strong> typed questions sit behind a Cognito JWT gate
+      (no self-signup), with API-edge throttling, per-caller daily caps, and a global daily kill
+      switch that bounds worst-case spend even if a credential leaks.</li>
       <li><strong>Swappable corpus:</strong> point it at any domain's documents (building codes, HR
       policy, grant guidelines) with one sync + re-index command.</li>
       <li><strong>Audit &amp; feedback loop:</strong> every exchange logged with token counts and

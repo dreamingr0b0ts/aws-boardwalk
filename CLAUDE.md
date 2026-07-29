@@ -32,6 +32,10 @@ usable without a credential — 5 runs/day per hashed IP via `/api/public/run`, 
 prompts ONLY (no visitor-typed text ever reaches a model), 300-token ceiling, a 40-run/day
 anonymous pool, and every visitor run also counts against the global 120 cap, so the worst-case
 day did not move.
+Plank 6 gained the same tier 2026-07-29: 5 curated questions/day per hashed IP via
+`/api/public/chat` (curated `questionId` only, no history, 300-token ceiling, 30/day anonymous
+pool, counts into the global 200). Its verify run consumes 2 of the runner IP's 5 daily visitor
+questions.
 
 ## Build order (from Projects/AWS_SHOWCASE_PROJECTS.md)
 

@@ -26,9 +26,11 @@ resource "aws_lambda_function" "public" {
 
   environment {
     variables = {
-      CORPUS_BUCKET      = aws_s3_bucket.corpus.bucket
-      USER_DAILY_LIMIT   = tostring(var.user_daily_limit)
-      GLOBAL_DAILY_LIMIT = tostring(var.global_daily_limit)
+      CORPUS_BUCKET           = aws_s3_bucket.corpus.bucket
+      USER_DAILY_LIMIT        = tostring(var.user_daily_limit)
+      GLOBAL_DAILY_LIMIT      = tostring(var.global_daily_limit)
+      ANON_DAILY_LIMIT        = tostring(var.anon_daily_limit)
+      ANON_GLOBAL_DAILY_LIMIT = tostring(var.anon_global_daily_limit)
     }
   }
 
@@ -50,12 +52,17 @@ resource "aws_lambda_function" "chat" {
 
   environment {
     variables = {
-      TABLE_NAME         = aws_dynamodb_table.assistant.name
-      CORPUS_BUCKET      = aws_s3_bucket.corpus.bucket
-      MODEL_ID           = var.model_id
-      EMBED_MODEL_ID     = var.embed_model_id
-      USER_DAILY_LIMIT   = tostring(var.user_daily_limit)
-      GLOBAL_DAILY_LIMIT = tostring(var.global_daily_limit)
+      TABLE_NAME              = aws_dynamodb_table.assistant.name
+      CORPUS_BUCKET           = aws_s3_bucket.corpus.bucket
+      MODEL_ID                = var.model_id
+      EMBED_MODEL_ID          = var.embed_model_id
+      USER_DAILY_LIMIT        = tostring(var.user_daily_limit)
+      GLOBAL_DAILY_LIMIT      = tostring(var.global_daily_limit)
+      ANON_DAILY_LIMIT        = tostring(var.anon_daily_limit)
+      ANON_GLOBAL_DAILY_LIMIT = tostring(var.anon_global_daily_limit)
+      ANON_MAX_ANSWER_TOKENS  = tostring(var.anon_max_answer_tokens)
+      PRICE_IN_PER_MTOK       = tostring(var.price_in_per_mtok)
+      PRICE_OUT_PER_MTOK      = tostring(var.price_out_per_mtok)
     }
   }
 

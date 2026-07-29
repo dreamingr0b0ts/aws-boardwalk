@@ -56,15 +56,20 @@ resource "aws_iam_role_policy_attachment" "xray_write" {
   policy_arn = "arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess"
 }
 
+# Metadata plus the corpus markdown for the reading room; still no index
+# vectors, no DynamoDB, and no Bedrock — this role cannot spend a token.
 resource "aws_iam_role_policy" "public_s3" {
-  name = "read-index-meta-only"
+  name = "read-meta-and-corpus-only"
   role = aws_iam_role.public.id
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Effect   = "Allow"
-      Action   = ["s3:GetObject"]
-      Resource = "${aws_s3_bucket.corpus.arn}/index/meta.json"
+      Effect = "Allow"
+      Action = ["s3:GetObject"]
+      Resource = [
+        "${aws_s3_bucket.corpus.arn}/index/meta.json",
+        "${aws_s3_bucket.corpus.arn}/corpus/*",
+      ]
     }]
   })
 }
