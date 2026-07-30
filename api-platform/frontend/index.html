@@ -71,9 +71,9 @@
 
   <section class="panel">
     <h2><span class="plate">Line 02</span> See the governance work</h2>
-    <p class="muted">Four failure-path demos, live against the real gateway. Each shows the exact
-    request sent and the response that came back, including the ones where the switchboard answers
-    before any application code runs.</p>
+    <p class="muted">Six live demos against the real gateway. Each shows the exact request sent and
+    the response that came back, including the ones where the switchboard answers before any
+    application code runs.</p>
     <div class="demo-grid">
       <button type="button" class="demo-btn" data-demo="nokey">
         <strong>Call without a key</strong>
@@ -90,6 +90,14 @@
       <button type="button" class="demo-btn" data-demo="burst">
         <strong>Burst past the throttle</strong>
         <span>30 parallel calls on the demo key (2 req/s, burst 5). Watch the busy signals appear.</span>
+      </button>
+      <button type="button" class="demo-btn" data-demo="idem">
+        <strong>Retry without a duplicate</strong>
+        <span>POST the same inspection twice with one Idempotency-Key. The second 201 is the stored original, replayed.</span>
+      </button>
+      <button type="button" class="demo-btn" data-demo="etag">
+        <strong>Ask only for what changed</strong>
+        <span>GET a record, then repeat it with If-None-Match. The unchanged record answers 304 with no body at all.</span>
       </button>
     </div>
     <div id="demo-out" class="demo-out" hidden></div>
@@ -119,26 +127,69 @@
   </section>
 
   <section class="panel">
-    <h2><span class="plate">Line 04</span> Usage plans</h2>
-    <p class="muted">Two tiers meter the same board: the shared party line every visitor uses, and
-    private trunks issued per integrator.</p>
+    <h2><span class="plate">Line 04</span> Usage plans &amp; your own line</h2>
+    <p class="muted">Three tiers meter the same board: the shared party line every visitor uses,
+    personal lines the exchange installs on request, and private trunks issued per integrator.</p>
     <div class="plans">
       <table>
         <thead><tr><th>Plan</th><th>Steady rate</th><th>Burst</th><th>Daily quota</th><th>Key distribution</th></tr></thead>
         <tbody>
           <tr><td><strong>demo</strong> (the party line)</td><td>2 req/s</td><td>5</td><td>2,500</td><td>Printed above, shared by every visitor</td></tr>
+          <tr><td><strong>visitor</strong> (your own line)</td><td>2 req/s</td><td>5</td><td>500</td><td>Self-issued below; expires after ~24h</td></tr>
           <tr><td><strong>partner</strong> (a private trunk)</td><td>25 req/s</td><td>50</td><td>50,000</td><td>Issued per integrator, never published</td></tr>
         </tbody>
       </table>
     </div>
-    <p class="muted">Both plans meter the same API; the key you present decides your limits. Exceed
-    the rate and the gateway answers <code>429 throttled</code>, the busy signal. Exhaust the quota
-    and it answers <code>429 quota_exceeded</code> until midnight UTC. Application code never sees
-    those requests.</p>
+    <p class="muted">The key you present decides your limits. Exceed the rate and the gateway
+    answers <code>429 throttled</code>, the busy signal. Exhaust the quota and it answers
+    <code>429 quota_exceeded</code> until midnight UTC. Application code never sees those requests.</p>
+
+    <div class="meter" id="usage-meter" hidden>
+      <div class="meter-line"><span>party line today</span><strong id="meter-used">–</strong></div>
+      <div class="meter-bar"><span id="meter-fill"></span></div>
+      <p class="muted" id="meter-note"></p>
+    </div>
+
+    <h3 class="sub-head">Get your own line installed</h3>
+    <p class="muted">The exchange will mint you a <strong>real API key</strong> on the visitor plan,
+    live, via the keyless <code>POST /v2/platform/keys</code> (you cannot present a key you do not
+    have yet). It is shown once, goes live within a minute or two as the gateway's key cache picks
+    it up, and the nightly sweep removes it about 24 hours later. Issuance is capped per address
+    and per day.</p>
+    <div class="mint">
+      <label>label <input id="mint-label" value="my-integration" spellcheck="false" maxlength="40"></label>
+      <button type="button" id="mint-btn" class="send">Install my line</button>
+    </div>
+    <div id="mint-out" class="demo-out" hidden></div>
   </section>
 
   <section class="panel">
-    <h2><span class="plate">Line 05</span> How it's built</h2>
+    <h2><span class="plate">Line 05</span> Order an export</h2>
+    <p class="muted">The asynchronous-job pattern, live: <code>POST /v2/exports</code> answers
+    <code>202 Accepted</code> immediately with a <code>Location</code> header, the job rides an SQS
+    queue to a worker Lambda, and the finished file comes back as a presigned S3 URL that expires
+    after 15 minutes. The bucket itself is never public.</p>
+    <div class="export-controls">
+      <label>catalog
+        <select id="exp-service">
+          <option value="permits">permits (240)</option>
+          <option value="licenses">licenses (160)</option>
+          <option value="facilities" selected>facilities (24)</option>
+        </select>
+      </label>
+      <label>format
+        <select id="exp-format">
+          <option value="json" selected>json</option>
+          <option value="csv">csv</option>
+        </select>
+      </label>
+      <button type="button" id="exp-btn" class="send">Start export job</button>
+    </div>
+    <div id="exp-out" class="demo-out" hidden></div>
+  </section>
+
+  <section class="panel">
+    <h2><span class="plate">Line 06</span> How it's built</h2>
     <div class="arch">
       <div class="arch-row">
         <span class="node">openapi.yaml<small>single source of truth</small></span>
@@ -153,11 +204,22 @@
         <span class="node">facilities λ<small>apx-facilities table</small></span>
         <span class="node">status λ<small>table metadata only</small></span>
       </div>
+      <div class="arch-row">
+        <span class="node">platform λ<small>meter · keys · nightly sweep</small></span>
+        <span class="node">exports λ<small>202 + Location</small></span>
+        <span class="arr">→</span>
+        <span class="node">SQS<small>job queue</small></span>
+        <span class="arr">→</span>
+        <span class="node">worker λ<small>reads catalogs</small></span>
+        <span class="arr">→</span>
+        <span class="node">S3<small>private · presigned URLs</small></span>
+      </div>
     </div>
     <p class="muted">Each microservice is its own Lambda with an IAM role fenced to its own DynamoDB
-    table: the permits service cannot read a license record even by bug. The docs site is S3 +
-    CloudFront; the API is served same-origin under <code>/v1/*</code> and <code>/v2/*</code>, so
-    there is no CORS surface at all. Idle cost of the whole plank: ~$0.</p>
+    table: the permits service cannot read a license record even by bug. The exports worker is the
+    one deliberate exception — read-only across the catalogs, so the write boundary holds. The docs
+    site is S3 + CloudFront; the API is served same-origin under <code>/v1/*</code> and
+    <code>/v2/*</code>, so there is no CORS surface at all. Idle cost of the whole plank: ~$0.</p>
   </section>
 
 </main>
@@ -168,15 +230,15 @@
     <div>
       <p class="foot-brand">Alpenglow Developer API</p>
       <p class="foot-desc">A demonstration of API design and governance: versioning with a real
-      deprecation story, usage plans, gateway-level validation, and microservice boundaries, idling
-      at ~$0.</p>
+      deprecation story, tiered usage plans with self-service keys, gateway-level validation,
+      idempotent writes, async export jobs, and microservice boundaries, idling at ~$0.</p>
     </div>
     <div>
       <p class="foot-head">Environment</p>
       <ul class="foot-list">
-        <li>AWS: API Gateway (REST) · Lambda · DynamoDB · S3 · CloudFront</li>
+        <li>AWS: API Gateway (REST) · Lambda · DynamoDB · SQS · S3 · CloudFront · EventBridge</li>
         <li>Infrastructure as code: Terraform (spec-driven gateway)</li>
-        <li>Visitor-created records expire after 24h</li>
+        <li>Visitor-created records and self-issued keys expire after 24h</li>
       </ul>
     </div>
     <div>

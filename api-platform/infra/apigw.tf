@@ -9,6 +9,8 @@ locals {
     licenses_uri   = aws_lambda_function.licenses.invoke_arn
     facilities_uri = aws_lambda_function.facilities.invoke_arn
     status_uri     = aws_lambda_function.status.invoke_arn
+    platform_uri   = aws_lambda_function.platform.invoke_arn
+    exports_uri    = aws_lambda_function.exports_api.invoke_arn
   }
 
   # yamldecode → jsonencode so API Gateway always receives canonical JSON,
@@ -90,6 +92,29 @@ resource "aws_api_gateway_usage_plan" "demo" {
   }
 }
 
+# visitor — the self-service tier: personal keys minted live on the docs page
+# (POST /v2/platform/keys), same tight throttle as demo but a personal quota.
+# Keys expire ~24h after issue; the nightly sweep deletes them.
+resource "aws_api_gateway_usage_plan" "visitor" {
+  name        = "${local.prefix}-visitor"
+  description = "Self-issued personal keys from the docs page; swept nightly after ~24h"
+
+  api_stages {
+    api_id = aws_api_gateway_rest_api.api.id
+    stage  = aws_api_gateway_stage.live.stage_name
+  }
+
+  quota_settings {
+    limit  = var.visitor_quota_per_day
+    period = "DAY"
+  }
+
+  throttle_settings {
+    rate_limit  = var.demo_rate_limit
+    burst_limit = var.demo_burst_limit
+  }
+}
+
 resource "aws_api_gateway_usage_plan" "partner" {
   name        = "${local.prefix}-partner"
   description = "Per-integrator tier: issued individually, never published"
@@ -140,6 +165,8 @@ resource "aws_lambda_permission" "apigw" {
     licenses   = aws_lambda_function.licenses.function_name
     facilities = aws_lambda_function.facilities.function_name
     status     = aws_lambda_function.status.function_name
+    platform   = aws_lambda_function.platform.function_name
+    exports    = aws_lambda_function.exports_api.function_name
   }
 
   statement_id  = "AllowAPIGatewayInvoke"

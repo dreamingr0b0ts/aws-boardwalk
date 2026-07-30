@@ -6,7 +6,7 @@
 openapi: "3.0.1"
 info:
   title: City of Alpenglow Developer API
-  version: "2.0.0"
+  version: "2.1.0"
   description: >-
     Public REST API for the fictional City of Alpenglow, CO: permit records,
     business licenses, and parks & facilities, each served by its own
@@ -25,8 +25,10 @@ tags:
     description: "Licenses service: active and historical business licenses."
   - name: facilities
     description: "Facilities service: parks, trails, rec centers, libraries, pools, and their hours. v2-only, since it launched after the v1 deprecation."
+  - name: exports
+    description: "Exports service: asynchronous full-catalog exports. POST answers 202 with a Location header to poll; a finished job hands back a presigned download URL that expires after 15 minutes. The async-job pattern for work that outlives one request."
   - name: platform
-    description: "Keyless platform endpoints: live status and a mock-integration ping."
+    description: "Keyless platform endpoints: live status, the party line's usage meter, self-service key issuance, and a mock-integration ping."
 
 x-amazon-apigateway-api-key-source: HEADER
 
@@ -166,6 +168,138 @@ paths:
         httpMethod: POST
         uri: ${status_uri}
 
+  /v2/platform/usage:
+    get:
+      tags: [platform]
+      summary: Party-line usage meter
+      description: >-
+        Keyless. Live metering of the shared demo key, read from the same
+        usage-plan counters that enforce its quota, plus how many personal
+        visitor keys the exchange has issued today. The meter can lag live
+        traffic by a few minutes.
+      responses:
+        "200":
+          description: Today's metering.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/PlanUsage" }
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        httpMethod: POST
+        uri: ${platform_uri}
+
+  /v2/platform/keys:
+    post:
+      tags: [platform]
+      summary: Issue yourself a personal API key
+      description: >-
+        Keyless, because you cannot present a key you do not have yet. Mints a
+        real API key on the visitor usage plan (2 req/s, burst 5, 500
+        requests/day of your own) and returns it exactly once. Keys expire
+        about 24 hours after issue and are removed by the nightly sweep.
+        Issuance is capped per address and per day; the body is validated by
+        the gateway against the KeyRequest model before any code runs.
+      x-amazon-apigateway-request-validator: validate-body
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/KeyRequest" }
+      responses:
+        "201":
+          description: Your personal key — shown once and never again.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/IssuedKey" }
+        "400":
+          description: Body failed gateway schema validation. The Lambda never ran.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "429":
+          description: Issuance cap reached (per address or exchange-wide) — the shared demo key still works.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        httpMethod: POST
+        uri: ${platform_uri}
+
+  /v2/exports:
+    post:
+      tags: [exports]
+      summary: Start a catalog export (async)
+      description: >-
+        The asynchronous-job pattern. Answers 202 Accepted immediately with a
+        Location header pointing at the job resource; the export itself runs
+        on a queue-fed worker. Poll the Location URL until status is done,
+        then follow the presigned downloadUrl (valid 15 minutes). The body is
+        validated by the gateway against the ExportRequest model.
+      security: [{ ApiKeyAuth: [] }]
+      x-amazon-apigateway-request-validator: validate-body
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ExportRequest" }
+      responses:
+        "202":
+          description: Job accepted; poll the Location header.
+          headers:
+            Location:
+              schema: { type: string }
+              description: The job resource to poll, e.g. /v2/exports/EXP-ABC123.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/ExportJob" }
+        "400":
+          description: Body failed gateway schema validation. The Lambda never ran.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "429":
+          description: Daily export allotment spent; resets at midnight UTC.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        httpMethod: POST
+        uri: ${exports_uri}
+
+  /v2/exports/{id}:
+    get:
+      tags: [exports]
+      summary: Poll an export job
+      description: Job status; once done, the response includes a presigned downloadUrl that expires after 15 minutes.
+      security: [{ ApiKeyAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string }, example: EXP-ABC123XY }
+      responses:
+        "200":
+          description: The job, enveloped. downloadUrl present only when status is done.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/ExportJob" }
+        "404": { $ref: "#/components/responses/NotFound" }
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        httpMethod: POST
+        uri: ${exports_uri}
+
   /v2/permits:
     get:
       tags: [permits]
@@ -198,18 +332,25 @@ paths:
     get:
       tags: [permits]
       summary: Get a permit
+      description: Responses carry a strong ETag; repeat the call with If-None-Match and an unchanged record answers 304 with no body.
       security: [{ ApiKeyAuth: [] }]
       parameters:
         - { name: id, in: path, required: true, schema: { type: string }, example: PRM-2025-0104 }
+        - { name: If-None-Match, in: header, required: false, schema: { type: string }, description: "ETag from a previous response; matching answers 304." }
       responses:
         "200":
           description: The permit, enveloped.
+          headers:
+            ETag:
+              schema: { type: string }
+              description: Strong validator for If-None-Match on later calls.
           content:
             application/json:
               schema:
                 type: object
                 properties:
                   data: { $ref: "#/components/schemas/Permit" }
+        "304": { $ref: "#/components/responses/NotModified" }
         "404": { $ref: "#/components/responses/NotFound" }
       x-amazon-apigateway-integration:
         type: aws_proxy
@@ -249,11 +390,15 @@ paths:
         enums, formats, no unknown properties) and rejects invalid payloads
         with a 400 before any Lambda runs. Created records expire
         automatically after 24 hours. Only approved or issued permits accept
-        inspection requests (409 otherwise).
+        inspection requests (409 otherwise). Send an Idempotency-Key header
+        and retrying the identical request within 24 hours replays the
+        original 201 (marked Idempotency-Replayed: true) instead of creating
+        a duplicate.
       security: [{ ApiKeyAuth: [] }]
       x-amazon-apigateway-request-validator: validate-body
       parameters:
         - { name: id, in: path, required: true, schema: { type: string }, example: PRM-2025-0104 }
+        - { name: Idempotency-Key, in: header, required: false, schema: { type: string, pattern: '^[A-Za-z0-9_-]{1,64}$' }, description: "Optional client-chosen key (1-64 chars) that makes this POST safely retryable for 24 hours." }
       requestBody:
         required: true
         content:
@@ -261,7 +406,11 @@ paths:
             schema: { $ref: "#/components/schemas/InspectionRequest" }
       responses:
         "201":
-          description: Inspection request created (expires in 24h).
+          description: Inspection request created (expires in 24h). A replayed response carries Idempotency-Replayed true.
+          headers:
+            Idempotency-Replayed:
+              schema: { type: string }
+              description: Present (true) when this 201 is the stored original, replayed for a repeated Idempotency-Key.
           content:
             application/json:
               schema:
@@ -316,18 +465,25 @@ paths:
     get:
       tags: [licenses]
       summary: Get a business license
+      description: Responses carry a strong ETag; repeat the call with If-None-Match and an unchanged record answers 304 with no body.
       security: [{ ApiKeyAuth: [] }]
       parameters:
         - { name: id, in: path, required: true, schema: { type: string }, example: LIC-0042 }
+        - { name: If-None-Match, in: header, required: false, schema: { type: string }, description: "ETag from a previous response; matching answers 304." }
       responses:
         "200":
           description: The license, enveloped.
+          headers:
+            ETag:
+              schema: { type: string }
+              description: Strong validator for If-None-Match on later calls.
           content:
             application/json:
               schema:
                 type: object
                 properties:
                   data: { $ref: "#/components/schemas/License" }
+        "304": { $ref: "#/components/responses/NotModified" }
         "404": { $ref: "#/components/responses/NotFound" }
       x-amazon-apigateway-integration:
         type: aws_proxy
@@ -365,18 +521,25 @@ paths:
     get:
       tags: [facilities]
       summary: Get a facility
+      description: Responses carry a strong ETag; repeat the call with If-None-Match and an unchanged record answers 304 with no body.
       security: [{ ApiKeyAuth: [] }]
       parameters:
         - { name: id, in: path, required: true, schema: { type: string }, example: FAC-009 }
+        - { name: If-None-Match, in: header, required: false, schema: { type: string }, description: "ETag from a previous response; matching answers 304." }
       responses:
         "200":
           description: The facility, enveloped.
+          headers:
+            ETag:
+              schema: { type: string }
+              description: Strong validator for If-None-Match on later calls.
           content:
             application/json:
               schema:
                 type: object
                 properties:
                   data: { $ref: "#/components/schemas/Facility" }
+        "304": { $ref: "#/components/responses/NotModified" }
         "404": { $ref: "#/components/responses/NotFound" }
       x-amazon-apigateway-integration:
         type: aws_proxy
@@ -419,6 +582,8 @@ components:
       content:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
+    NotModified:
+      description: Not modified — the ETag presented in If-None-Match still matches, so no body is sent.
 
   schemas:
     PermitType:
@@ -511,6 +676,87 @@ components:
         notes: { type: string }
         status: { type: string, example: requested }
         requestedAt: { type: string, format: date-time }
+
+    KeyRequest:
+      type: object
+      description: Enforced by API Gateway's request validator, not by application code.
+      required: [label]
+      additionalProperties: false
+      properties:
+        label:
+          type: string
+          pattern: '^[a-z0-9][a-z0-9-]{2,39}$'
+          description: A short name for your key (3-40 chars, lowercase letters, digits, hyphens). It becomes part of the key's name on the exchange.
+
+    IssuedKey:
+      type: object
+      properties:
+        apiKey: { type: string, description: The key value — shown once and never retrievable again. }
+        keyId: { type: string }
+        label: { type: string, example: my-integration }
+        plan: { type: string, example: visitor }
+        limits:
+          type: object
+          properties:
+            ratePerSecond: { type: integer, example: 2 }
+            burst: { type: integer, example: 5 }
+            quotaPerDay: { type: integer, example: 500 }
+        issuedAt: { type: string, format: date-time }
+        expiresAt: { type: string, format: date-time }
+        note: { type: string }
+
+    PlanUsage:
+      type: object
+      properties:
+        date: { type: string, example: "2026-07-29" }
+        partyLine:
+          type: object
+          description: The shared demo key, as metered by its usage plan.
+          properties:
+            plan: { type: string, example: demo }
+            used: { type: integer, example: 412 }
+            remaining: { type: integer, example: 2088 }
+            quota: { type: integer, example: 2500 }
+            resets: { type: string, example: midnight UTC }
+        privateLines:
+          type: object
+          description: Self-issued visitor keys.
+          properties:
+            plan: { type: string, example: visitor }
+            issuedToday: { type: integer, example: 3 }
+            dailyCap: { type: integer, example: 25 }
+            quotaPerKey: { type: integer, example: 500 }
+        note: { type: string }
+
+    ExportRequest:
+      type: object
+      description: Enforced by API Gateway's request validator, not by application code.
+      required: [service, format]
+      additionalProperties: false
+      properties:
+        service:
+          type: string
+          enum: [permits, licenses, facilities]
+          description: Which catalog to export.
+        format:
+          type: string
+          enum: [json, csv]
+
+    ExportJob:
+      type: object
+      properties:
+        id: { type: string, example: EXP-ABC123XY }
+        service: { type: string, example: facilities }
+        format: { type: string, example: json }
+        status: { type: string, enum: [queued, running, done, failed], example: done }
+        requestedAt: { type: string, format: date-time }
+        startedAt: { type: string, format: date-time }
+        completedAt: { type: string, format: date-time }
+        count: { type: integer, description: Records in the finished export. }
+        sizeBytes: { type: integer }
+        downloadUrl: { type: string, description: Presigned S3 URL; present only while status is done, valid 15 minutes from the poll that returned it. }
+        downloadExpiresSeconds: { type: integer, example: 900 }
+        error: { type: string }
 
     PageMeta:
       type: object

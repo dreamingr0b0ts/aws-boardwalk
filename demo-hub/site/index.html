@@ -330,10 +330,11 @@
       <div class="card-top"><span class="num">API</span><span class="chip live">always-on</span></div>
       <h3>API &amp; Microservices</h3>
       <p>A documented public REST API with real governance: v1 endpoints that answer with honest
-      Deprecation/Sunset headers, API keys on throttled+quota'd usage plans (try the printed demo key),
-      request bodies schema-validated by the gateway itself, and per-service Lambdas fenced to their own
-      tables. Docs render live from the same OpenAPI spec that deploys the gateway.</p>
-      <span class="stack">API Gateway (REST) · Lambda · DynamoDB · S3 · CloudFront</span>
+      Deprecation/Sunset headers, API keys on throttled+quota'd usage plans, and request bodies
+      schema-validated by the gateway itself. Mint yourself a real personal API key, retry a POST
+      safely with an Idempotency-Key, and order an async catalog export (202 → SQS worker → presigned
+      download). Docs render live from the same OpenAPI spec that deploys the gateway.</p>
+      <span class="stack">API Gateway (REST) · Lambda · DynamoDB · SQS · S3 · CloudFront</span>
       <div class="card-links">
         <a href="https://api.demos.planetek.org">Read the docs, call the API</a>
         <a class="quiet" href="https://github.com/dreamingr0b0ts/aws-boardwalk/tree/main/api-platform">Code &amp; architecture</a>

@@ -1,7 +1,7 @@
 import { build } from 'esbuild';
 import { rmSync } from 'node:fs';
 
-const handlers = ['permits', 'licenses', 'facilities', 'status'];
+const handlers = ['permits', 'licenses', 'facilities', 'status', 'platform', 'exports', 'exports-worker'];
 
 rmSync('dist', { recursive: true, force: true });
 

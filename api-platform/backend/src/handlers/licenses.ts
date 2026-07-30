@@ -2,7 +2,7 @@
 import type { APIGatewayProxyEvent } from 'aws-lambda';
 import { GetCommand } from '@aws-sdk/lib-dynamodb';
 import { ddb, listScan } from '../lib/ddb.js';
-import { BadRequest, envelope, json, notFound, pageLimit, route, v1Json } from '../lib/http.js';
+import { BadRequest, cachedJson, envelope, json, notFound, pageLimit, route, v1Json } from '../lib/http.js';
 
 const TABLE = process.env.TABLE_NAME!;
 const KEY_ATTRS = ['id'];
@@ -48,6 +48,6 @@ export const handler = route({
     const id = event.pathParameters!.id!;
     const res = await ddb.send(new GetCommand({ TableName: TABLE, Key: { id } }));
     if (!res.Item) return notFound(`License ${id}`);
-    return json(200, { data: res.Item });
+    return cachedJson(event, { data: res.Item });
   },
 });

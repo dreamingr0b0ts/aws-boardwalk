@@ -43,10 +43,24 @@ async function init() {
 
   renderReference();
   loadStatus();
+  loadUsage();
 }
 
 function origin() {
   return window.location.origin;
+}
+
+async function loadUsage() {
+  try {
+    const res = await fetch('/v2/platform/usage');
+    const { data } = await res.json();
+    const meter = $('#usage-meter');
+    const pct = Math.min(100, Math.round((data.partyLine.used / data.partyLine.quota) * 100));
+    $('#meter-used').textContent = `${data.partyLine.used.toLocaleString()} / ${data.partyLine.quota.toLocaleString()} calls`;
+    $('#meter-fill').style.width = `${Math.max(pct, data.partyLine.used > 0 ? 2 : 0)}%`;
+    $('#meter-note').textContent = `Read live from the demo key's usage plan · ${data.privateLines.issuedToday} of ${data.privateLines.dailyCap} personal lines installed today · resets midnight UTC.`;
+    meter.hidden = false;
+  } catch { /* the meter is garnish; the page works without it */ }
 }
 
 async function loadStatus() {
@@ -65,7 +79,7 @@ async function loadStatus() {
 
 // ---- shared request runner ----------------------------------------------------
 
-const INTERESTING_HEADERS = ['deprecation', 'sunset', 'link', 'location', 'x-amzn-requestid', 'x-amzn-errortype'];
+const INTERESTING_HEADERS = ['deprecation', 'sunset', 'link', 'location', 'etag', 'idempotency-replayed', 'x-amzn-requestid', 'x-amzn-errortype'];
 
 async function runRequest({ method, path, headers = {}, body }) {
   const started = performance.now();
@@ -79,7 +93,7 @@ async function runRequest({ method, path, headers = {}, body }) {
 function exchangePane(reqLine, result) {
   let pretty = result.text;
   try { pretty = JSON.stringify(JSON.parse(result.text), null, 2); } catch { /* leave as-is */ }
-  const cls = result.status < 300 ? 'good' : result.status === 429 ? 'warn' : 'bad';
+  const cls = result.status < 300 || result.status === 304 ? 'good' : result.status === 429 ? 'warn' : 'bad';
   return h('div', { class: 'exchange' },
     h('div', { class: 'req' }, reqLine),
     h('div', { class: 'res' },
@@ -159,6 +173,41 @@ const DEMOS = {
         : 'All 30 slipped inside the burst window this time. Run it again and the token bucket will start pushing back.'),
     ];
   },
+
+  async idem() {
+    const page = await fetch('/v2/permits?status=issued&limit=1', { headers: { 'x-api-key': state.demoKey } }).then((r) => r.json());
+    const id = page.data?.[0]?.id ?? 'PRM-2025-0104';
+    const idemKey = `docs-${Math.random().toString(36).slice(2, 10)}`;
+    const body = JSON.stringify({ type: 'final', preferredDate: '2026-08-21', contactEmail: 'retry@example.com', notes: 'idempotency demo' }, null, 2);
+    const send = () => runRequest({
+      method: 'POST',
+      path: `/v2/permits/${id}/inspections`,
+      headers: { 'x-api-key': state.demoKey, 'content-type': 'application/json', 'idempotency-key': idemKey },
+      body,
+    });
+    const first = await send();
+    const second = await send();
+    return [
+      exchangePane(`POST /v2/permits/${id}/inspections\nIdempotency-Key: ${idemKey}\n\n${body}`, first),
+      exchangePane(`POST /v2/permits/${id}/inspections\nIdempotency-Key: ${idemKey}\n(the exact same request, sent again)`, second),
+      h('p', { class: 'muted' }, 'Same key, same 201, same inspection id: the second response is the stored original, replayed — note the Idempotency-Replayed header. A client can retry a timed-out POST without double-booking the inspector.'),
+    ];
+  },
+
+  async etag() {
+    const first = await runRequest({ method: 'GET', path: '/v2/facilities/FAC-009', headers: { 'x-api-key': state.demoKey } });
+    const tag = first.headers.find((line) => line.startsWith('etag:'))?.slice(5).trim();
+    const second = await runRequest({
+      method: 'GET',
+      path: '/v2/facilities/FAC-009',
+      headers: { 'x-api-key': state.demoKey, 'if-none-match': tag ?? '"none"' },
+    });
+    return [
+      exchangePane('GET /v2/facilities/FAC-009', first),
+      exchangePane(`GET /v2/facilities/FAC-009\nIf-None-Match: ${tag}`, second),
+      h('p', { class: 'muted' }, 'The record has not changed, so the second answer is a bodiless 304 — cheaper for the caller, the network, and the server. A polling client gets its freshness check nearly for free.'),
+    ];
+  },
 };
 
 for (const btn of document.querySelectorAll('.demo-btn')) {
@@ -187,6 +236,118 @@ $('#copy-key').addEventListener('click', async () => {
 function short(key) {
   return key ? `${key.slice(0, 8)}…` : 'YOUR_KEY';
 }
+
+// ---- your own line: self-service keys ----------------------------------------
+
+$('#mint-btn').addEventListener('click', async () => {
+  const btn = $('#mint-btn');
+  const out = $('#mint-out');
+  const label = $('#mint-label').value.trim();
+  out.hidden = false;
+  out.replaceChildren(h('p', { class: 'muted' }, 'asking the exchange for a line…'));
+  btn.disabled = true;
+  try {
+    const body = JSON.stringify({ label });
+    const result = await runRequest({ method: 'POST', path: '/v2/platform/keys', headers: { 'content-type': 'application/json' }, body });
+    if (result.status !== 201) {
+      // The gateway 400 (bad label) and the 429 caps are exhibits themselves.
+      out.replaceChildren(exchangePane(`POST /v2/platform/keys\n\n${body}`, result));
+      return;
+    }
+    const issued = JSON.parse(result.text).data;
+    const copyBtn = h('button', { class: 'ghost', type: 'button' }, 'Copy');
+    copyBtn.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(issued.apiKey);
+      copyBtn.textContent = 'Copied ✓';
+      setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1500);
+    });
+    const useBtn = h('button', { class: 'ghost', type: 'button' }, 'Use it on this page');
+    useBtn.addEventListener('click', () => {
+      state.demoKey = issued.apiKey;
+      useBtn.textContent = 'In use on every try-it console ✓';
+      useBtn.disabled = true;
+    });
+    const lineStatus = h('p', { class: 'muted' }, 'patching your line in… a brand-new key takes a minute or two to reach the gateway’s key cache.');
+    out.replaceChildren(
+      h('div', { class: 'keybox' },
+        h('span', { class: 'keylabel' }, `your line · ${issued.label}`),
+        h('code', {}, issued.apiKey),
+        copyBtn,
+        useBtn,
+      ),
+      h('p', { class: 'muted' }, `A real key on the ${issued.plan} plan — 2 req/s, ${issued.limits.quotaPerDay} requests/day of your own. Shown once, never retrievable, swept after ${new Date(issued.expiresAt).toUTCString()}.`),
+      lineStatus,
+    );
+    loadUsage();
+    // Watch the key go live against the real gateway — propagation as exhibit.
+    // Detached on purpose: the button frees up while the line patches in.
+    (async () => {
+      for (let i = 1; i <= 36; i += 1) {
+        await new Promise((resolve) => { setTimeout(resolve, 5000); });
+        try {
+          const probe = await fetch('/v2/facilities?limit=1', { headers: { 'x-api-key': issued.apiKey } });
+          if (probe.status === 200) {
+            lineStatus.textContent = `line connected — the live gateway accepted your key after ${i * 5}s.`;
+            return;
+          }
+          lineStatus.textContent = `patching your line in… ${i * 5}s (the gateway still answers 403 while its key cache updates)`;
+        } catch { /* transient network hiccup; keep polling */ }
+      }
+      lineStatus.textContent = 'not accepted after 3 minutes — give it a moment and try the key manually.';
+    })();
+  } catch (err) {
+    out.replaceChildren(h('p', { class: 'muted' }, `request failed: ${err}`));
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+// ---- order an export: the async-job pattern, live ----------------------------
+
+$('#exp-btn').addEventListener('click', async () => {
+  const btn = $('#exp-btn');
+  const out = $('#exp-out');
+  const service = $('#exp-service').value;
+  const format = $('#exp-format').value;
+  out.hidden = false;
+  btn.disabled = true;
+  const body = JSON.stringify({ service, format });
+  try {
+    const accepted = await runRequest({
+      method: 'POST',
+      path: '/v2/exports',
+      headers: { 'x-api-key': state.demoKey, 'content-type': 'application/json' },
+      body,
+    });
+    out.replaceChildren(exchangePane(`POST /v2/exports\nx-api-key: ${short(state.demoKey)}\n\n${body}`, accepted));
+    if (accepted.status !== 202) return;
+    const location = accepted.headers.find((l) => l.startsWith('location:'))?.slice(9).trim();
+    const pollNote = h('p', { class: 'muted' }, `202 Accepted — polling ${location}…`);
+    out.append(pollNote);
+    for (let i = 1; i <= 20; i += 1) {
+      await new Promise((resolve) => { setTimeout(resolve, i === 1 ? 600 : 1200); });
+      const poll = await runRequest({ method: 'GET', path: location, headers: { 'x-api-key': state.demoKey } });
+      let job = {};
+      try { job = JSON.parse(poll.text).data ?? {}; } catch { /* non-JSON error body */ }
+      pollNote.textContent = `poll ${i} → status: ${job.status ?? `HTTP ${poll.status}`}`;
+      if (job.status === 'done' || job.status === 'failed' || poll.status !== 200) {
+        out.append(exchangePane(`GET ${location}\nx-api-key: ${short(state.demoKey)}   (poll ${i})`, poll));
+        if (job.status === 'done') {
+          out.append(h('p', {},
+            h('a', { href: job.downloadUrl }, `Download alpenglow-${service}-export.${format} (${job.count} records)`),
+            h('span', { class: 'muted' }, ' — presigned URL, valid 15 minutes; the bucket itself is never public.'),
+          ));
+        }
+        return;
+      }
+    }
+    pollNote.textContent = `still running after 20 polls — the job record remains at ${location}`;
+  } catch (err) {
+    out.append(h('p', { class: 'muted' }, `request failed: ${err}`));
+  } finally {
+    btn.disabled = false;
+  }
+});
 
 // ---- API reference ------------------------------------------------------------
 

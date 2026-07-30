@@ -2,9 +2,19 @@
 // proxy integrations (payload format 1.0). Each service imports only this —
 // there is deliberately no shared data layer, because each microservice owns
 // its own table.
+import { createHash } from 'node:crypto';
 import type { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 
 export type Handler = (event: APIGatewayProxyEvent) => Promise<APIGatewayProxyResult>;
+
+// HTTP header names are case-insensitive but the proxy event preserves
+// whatever case the client sent.
+export function header(event: APIGatewayProxyEvent, name: string): string | undefined {
+  for (const [k, v] of Object.entries(event.headers ?? {})) {
+    if (k.toLowerCase() === name && v !== undefined) return v;
+  }
+  return undefined;
+}
 
 const BASE_HEADERS: Record<string, string> = {
   'content-type': 'application/json; charset=utf-8',
@@ -38,6 +48,27 @@ export function v1Json(
     ...V1_HEADERS,
     link: `<${successorPath}>; rel="successor-version"`,
   });
+}
+
+// Conditional GET for the detail endpoints: a strong ETag over the exact
+// response bytes, and a bodiless 304 when the client's If-None-Match still
+// matches. The cheapest request is the one whose body never leaves the server.
+export function cachedJson(
+  event: APIGatewayProxyEvent,
+  body: unknown,
+  extraHeaders: Record<string, string> = {}
+): APIGatewayProxyResult {
+  const payload = JSON.stringify(body);
+  const etag = `"${createHash('sha256').update(payload).digest('hex').slice(0, 16)}"`;
+  const inm = header(event, 'if-none-match');
+  const matched = inm
+    ?.split(',')
+    .map((t) => t.trim().replace(/^W\//, ''))
+    .some((t) => t === etag || t === '*');
+  if (matched) {
+    return { statusCode: 304, headers: { etag, ...extraHeaders }, body: '' };
+  }
+  return { statusCode: 200, headers: { ...BASE_HEADERS, etag, ...extraHeaders }, body: payload };
 }
 
 export function errorJson(statusCode: number, error: string, message: string): APIGatewayProxyResult {

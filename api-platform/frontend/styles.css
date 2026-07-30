@@ -299,6 +299,38 @@ table.params code { white-space: nowrap; }
 .plans th { font: 700 11px/1.3 var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3); }
 .plans td strong { font-weight: 600; }
 
+/* ---- the party-line meter ---- */
+.meter { margin-top: 18px; }
+.meter-line {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+  font: 700 11px/1.3 var(--mono); text-transform: uppercase; letter-spacing: .09em; color: var(--ink-3);
+}
+.meter-line strong { font: 700 14px/1.3 var(--mono); color: var(--ink); letter-spacing: 0; text-transform: none; }
+.meter-bar {
+  margin-top: 7px; height: 10px; border-radius: 999px; overflow: hidden;
+  background: var(--chip-bg); border: 1px solid var(--border);
+}
+.meter-bar span {
+  display: block; height: 100%; width: 0; border-radius: 999px;
+  background: linear-gradient(90deg, var(--jade), var(--amber));
+  box-shadow: 0 0 8px color-mix(in srgb, var(--jade) 55%, transparent);
+  transition: width .7s ease;
+}
+
+/* ---- your own line & the export desk ---- */
+.sub-head { margin-top: 26px; font-size: 17px; font-weight: 600; letter-spacing: .02em; }
+.mint { margin-top: 14px; display: flex; gap: 12px; align-items: end; flex-wrap: wrap; }
+.mint label, .export-controls label {
+  display: grid; gap: 3px; font: 600 11px/1.4 var(--sans); letter-spacing: .04em; color: var(--ink-3);
+}
+.mint input, .export-controls select {
+  font: 13px/1.5 var(--mono); padding: 8px 10px; border-radius: 5px;
+  border: 1px solid var(--border); background: var(--bg); color: var(--ink);
+}
+.mint input { min-width: 220px; }
+.mint input:focus, .export-controls select:focus { outline: 2px solid var(--copper); border-color: transparent; }
+.export-controls { margin-top: 14px; display: flex; gap: 12px; align-items: end; flex-wrap: wrap; }
+
 /* ---- architecture: the wiring diagram ---- */
 .arch { margin-top: 14px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
 .arch-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }

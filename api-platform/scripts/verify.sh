@@ -41,8 +41,8 @@ check $? "config.json carries the demo key"
 # ---- 2. keyless platform endpoints ----
 STATUS=$(curl -sS "$SITE/v2/status")
 echo "$STATUS" | jq -e '.status == "operational"' > /dev/null; check $? "/v2/status keyless and operational"
-echo "$STATUS" | jq -e '[.services[].name] | sort == ["facilities","licenses","permits"]' > /dev/null
-check $? "status reports all three microservices"
+echo "$STATUS" | jq -e '[.services[].name] | sort == ["exports","facilities","licenses","permits"]' > /dev/null
+check $? "status reports all four microservices (catalogs + exports)"
 curl -sS "$SITE/v1/ping" | jq -e '.integration == "mock"' > /dev/null
 check $? "/v1/ping answered by the API Gateway mock integration"
 
@@ -119,12 +119,81 @@ check $? "facilities service filters by kind"
 get "/v2/facilities/FAC-009/hours" | jq -e '.data.hours.mon | length > 0' > /dev/null
 check $? "facility hours sub-resource serves weekly hours"
 
-# ---- 8. usage-plan throttling (demo tier: 5 rps / burst 10) ----
-BURST=$(seq 1 40 | xargs -P 20 -I{} curl -sS -o /dev/null -w '%{http_code}\n' \
-  -H "x-api-key: $DEMO_KEY" "$SITE/v2/facilities?limit=1")
-N429=$(echo "$BURST" | grep -c '^429' || true)
-N200=$(echo "$BURST" | grep -c '^200' || true)
-[ "$N429" -ge 1 ] && [ "$N200" -ge 1 ]; check $? "40-request burst drew usage-plan 429s ($N200 × 200, $N429 × 429)"
+# ---- 8. usage-plan throttling (demo tier: 2 rps / burst 5) ----
+# Distributed token buckets are best-effort (see variables.tf) — a single
+# burst can sail through, so allow up to three rounds before calling it.
+for ROUND in 1 2 3; do
+  BURST=$(seq 1 40 | xargs -P 20 -I{} curl -sS -o /dev/null -w '%{http_code}\n' \
+    -H "x-api-key: $DEMO_KEY" "$SITE/v2/facilities?limit=1")
+  N429=$(echo "$BURST" | grep -c '^429' || true)
+  N200=$(echo "$BURST" | grep -c '^200' || true)
+  [ "$N429" -ge 1 ] && break
+  sleep 15
+done
+[ "$N429" -ge 1 ] && [ "$N200" -ge 1 ]; check $? "40-request burst drew usage-plan 429s ($N200 × 200, $N429 × 429, round $ROUND)"
+
+# ---- 9. conditional GETs (ETag / If-None-Match) ----
+ETAG=$(curl -sS -D - -o /dev/null -H "x-api-key: $PARTNER_KEY" "$SITE/v2/facilities/FAC-009" | tr -d '\r' | awk 'tolower($1)=="etag:"{print $2}')
+[ -n "$ETAG" ]; check $? "detail GET carries a strong ETag ($ETAG)"
+CODE=$(curl -sS -o /tmp/apx-304-body -w '%{http_code}' -H "x-api-key: $PARTNER_KEY" -H "if-none-match: $ETAG" "$SITE/v2/facilities/FAC-009")
+[ "$CODE" = "304" ]; check $? "If-None-Match with the same ETag answers 304"
+[ ! -s /tmp/apx-304-body ]; check $? "the 304 is bodiless"
+
+# ---- 10. idempotency keys (inspections write path) ----
+IDEM="verify-$(date +%s)"
+IDEM_BODY='{"type":"rough","preferredDate":"2026-08-15","contactEmail":"verify@planetek.org","notes":"idempotency round-trip"}'
+FIRST=$(curl -sS -X POST "$SITE/v2/permits/$PERMIT_ID/inspections" \
+  -H "x-api-key: $PARTNER_KEY" -H 'content-type: application/json' -H "idempotency-key: $IDEM" -d "$IDEM_BODY")
+FIRST_ID=$(echo "$FIRST" | jq -r '.data.id')
+SECOND=$(curl -sS -D /tmp/apx-idem-headers -X POST "$SITE/v2/permits/$PERMIT_ID/inspections" \
+  -H "x-api-key: $PARTNER_KEY" -H 'content-type: application/json' -H "idempotency-key: $IDEM" -d "$IDEM_BODY")
+SECOND_ID=$(echo "$SECOND" | jq -r '.data.id')
+[ -n "$FIRST_ID" ] && [ "$FIRST_ID" = "$SECOND_ID" ]; check $? "repeated Idempotency-Key replays the same inspection ($FIRST_ID)"
+tr -d '\r' < /tmp/apx-idem-headers | grep -qi '^idempotency-replayed: true'
+check $? "replay is marked with the Idempotency-Replayed header"
+
+# ---- 11. platform: usage meter + self-service keys ----
+USAGE=$(curl -sS "$SITE/v2/platform/usage")
+echo "$USAGE" | jq -e '.data.partyLine.quota == 2500 and (.data.partyLine.used >= 0)' > /dev/null
+check $? "/v2/platform/usage is keyless and reads the demo plan's meter"
+CODE=$(curl -sS -o /tmp/apx-badkey -w '%{http_code}' -X POST "$SITE/v2/platform/keys" \
+  -H 'content-type: application/json' -d '{"label":"NOT VALID!!"}')
+[ "$CODE" = "400" ] && jq -e '.error == "validation_failed"' /tmp/apx-badkey > /dev/null
+check $? "bad key label rejected 400 by the gateway validator"
+MINTED=$(curl -sS -X POST "$SITE/v2/platform/keys" -H 'content-type: application/json' -d '{"label":"verify-run"}')
+MINTED_KEY=$(echo "$MINTED" | jq -r '.data.apiKey')
+[ -n "$MINTED_KEY" ] && [ "$MINTED_KEY" != "null" ]; check $? "self-service mint returns a personal key (201)"
+# A brand-new key takes a minute or two to reach the gateway's distributed
+# key cache (measured ~65s steady-state; longer right after infra changes).
+MINT_OK=1
+for i in $(seq 1 30); do
+  CODE=$(curl -sS -o /dev/null -w '%{http_code}' -H "x-api-key: $MINTED_KEY" "$SITE/v2/facilities?limit=1")
+  [ "$CODE" = "200" ] && { MINT_OK=0; break; }
+  sleep 6
+done
+check $MINT_OK "minted key admits requests on the visitor plan (200 within $((i*6))s)"
+
+# ---- 12. async exports (202 + Location → poll → presigned download) ----
+CODE=$(curl -sS -o /tmp/apx-badexp -w '%{http_code}' -X POST "$SITE/v2/exports" \
+  -H "x-api-key: $PARTNER_KEY" -H 'content-type: application/json' -d '{"service":"everything","format":"xml"}')
+[ "$CODE" = "400" ] && jq -e '.error == "validation_failed"' /tmp/apx-badexp > /dev/null
+check $? "bad export request rejected 400 by the gateway validator"
+ACCEPT_CODE=$(curl -sS -D /tmp/apx-exp-headers -o /tmp/apx-exp-body -w '%{http_code}' -X POST "$SITE/v2/exports" \
+  -H "x-api-key: $PARTNER_KEY" -H 'content-type: application/json' -d '{"service":"facilities","format":"json"}')
+JOB_PATH=$(tr -d '\r' < /tmp/apx-exp-headers | awk 'tolower($1)=="location:"{print $2}')
+[ "$ACCEPT_CODE" = "202" ] && [ -n "$JOB_PATH" ]; check $? "export accepted 202 with a Location header ($JOB_PATH)"
+EXPORT_OK=1
+for i in $(seq 1 15); do
+  JOB=$(curl -sS -H "x-api-key: $PARTNER_KEY" "$SITE$JOB_PATH")
+  JSTATUS=$(echo "$JOB" | jq -r '.data.status')
+  [ "$JSTATUS" = "done" ] && { EXPORT_OK=0; break; }
+  [ "$JSTATUS" = "failed" ] && break
+  sleep 2
+done
+check $EXPORT_OK "job reached done via polling (status: $JSTATUS)"
+DL_URL=$(echo "$JOB" | jq -r '.data.downloadUrl')
+curl -sS "$DL_URL" | jq -e '.count == 24 and (.items | length == 24)' > /dev/null
+check $? "presigned download serves the full facilities catalog (24 records)"
 
 echo
 echo "passed $PASS, failed $FAIL"

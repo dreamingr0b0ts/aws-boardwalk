@@ -4,7 +4,7 @@
 import type { APIGatewayProxyEvent } from 'aws-lambda';
 import { GetCommand } from '@aws-sdk/lib-dynamodb';
 import { ddb, listScan } from '../lib/ddb.js';
-import { BadRequest, envelope, json, notFound, pageLimit, route } from '../lib/http.js';
+import { BadRequest, cachedJson, envelope, json, notFound, pageLimit, route } from '../lib/http.js';
 
 const TABLE = process.env.TABLE_NAME!;
 const KEY_ATTRS = ['id'];
@@ -40,7 +40,7 @@ export const handler = route({
     const item = await getFacility(id);
     if (!item) return notFound(`Facility ${id}`);
     const { hours, ...rest } = item;
-    return json(200, { data: rest });
+    return cachedJson(event, { data: rest });
   },
 
   'GET /v2/facilities/{id}/hours': async (event) => {

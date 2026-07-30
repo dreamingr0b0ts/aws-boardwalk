@@ -42,3 +42,32 @@ variable "demo_burst_limit" {
   type        = number
   default     = 5
 }
+
+# --- self-service visitor keys (POST /v2/platform/keys) ----------------------
+# Worst case: visitor_keys_per_day × visitor_quota_per_day = 12,500 req/day,
+# all free-tier Lambda + DynamoDB reads — the caps bound nuisance, not spend.
+
+variable "visitor_quota_per_day" {
+  description = "Daily request quota on each self-issued visitor key"
+  type        = number
+  default     = 500
+}
+
+variable "visitor_keys_per_ip_per_day" {
+  description = "Personal keys one address may mint per day (verify.sh consumes one per run)"
+  type        = number
+  default     = 5
+}
+
+variable "visitor_keys_per_day" {
+  description = "Exchange-wide cap on personal keys minted per day"
+  type        = number
+  default     = 25
+}
+
+# --- async exports (POST /v2/exports) ----------------------------------------
+variable "exports_per_day" {
+  description = "Exchange-wide cap on export jobs per day (each is one small table scan + one small S3 object)"
+  type        = number
+  default     = 200
+}
