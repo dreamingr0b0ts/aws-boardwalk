@@ -6,16 +6,16 @@ locals {
   handlers = ["api", "etl"]
 
   lambda_env = {
-    LAKE_BUCKET        = aws_s3_bucket.lake.bucket
-    GLUE_DB            = aws_glue_catalog_database.lake.name
-    RAW_TABLE          = local.raw_table
-    CURATED_TABLE      = local.curated_table
-    ICEBERG_TABLE      = local.iceberg_table
-    RAW_PREFIX         = local.raw_prefix
-    CURATED_PREFIX     = local.curated_prefix
-    ICEBERG_PREFIX     = local.iceberg_prefix
-    ANALYTICS_PREFIX   = local.analytics_prefix
-    WORKGROUP          = aws_athena_workgroup.public.name
+    LAKE_BUCKET           = aws_s3_bucket.lake.bucket
+    GLUE_DB               = aws_glue_catalog_database.lake.name
+    RAW_TABLE             = local.raw_table
+    CURATED_TABLE         = local.curated_table
+    ICEBERG_TABLE         = local.iceberg_table
+    RAW_PREFIX            = local.raw_prefix
+    CURATED_PREFIX        = local.curated_prefix
+    ICEBERG_PREFIX        = local.iceberg_prefix
+    ANALYTICS_PREFIX      = local.analytics_prefix
+    WORKGROUP             = aws_athena_workgroup.public.name
     TABLE_NAME            = aws_dynamodb_table.app.name
     GLOBAL_DAILY_LIMIT    = tostring(var.global_daily_limit)
     SEARCH_IP_DAILY_LIMIT = tostring(var.search_ip_daily_limit)

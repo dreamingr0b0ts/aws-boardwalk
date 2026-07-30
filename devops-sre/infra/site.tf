@@ -68,9 +68,10 @@ resource "aws_cloudfront_response_headers_policy" "security" {
       override        = true
     }
     content_security_policy {
-      # Inline script fetches runbook/latest.json (same-origin); workflow
-      # status badges are served by github.com.
-      content_security_policy = "default-src 'self'; script-src 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://github.com; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+      # All page script lives in /app.js (no inline script at all); it talks
+      # only to same-origin /api/* and /runbook/. Workflow status badges are
+      # served by github.com.
+      content_security_policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://github.com; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
       override                = true
     }
   }
@@ -102,6 +103,18 @@ resource "aws_cloudfront_distribution" "site" {
     origin_access_control_id = aws_cloudfront_origin_access_control.site.id
   }
 
+  origin {
+    origin_id   = "exhibits-api"
+    domain_name = replace(aws_apigatewayv2_api.exhibits.api_endpoint, "https://", "")
+
+    custom_origin_config {
+      http_port              = 80
+      https_port             = 443
+      origin_protocol_policy = "https-only"
+      origin_ssl_protocols   = ["TLSv1.2"]
+    }
+  }
+
   default_cache_behavior {
     target_origin_id           = "site-s3"
     viewer_protocol_policy     = "redirect-to-https"
@@ -109,6 +122,33 @@ resource "aws_cloudfront_distribution" "site" {
     cached_methods             = ["GET", "HEAD"]
     compress                   = true
     cache_policy_id            = "658327ea-f89d-4fab-a63d-7e88639e58f6" # CachingOptimized
+    response_headers_policy_id = aws_cloudfront_response_headers_policy.security.id
+  }
+
+  # Same-origin exhibit API: the page calls /api/* on its own hostname, so no
+  # CORS anywhere. Host header must NOT be forwarded or API Gateway can't route.
+  ordered_cache_behavior {
+    path_pattern               = "/api/*"
+    target_origin_id           = "exhibits-api"
+    viewer_protocol_policy     = "https-only"
+    allowed_methods            = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
+    cached_methods             = ["GET", "HEAD"]
+    compress                   = true
+    cache_policy_id            = "4135ea2d-6df8-44a3-9df3-4b5a84be39ad" # CachingDisabled
+    origin_request_policy_id   = "b689b0a8-53d0-40ab-baf2-68738e2966ac" # AllViewerExceptHostHeader
+    response_headers_policy_id = aws_cloudfront_response_headers_policy.security.id
+  }
+
+  # Drill reports change on every run; the record card must never show a
+  # stale one.
+  ordered_cache_behavior {
+    path_pattern               = "/runbook/*"
+    target_origin_id           = "site-s3"
+    viewer_protocol_policy     = "redirect-to-https"
+    allowed_methods            = ["GET", "HEAD"]
+    cached_methods             = ["GET", "HEAD"]
+    compress                   = true
+    cache_policy_id            = "4135ea2d-6df8-44a3-9df3-4b5a84be39ad" # CachingDisabled
     response_headers_policy_id = aws_cloudfront_response_headers_policy.security.id
   }
 

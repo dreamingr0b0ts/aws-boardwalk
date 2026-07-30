@@ -40,3 +40,12 @@ output "runbook_state_machine_arn" {
 output "alerts_topic_arn" {
   value = aws_sns_topic.alerts.arn
 }
+
+output "exhibits_table" {
+  value = aws_dynamodb_table.exhibits.name
+}
+
+output "exhibits_api_endpoint" {
+  description = "Direct HTTP API endpoint (normal path is same-origin /api/* via CloudFront)"
+  value       = aws_apigatewayv2_api.exhibits.api_endpoint
+}

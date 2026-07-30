@@ -16,6 +16,7 @@
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<script src="/app.js" defer></script>
 <style>
   @font-face { font-family: 'Archivo'; src: url('/fonts/archivo-latin-400-normal.woff2') format('woff2');
                font-weight: 400; font-style: normal; font-display: swap; }
@@ -84,6 +85,7 @@
   }
 
   * { box-sizing: border-box; margin: 0; }
+  [hidden] { display: none !important; }
   body {
     background: var(--bg); color: var(--ink);
     font: 16px/1.58 'Archivo', ui-sans-serif, system-ui, sans-serif;
@@ -144,6 +146,8 @@
 
   h2 { font-size: 21px; font-weight: 800; letter-spacing: -.01em; }
   .sub { margin-top: 5px; color: var(--ink-3); font-size: 14px; max-width: 68ch; }
+  .sub code { font: 11.5px 'Martian Mono', ui-monospace, monospace; background: var(--chip-bg);
+              border-radius: 5px; padding: 2px 6px; }
   .panel p { margin-top: 12px; font-size: 14.5px; color: var(--ink-2); max-width: 72ch; }
   .badges { margin-top: 16px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
   .badges img { height: 20px; }
@@ -204,6 +208,83 @@
   .stat .d { font-size: 12px; color: var(--ink-3); }
   @media (max-width: 640px) { .stat + .stat { border-left: none; } }
 
+  /* ---- live exhibit kit: buttons, timeline, boards ---- */
+  .btn { font-family: 'Martian Mono', ui-monospace, monospace; font-size: 11px; font-weight: 700;
+         letter-spacing: .14em; text-transform: uppercase; color: #fff; background: var(--red);
+         border: 1px solid var(--red-deep); border-radius: 8px; padding: 10px 18px; cursor: pointer; }
+  .btn:hover:not(:disabled) { background: var(--red-deep); }
+  .btn:disabled { background: var(--chip-bg); color: var(--ink-3); border-color: var(--plan-ring); cursor: default; }
+  .controls { margin-top: 18px; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+  .clock { font-size: 15px; font-weight: 700; color: var(--red-ink); font-variant-numeric: tabular-nums; }
+  .exhibit-note { margin-top: 10px; font-family: 'Martian Mono', ui-monospace, monospace; font-size: 11px;
+                  color: var(--ink-3); line-height: 1.7; max-width: 78ch; }
+
+  .timeline { margin-top: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(150px,100%), 1fr)); gap: 8px; }
+  .stop { border: 1px solid var(--border); border-radius: 10px; padding: 10px 34px 10px 12px;
+          background: var(--chip-bg); position: relative; }
+  .stop .dot { position: absolute; top: 13px; right: 12px; width: 10px; height: 10px;
+               transform: rotate(45deg); background: var(--snow-line); border-radius: 1.5px; }
+  .stop .s-label { display: block; font-weight: 800; font-size: 13px; }
+  .stop .s-sub { display: block; font-family: 'Martian Mono', ui-monospace, monospace; font-size: 9.5px;
+                 letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); margin-top: 2px; }
+  .stop .s-time { display: block; font-family: 'Martian Mono', ui-monospace, monospace; font-size: 11px;
+                  margin-top: 6px; color: var(--ink-2); min-height: 1.2em; }
+  .stop.active { border-color: var(--amber); }
+  .stop.active .dot { background: var(--amber); }
+  @media (prefers-reduced-motion: no-preference) {
+    .stop.active .dot { animation: beacon 1.1s ease-in-out infinite alternate; }
+    @keyframes beacon { from { opacity: 1 } to { opacity: .25 } }
+  }
+  .stop.done { border-color: var(--live-ring); }
+  .stop.done .dot { background: var(--trail-green); }
+  .stop.failed { border-color: var(--fail-ring); }
+  .stop.failed .dot { background: var(--red); }
+
+  .board { margin-top: 18px; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .board-head { display: flex; justify-content: space-between; align-items: center; gap: 10px;
+                padding: 9px 16px; background: var(--chip-bg); }
+  .board-head .bh { font-family: 'Martian Mono', ui-monospace, monospace; font-size: 10px; font-weight: 700;
+                    letter-spacing: .18em; text-transform: uppercase; color: var(--ink-3); }
+  .board .exhibit-note { padding: 0 16px 12px; margin-top: 10px; }
+  .board-scroll { overflow-x: auto; }
+  table.sim { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  table.sim th { font-family: 'Martian Mono', ui-monospace, monospace; font-size: 9.5px; letter-spacing: .12em;
+                 text-transform: uppercase; color: var(--ink-3); text-align: left; padding: 9px 12px;
+                 border-top: 1px solid var(--border); }
+  table.sim td { padding: 7px 12px; border-top: 1px solid var(--border); vertical-align: middle;
+                 white-space: nowrap; }
+  table.sim td.msg { white-space: normal; overflow-wrap: anywhere; min-width: 14ch; }
+  table.sim td.mono, table.sim code { font-family: 'Martian Mono', ui-monospace, monospace; font-size: 10.5px; }
+  table.sim code { background: var(--chip-bg); border-radius: 4px; padding: 1px 5px; }
+  .okx { color: var(--trail-green); font-weight: 700; }
+  .badx { color: var(--fail-ink); font-weight: 700; }
+  .legs { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 12px 16px 2px; }
+  .legs-label { font-family: 'Martian Mono', ui-monospace, monospace; font-size: 10px; font-weight: 700;
+                letter-spacing: .14em; text-transform: uppercase; color: var(--ink-3); }
+
+  .ledger-total { display: flex; align-items: baseline; gap: 14px; padding: 16px 16px 8px; flex-wrap: wrap; }
+  .ledger-total .v { font-size: 34px; font-weight: 900; font-variant-numeric: tabular-nums; }
+  .ledger-total .d { font-family: 'Martian Mono', ui-monospace, monospace; font-size: 10.5px; color: var(--ink-3); }
+  .bars { padding: 8px 16px 16px; display: grid; gap: 7px; }
+  .bar-row { display: grid; grid-template-columns: minmax(0, 150px) minmax(40px, 1fr) 70px; gap: 10px; align-items: center; }
+  .bar-row .k { font-family: 'Martian Mono', ui-monospace, monospace; font-size: 10.5px; color: var(--ink-2);
+                overflow-wrap: anywhere; }
+  .bar-track { height: 10px; background: var(--chip-bg); border-radius: 5px; overflow: hidden; }
+  .bar-fill { height: 100%; background: var(--trail-blue); border-radius: 5px; }
+  .bar-row .v { font-family: 'Martian Mono', ui-monospace, monospace; font-size: 11px; text-align: right;
+                font-variant-numeric: tabular-nums; }
+
+  .marker.dblack { background: none; border-radius: 0; position: relative; width: 22px; transform: none; }
+  .marker.dblack::before, .marker.dblack::after { content: ""; position: absolute; top: 2px; width: 9px;
+    height: 9px; background: var(--trail-black); border-radius: 1.5px; transform: rotate(45deg); }
+  .marker.dblack::before { left: 1px; }
+  .marker.dblack::after { left: 12px; }
+  section.run-dblack ul.facts li::before { border-radius: 1.5px; background: var(--trail-black);
+                                           transform: rotate(45deg) scale(.95); }
+  .marker.amber { width: 16px; height: 11px; border-radius: 50%; background: var(--amber); }
+  section.hut ul.facts li::before { width: 11px; height: 8px; border-radius: 50%; background: var(--amber);
+                                    top: .5em; }
+
   /* ---- footer: the patrol hut ---- */
   footer { margin-top: 50px; background: var(--night); color: #aebfd1; font-size: 13px; }
   footer .rope-line { background:
@@ -238,7 +319,8 @@
     <p class="lede">This plank is the boardwalk's ski patrol. Every other environment ships through
     this pipeline and skis inside its boundary: <strong>keyless CI/CD</strong>, gated Terraform
     applies, security scanning on every change, one lookout over every run, and a rescue drill
-    that gets executed and timed, not just written down.</p>
+    that gets executed and timed, not just written down. Two of the levers are yours to pull:
+    run the beacon drill, or send patrol on the closing sweep, and watch the real thing move.</p>
     <div class="hero-meta">
       <div><strong>0 stored keys</strong><span>GitHub to AWS via OIDC</span></div>
       <div><strong>2 scanners</strong><span>Checkov + Trivy, every PR</span></div>
@@ -272,6 +354,19 @@
         alt="terraform pipeline status"></a>
       <a href="https://github.com/dreamingr0b0ts/aws-boardwalk/actions">all workflow runs →</a>
     </div>
+    <div class="board">
+      <div class="board-head"><span class="bh">Sweep log · recent runs on main</span>
+        <span class="chip idle" id="ci-stale" hidden>cached</span></div>
+      <div class="legs" id="ci-legs" hidden></div>
+      <div class="board-scroll">
+        <table class="sim" id="ci-table" hidden>
+          <thead><tr><th>Started</th><th>Change</th><th>Took</th><th>Result</th></tr></thead>
+          <tbody id="ci-rows"></tbody>
+        </table>
+      </div>
+      <p class="exhibit-note" id="ci-note">Reading the sweep log from GitHub…</p>
+      <p class="exhibit-note" id="ci-overnight" hidden></p>
+    </div>
     <ul class="facts">
       <li>The plan role is <strong>read-only</strong>. A malicious or buggy PR can see drift, never cause it.</li>
       <li>The apply role is only assumable through the repo's <code>prod</code> environment, and its IAM
@@ -298,11 +393,34 @@
     <p class="sub">Patrol does not assume the beacons work; they bury one and go find it, against a
     stopwatch. Same idea here: a Step Functions state machine snapshots the live permits table,
     restores it into a scratch table, verifies every item survived, tears the copy down, and
-    publishes the timed evidence below.</p>
+    publishes the timed evidence below. The button runs the real state machine in the account,
+    not a replay.</p>
+    <div class="controls">
+      <button class="btn" id="drill-btn">Run the beacon drill</button>
+      <span class="clock mono" id="drill-clock" hidden>0:00</span>
+      <span class="exhibit-note" id="drill-usage"></span>
+    </div>
+    <p class="exhibit-note" id="drill-note">One drill at a time; extra visitors join the drill
+    under way. A full drill takes about five minutes, and every stage below is read live from
+    the Step Functions execution history.</p>
+    <div class="timeline" id="drill-timeline">
+      <div class="stop" data-stage="snapshot"><span class="dot" aria-hidden="true"></span>
+        <span class="s-label">Bury the beacon</span><span class="s-sub">snapshot the live table</span>
+        <span class="s-time"></span></div>
+      <div class="stop" data-stage="restore"><span class="dot" aria-hidden="true"></span>
+        <span class="s-label">Probe line</span><span class="s-sub">restore to scratch table</span>
+        <span class="s-time"></span></div>
+      <div class="stop" data-stage="verify"><span class="dot" aria-hidden="true"></span>
+        <span class="s-label">Strike</span><span class="s-sub">verify item for item</span>
+        <span class="s-time"></span></div>
+      <div class="stop" data-stage="cleanup"><span class="dot" aria-hidden="true"></span>
+        <span class="s-label">Pack out</span><span class="s-sub">delete copy and snapshot</span>
+        <span class="s-time"></span></div>
+    </div>
     <div class="report" id="report">
       <div class="report-band" aria-hidden="true"><span class="dia"></span><span>Drill record · timed &amp; verified</span></div>
       <div class="report-head">
-        <span id="report-when">No drill report loaded yet. Run <code>make drill</code>.</span>
+        <span id="report-when">No drill report loaded yet. The button above runs one.</span>
         <span class="chip idle" id="report-chip">awaiting first drill</span>
       </div>
       <div class="stats" id="report-stats" hidden>
@@ -319,7 +437,38 @@
 
   <section class="panel run-black">
     <div class="plate"><span class="marker black" aria-hidden="true"></span>
-      <span class="sign">Run 03 · The lookout</span><span class="rule" aria-hidden="true"></span></div>
+      <span class="sign">Run 03 · The closing sweep</span><span class="rule" aria-hidden="true"></span></div>
+    <h2>Send patrol over every live plank, and watch</h2>
+    <p class="sub">At the end of the day patrol skis every run to confirm nobody is left on the
+    mountain. This button dispatches that sweep for real: a Lambda visits all thirteen live
+    boardwalk sites in order, and each row below fills in as patrol reports back with status,
+    response time, page weight, and whether the site is wearing its required security headers.</p>
+    <div class="controls">
+      <button class="btn" id="sweep-btn">Send patrol on the closing sweep</button>
+      <span class="exhibit-note" id="sweep-usage"></span>
+    </div>
+    <p class="exhibit-note" id="sweep-note">One sweep at a time; extra visitors watch the sweep
+    under way. The whole run takes about twenty seconds.</p>
+    <div class="board">
+      <div class="board-scroll">
+        <table class="sim" id="sweep-table" hidden>
+          <thead><tr><th>Site</th><th>Status</th><th>Answered in</th><th>Weight</th>
+            <th>HSTS</th><th>CSP</th><th>Edge</th></tr></thead>
+          <tbody id="sweep-rows"></tbody>
+        </table>
+      </div>
+    </div>
+    <ul class="facts">
+      <li>Every check is a plain HTTPS request from the patrol Lambda: what a first-time visitor
+          would experience, measured, not assumed.</li>
+      <li>HSTS and CSP columns prove the boardwalk's security-header policy is actually deployed
+          on every plank, not just written in the standards.</li>
+    </ul>
+  </section>
+
+  <section class="panel run-dblack">
+    <div class="plate"><span class="marker dblack" aria-hidden="true"></span>
+      <span class="sign">Run 04 · The lookout</span><span class="rule" aria-hidden="true"></span></div>
     <h2>Observability: one pane over every plank</h2>
     <p>From the top of the lift you can see every run on the mountain. A CloudWatch dashboard tracks
     CloudFront traffic and error rates, API latency (p95), Lambda errors, DynamoDB capacity, and
@@ -331,6 +480,41 @@
     <ul class="facts">
       <li>Dashboards, alarms, and traces live in the AWS console; this page is the public, read-only view.</li>
       <li>Everything here fits the boardwalk's standing rule: idle cost ≈ $0, spend only during demos.</li>
+    </ul>
+  </section>
+
+  <section class="panel hut">
+    <div class="plate"><span class="marker amber" aria-hidden="true"></span>
+      <span class="sign">Patrol hut · The season ledger</span><span class="rule" aria-hidden="true"></span></div>
+    <h2>What the whole mountain costs to run</h2>
+    <p class="sub">Cost discipline is an operations practice, so it gets a public board. Every
+    resource on the boardwalk carries an <code>env</code> tag naming its plank; Cost Explorer
+    reads the month to date straight off those tags. Twelve live environments, and this is the
+    entire bill.</p>
+    <div class="board" id="cost-board" hidden>
+      <div class="ledger-total">
+        <span class="v" id="cost-total">—</span>
+        <span class="d" id="cost-asof"></span>
+      </div>
+      <div id="cost-env-wrap" hidden>
+        <div class="bars" id="cost-env-bars"></div>
+      </div>
+      <p class="exhibit-note" id="cost-env-note" hidden>Per-plank attribution is still backfilling:
+      the cost allocation tag was activated recently and AWS takes about a day to re-slice the
+      month. The service totals below are complete in the meantime.</p>
+      <div class="board-scroll">
+        <table class="sim" id="cost-svc-table" hidden>
+          <thead><tr><th>Service</th><th>Month to date</th></tr></thead>
+          <tbody id="cost-svc-rows"></tbody>
+        </table>
+      </div>
+    </div>
+    <p class="exhibit-note" id="cost-note">Tallying the ledger…</p>
+    <ul class="facts">
+      <li>The tripwire budget alerts at $15/month of infrastructure spend and a hard cap budget
+          watches $100 all-in; this board is the same discipline, posted where visitors can see it.</li>
+      <li>The expensive habit this proves out: scale-to-zero everything, deploy demos on demand,
+          tear them down the same day, and let the ledger keep everyone honest.</li>
     </ul>
   </section>
 
@@ -348,7 +532,7 @@
     <div>
       <p class="foot-head">Environment</p>
       <ul class="foot-list">
-        <li>AWS: CloudWatch · X-Ray · Synthetics · Step Functions</li>
+        <li>AWS: CloudWatch · X-Ray · Synthetics · Step Functions · Cost Explorer</li>
         <li>GitHub Actions with OIDC, no stored keys</li>
         <li>Infrastructure as code: Terraform</li>
       </ul>
@@ -365,29 +549,6 @@
   <div class="foot-bar">Fictional demo built by Planetek. Not affiliated with any real government agency
   or ski area. Photos by Jim Moriarty and Marek Piwnicki on Unsplash.</div>
 </footer>
-
-<script>
-  (async () => {
-    try {
-      const r = await fetch('/runbook/latest.json', { cache: 'no-store' });
-      if (!r.ok) return;
-      const rep = await r.json();
-      const chip = document.getElementById('report-chip');
-      const pass = rep.result === 'PASS';
-      chip.textContent = pass ? 'pass' : 'fail';
-      chip.className = 'chip ' + (pass ? 'pass' : 'fail');
-      document.getElementById('report-when').textContent =
-        'Last drill: ' + new Date(rep.completedAt).toLocaleString() + ' · execution ' + rep.execution;
-      const fmt = (s) => s == null ? '—' : (s < 90 ? s + 's' : Math.round(s / 6) / 10 + ' min');
-      document.getElementById('rto').textContent = fmt(rep.rtoSeconds);
-      document.getElementById('rpo').textContent = rep.pointInTimeRecovery?.enabled
-        ? fmt(rep.pointInTimeRecovery.rpoSeconds) : 'PITR off';
-      document.getElementById('items').textContent =
-        rep.itemCounts.restored + ' / ' + rep.itemCounts.source;
-      document.getElementById('report-stats').hidden = false;
-    } catch (e) { /* page still works without a report */ }
-  })();
-</script>
 
 </body>
 </html>

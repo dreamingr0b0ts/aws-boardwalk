@@ -86,6 +86,85 @@ TRACING=$(aws lambda get-function-configuration --function-name ops-runbook-veri
   --query 'TracingConfig.Mode' --output text)
 [ "$TRACING" = "Active" ]; check $? "runbook Lambda has X-Ray active tracing"
 
+# ---- 8. live exhibits: status, sweep log, season ledger ----
+# Note: this section spends 1 of the day's 10 drills and 1 of its 30 sweeps.
+grep -q 'script-src .self.' <(curl -sS -D - -o /dev/null "$SITE/") || [ $? -eq 141 ]
+check $? "CSP allows only same-origin script (no inline)"
+curl -sS "$SITE/app.js" | head -c 200 | grep -q "Boardwalk Ops page script" || [ $? -eq 141 ]
+check $? "app.js served from the site origin"
+
+STATUS=$(curl -sS "$SITE/api/status")
+[ "$(echo "$STATUS" | jq -r '.sites')" = "13" ]; check $? "exhibit API answers; sweep covers 13 sites"
+[ "$(echo "$STATUS" | jq -r '.drill.limit')" = "10" ] && [ "$(echo "$STATUS" | jq -r '.sweep.limit')" = "30" ]
+check $? "day-book caps wired (10 drills / 30 sweeps)"
+
+CI=$(curl -sS "$SITE/api/ci")
+[ "$(echo "$CI" | jq '.runs | length')" -ge 1 ] 2>/dev/null; check $? "sweep log lists pipeline runs from GitHub"
+echo "$CI" | jq -e '.legs.plan.total >= 1' > /dev/null 2>&1; check $? "sweep log aggregates the latest run's legs"
+
+COST=$(curl -sS "$SITE/api/cost")
+for _ in 1 2 3 4; do
+  echo "$COST" | jq -e '.total' > /dev/null 2>&1 && break
+  sleep 5; COST=$(curl -sS "$SITE/api/cost")
+done
+echo "$COST" | jq -e '.total >= 0' > /dev/null 2>&1; check $? "season ledger has a month-to-date total (\$$(echo "$COST" | jq -r '.total'))"
+[ "$(echo "$COST" | jq '.byService | length')" -ge 1 ] 2>/dev/null; check $? "season ledger breaks the bill down by service"
+
+# ---- 9. the closing sweep, end to end ----
+SW=$(curl -sS -X POST "$SITE/api/sweep")
+SWID=$(echo "$SW" | jq -r '.runId // empty')
+[ -n "$SWID" ]; check $? "closing sweep dispatched ($SWID)"
+if [ -n "$SWID" ]; then
+  SW2=$(curl -sS -X POST "$SITE/api/sweep")
+  [ "$(echo "$SW2" | jq -r '.runId // empty')" = "$SWID" ]
+  check $? "second sweep POST gets a 409 carrying the sweep under way"
+  SWDONE=""
+  for _ in $(seq 1 30); do
+    sleep 3
+    SWRUN=$(curl -sS "$SITE/api/sweep/$SWID")
+    SWDONE=$(echo "$SWRUN" | jq -r '.status')
+    [ "$SWDONE" = "running" ] || break
+  done
+  [ "$SWDONE" = "done" ]; check $? "sweep completed ($SWDONE)"
+  SWOK=$(echo "$SWRUN" | jq -r '.summary.ok')
+  [ "$SWOK" = "$(echo "$SWRUN" | jq -r '.summary.total')" ]
+  check $? "sweep found every site clear ($SWOK of $(echo "$SWRUN" | jq -r '.summary.total'))"
+else
+  bad "sweep 409/completion checks skipped (no runId)"
+fi
+
+# ---- 10. the beacon drill through the visitor lever ----
+DR=$(curl -sS -X POST "$SITE/api/drill")
+DID=$(echo "$DR" | jq -r '.runId // empty')
+[ -n "$DID" ]; check $? "beacon drill dispatched ($DID)"
+if [ -n "$DID" ]; then
+  DR2=$(curl -sS -X POST "$SITE/api/drill")
+  [ "$(echo "$DR2" | jq -r '.runId // empty')" = "$DID" ]
+  check $? "second drill POST gets a 409 carrying the drill under way"
+  DSTATUS=""
+  for _ in $(seq 1 40); do
+    sleep 15
+    DRUN=$(curl -sS "$SITE/api/drill/$DID")
+    DSTATUS=$(echo "$DRUN" | jq -r '.status')
+    [ "$DSTATUS" = "RUNNING" ] || break
+  done
+  [ "$DSTATUS" = "SUCCEEDED" ]; check $? "visitor drill succeeded ($DSTATUS)"
+  [ "$(echo "$DRUN" | jq -r '.report.result')" = "PASS" ]; check $? "visitor drill report says PASS"
+  [ "$(echo "$DRUN" | jq '[.stages[] | select(.status == "done")] | length')" = "4" ]
+  check $? "all four drill stages read done from the execution history"
+  [ "$(curl -sS "$SITE/runbook/latest.json" | jq -r '.execution')" = "web-$DID" ]
+  check $? "visitor drill published as the drill of record"
+  # DeleteTable is async; the scratch table sits in DELETING briefly.
+  GONE=1
+  for _ in $(seq 1 12); do
+    if ! aws dynamodb describe-table --table-name ops-restore-drill > /dev/null 2>&1; then GONE=0; break; fi
+    sleep 10
+  done
+  [ "$GONE" = "0" ]; check $? "visitor drill packed out the scratch table"
+else
+  bad "drill 409/completion checks skipped (no runId)"
+fi
+
 echo
 echo "passed $PASS, failed $FAIL"
 [ "$FAIL" = "0" ]

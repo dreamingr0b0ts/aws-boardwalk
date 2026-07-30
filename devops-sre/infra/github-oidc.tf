@@ -97,6 +97,14 @@ resource "aws_iam_role_policy" "gh_plan_state" {
           StringEquals = { "kms:ViaService" = "ssm.${local.region}.amazonaws.com" }
         }
       },
+      {
+        # ReadOnlyAccess predates some newer Bedrock read actions; refreshing
+        # plank 12's guardrail state needs this one.
+        Sid      = "BedrockReadTags"
+        Effect   = "Allow"
+        Action   = ["bedrock:ListTagsForResource"]
+        Resource = "arn:aws:bedrock:${local.region}:${local.account_id}:guardrail/*"
+      },
     ]
   })
 }

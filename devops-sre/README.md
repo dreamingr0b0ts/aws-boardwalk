@@ -12,6 +12,10 @@
 | Observability | CloudWatch dashboard `ops-boardwalk` (CloudFront, API p95, Lambda errors, DynamoDB, Bedrock), 4 alarms → SNS email, X-Ray tracing on the runbook Lambda + Step Functions. |
 | Synthetic monitoring | CloudWatch Synthetics heartbeat over every live plank, **parked by default** (`make canary-start` / `canary-stop` around demo windows). |
 | Resilience runbook | Step Functions drill: snapshot the live permits table → restore to a scratch table → verify item-for-item → clean up → publish **measured RTO/RPO** to the status page. |
+| **Visitor drill** | The page's *Run the beacon drill* button starts that same state machine for real; the four stages render live from `GetExecutionHistory`, then the timed report lands on the record card. One at a time (extra POSTs 409-attach to the run under way), 10/day. |
+| **Closing sweep** | *Send patrol on the closing sweep* dispatches a Lambda over all 13 live sites in order: status, latency, page weight, HSTS/CSP presence, edge cache. One at a time, 30/day, free. |
+| **Sweep log** | Recent `terraform.yml` runs on main (plus the overnight demo-window sweep), proxied and shaped from the GitHub API with a 5-minute memo and a cached fallback. |
+| **Season ledger** | Month-to-date spend for the whole boardwalk from Cost Explorer, grouped by the `env` cost allocation tag and by service. Memoized in DynamoDB, refreshed at most once a day on visit (2 calls × $0.01). |
 
 ## Operating it
 
@@ -37,6 +41,9 @@ make canary-stop   # after: idle cost back to ~$0
 
 Idle ≈ **$0**: the dashboard and alarms are inside the free tier, the canary is stopped,
 the drill is on-demand (each run ≈ a cent), and the status page is S3 + CloudFront pennies.
+Worst case for the visitor exhibits: 10 drills/day ≈ $0.10, one Cost Explorer refresh $0.02,
+sweeps and the CI board free. The `env` cost allocation tag was activated 2026-07-30 (with a
+backfill to July 1); per-plank attribution on the ledger fills in as AWS re-slices the month.
 
 ## Design
 
