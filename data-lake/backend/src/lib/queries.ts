@@ -6,6 +6,8 @@
 const DB = process.env.GLUE_DB!;
 const RAW = `${DB}.${process.env.RAW_TABLE!}`;
 const CURATED = `${DB}.${process.env.CURATED_TABLE!}`;
+const ICEBERG = `${DB}.${process.env.ICEBERG_TABLE ?? 'business_entities_iceberg'}`;
+const ICEBERG_BARE = process.env.ICEBERG_TABLE ?? 'business_entities_iceberg';
 
 export const dropCurated = `DROP TABLE IF EXISTS ${CURATED}`;
 
@@ -196,6 +198,61 @@ GROUP BY entitystatus ORDER BY entities DESC`,
 ];
 
 export const catalogById = new Map(catalog.map((q) => [q.id, q]));
+
+// ---- the time machine: an Apache Iceberg copy of the curated zone ----
+// The ETL rebuilds it every run: CTAS (snapshot 1, 'append'), then ONE ACID
+// UPDATE (snapshot 2, 'overwrite') that files the most common misspellings of
+// three city names under their proper spellings. Both versions stay queryable
+// via FOR VERSION AS OF; the exhibit runs the same GROUP BY against each.
+// Variants are an enumerated allowlist drawn from the real data, not a fuzzy
+// match: normalization you can defend line by line.
+export const cityCorrections: Record<string, string[]> = {
+  'COLORADO SPRINGS': [
+    'COLO SPGS', 'COLORADO SPGS', 'COLORADO SPRING', 'COLORADO SPRINGS,', 'COLO SPRINGS',
+    'CO SPRINGS', 'COLORADO SPINGS', 'COLORADO  SPRINGS', 'COLORADOSPRINGS',
+    'COLORADO SPRINGS, CO', 'COLORDO SPRINGS', 'CO SPGS', 'COLORADO SPRINGS CO',
+  ],
+  'FORT COLLINS': ['FT COLLINS', 'FT. COLLINS'],
+  DENVER: ['DENVER,', 'DENEVR', 'DEVNER', 'DENVR', 'DENVERR'],
+};
+
+const allVariants = Object.values(cityCorrections).flat();
+const inList = (vals: string[]) => vals.map((v) => `'${v.replaceAll("'", "''")}'`).join(', ');
+
+export const dropIceberg = `DROP TABLE IF EXISTS ${ICEBERG}`;
+
+export function icebergCtas(lakeBucket: string, icebergPrefix: string): string {
+  return `CREATE TABLE ${ICEBERG}
+WITH (
+  table_type = 'ICEBERG',
+  is_external = false,
+  location = 's3://${lakeBucket}/${icebergPrefix}/',
+  format = 'PARQUET'
+) AS SELECT * FROM ${CURATED}`;
+}
+
+export const icebergCountFixable = `SELECT count(*) AS n FROM ${ICEBERG} WHERE city IN (${inList(allVariants)})`;
+
+export const icebergUpdate = `UPDATE ${ICEBERG}
+SET city = CASE
+  WHEN city IN (${inList(cityCorrections['FORT COLLINS'])}) THEN 'FORT COLLINS'
+  WHEN city IN (${inList(cityCorrections.DENVER)}) THEN 'DENVER'
+  ELSE 'COLORADO SPRINGS'
+END
+WHERE city IN (${inList(allVariants)})`;
+
+export const icebergSnapshots = `SELECT snapshot_id, committed_at, operation
+FROM "${ICEBERG_BARE}$snapshots" ORDER BY committed_at`;
+
+/** The same aggregation against a pinned snapshot (versionId) or the current
+    table (null). versionId is a server-held snapshot id from the ETL's
+    ledger, never visitor input. */
+export function timeTravelSql(versionId: string | null): string {
+  return `SELECT city, count(*) AS entities
+FROM ${ICEBERG}${versionId ? ` FOR VERSION AS OF ${versionId}` : ''}
+WHERE city IN (${inList([...Object.keys(cityCorrections), ...allVariants])})
+GROUP BY city ORDER BY entities DESC`;
+}
 
 // The name lookup: the one visitor-influenced query in the plank. The `?` is
 // an Athena execution parameter — the API binds a server-built, quoted,

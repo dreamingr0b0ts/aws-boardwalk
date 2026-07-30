@@ -272,7 +272,30 @@ async function loadSummary() {
   hbarChart($('chart-cities'), s.top_cities.rows.slice(0, 8).map((r) => ({ label: titleCase(r[0]), value: +r[1] })), 'in Good Standing');
   lineChart($('chart-survival'), s.cohort_survival.rows.map((r) => ({ x: +r[0], formed: +r[1], y: (100 * +r[2]) / +r[1] })));
 
+  renderIceLedger(s.iceberg);
   updateUsage(s.usage);
+}
+
+/* ---- the time machine's ledger: the Iceberg snapshots the ETL committed ---- */
+function renderIceLedger(ice) {
+  if (!ice?.snapshots?.length) {
+    $('ice-ledger').textContent = 'The ledger fills in after the next ETL run rebuilds the Iceberg table.';
+    $('ice-btn').disabled = true;
+    return;
+  }
+  $('ice-fixcount').textContent = fmt(ice.correctedRows);
+  const labels = { append: 'CTAS loaded the lake', overwrite: 'one UPDATE corrected the record' };
+  $('ice-ledger').replaceChildren(
+    ...ice.snapshots.map((s, i) => {
+      const row = document.createElement('div');
+      row.className = 'ice-snap';
+      row.innerHTML =
+        `<span class="ice-op">${i + 1} · ${s.operation}</span>` +
+        `<span class="ice-what">${labels[s.operation] ?? s.operation}</span>` +
+        `<span class="ice-meta">snapshot ${s.id} · ${s.committedAt.slice(0, 19).replace('T', ' ')} UTC</span>`;
+      return row;
+    })
+  );
 }
 
 function updateUsage(u) {
@@ -350,7 +373,7 @@ function renderGlass(mount, r) {
     note.className = 'muted small';
     note.textContent = 'The raw zone has no partitions and no columns: one gzipped JSONL stream, so the engine decompressed and read every byte of every record.';
     mount.append(note);
-  } else if (detail?.length) {
+  } else if (r.zone === 'curated' && detail?.length) {
     const touched = new Set(r.decades ?? detail.map((p) => p.decade));
     const total = detail.reduce((a, p) => a + p.bytes, 0);
     const wrap = document.createElement('div');
@@ -486,6 +509,37 @@ $('search-form').addEventListener('submit', async (e) => {
   } finally {
     btn.disabled = false;
     btn.textContent = 'Search the lake';
+  }
+});
+
+/* ---- the time machine ---- */
+$('ice-btn').addEventListener('click', async () => {
+  const btn = $('ice-btn');
+  btn.disabled = true;
+  btn.textContent = 'Reading both snapshots…';
+  $('ice-error').hidden = true;
+  try {
+    const before = await runQuery('time-travel-before');
+    const after = await runQuery('time-travel-after');
+    $('ice-sql').textContent = before.sql;
+    renderTable(before, $('ice-before'));
+    renderTable(after, $('ice-after'));
+    $('ice-before-cap').textContent = `Before: FOR VERSION AS OF ${before.snapshot.id} (${before.rows.length} spellings)`;
+    $('ice-after-cap').textContent = `After: the current table (${after.rows.length} spellings)`;
+    const sum = (r) => r.rows.reduce((a, row) => a + Number(row[1] ?? 0), 0);
+    const conserved = sum(before) === sum(after);
+    $('ice-verdict').textContent =
+      `One UPDATE, two snapshots: ${before.rows.length - after.rows.length} stray spellings folded into their proper cities` +
+      (conserved ? `, and the totals reconcile exactly (${fmt(sum(before))} rows in both charts).` : '.') +
+      ' The old chart still answers.';
+    renderGlass($('ice-glass'), after);
+    $('ice-out').hidden = false;
+  } catch (err) {
+    $('ice-error').textContent = err.message;
+    $('ice-error').hidden = false;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Open both charts in Athena';
   }
 });
 

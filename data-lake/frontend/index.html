@@ -187,9 +187,39 @@
     </div>
   </section>
 
+  <!-- The time machine: Apache Iceberg snapshots -->
+  <section class="panel">
+    <p class="sect-label">Sounding 07 · The time machine</p>
+    <h2>The lake keeps its old charts</h2>
+    <p class="muted">The fourth zone is an <strong>Apache Iceberg</strong> copy of the curated table: the
+    format that gives plain S3 files ACID transactions, snapshots, and schema evolution, with no warehouse
+    involved. Each ETL run rebuilds it and then repairs the record with one <code>UPDATE</code>: the most
+    common misspellings of three city names (<span id="ice-fixcount">a few thousand</span> rows, from an
+    enumerated list, not a fuzzy match) get filed under their proper spelling. That leaves two snapshots,
+    and both stay queryable.</p>
+    <div class="ice-ledger" id="ice-ledger"></div>
+    <button id="ice-btn" type="button">Open both charts in Athena</button>
+    <p id="ice-error" class="error" hidden></p>
+    <div id="ice-out" hidden>
+      <pre class="sql"><code id="ice-sql"></code></pre>
+      <div class="ice-grid">
+        <figure class="chart">
+          <figcaption id="ice-before-cap">Before the correction</figcaption>
+          <div class="results-scroll"><table id="ice-before"></table></div>
+        </figure>
+        <figure class="chart">
+          <figcaption id="ice-after-cap">After the correction</figcaption>
+          <div class="results-scroll"><table id="ice-after"></table></div>
+        </figure>
+      </div>
+      <p class="race-verdict" id="ice-verdict"></p>
+      <div class="glass" id="ice-glass"></div>
+    </div>
+  </section>
+
   <!-- How it's built -->
   <section class="panel">
-    <p class="sect-label">Sounding 07 · The rigging</p>
+    <p class="sect-label">Sounding 08 · The rigging</p>
     <h2>How this is built</h2>
     <div class="arch">
       <span class="chip">S3 raw / curated / analytics zones</span>
@@ -199,6 +229,7 @@
       <span class="chip">query runtime statistics</span>
       <span class="chip">enforced workgroup + scan cutoff</span>
       <span class="chip">Parquet, partitioned by decade</span>
+      <span class="chip">Apache Iceberg: ACID + time travel</span>
       <span class="chip">Lambda (Node 22, arm64)</span>
       <span class="chip">DynamoDB result cache + daily caps</span>
       <span class="chip">CloudFront + same-origin API</span>

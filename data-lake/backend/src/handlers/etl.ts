@@ -12,13 +12,17 @@ import {
   PutObjectCommand,
 } from '@aws-sdk/client-s3';
 import { runQuery, runAndFetch } from '../lib/athena';
-import { dropCurated, ctas, aggregates, countRows } from '../lib/queries';
+import {
+  dropCurated, ctas, aggregates, countRows,
+  dropIceberg, icebergCtas, icebergCountFixable, icebergUpdate, icebergSnapshots, cityCorrections,
+} from '../lib/queries';
 
 const s3 = new S3Client({});
 
 const BUCKET = process.env.LAKE_BUCKET!;
 const RAW_PREFIX = process.env.RAW_PREFIX!;
 const CURATED_PREFIX = process.env.CURATED_PREFIX!;
+const ICEBERG_PREFIX = process.env.ICEBERG_PREFIX!;
 const ANALYTICS_PREFIX = process.env.ANALYTICS_PREFIX!;
 
 const ETL_OPTS = { pollMs: 2000, deadlineMs: 840_000 };
@@ -87,6 +91,30 @@ export async function handler() {
     aggStats[name] = { rows: res.rows.length, bytesScanned: res.stats.bytesScanned };
   }
 
+  // 3b. the time machine: rebuild the Iceberg copy, count what's fixable,
+  // then correct it with ONE ACID UPDATE. CTAS commits snapshot 1 ('append'),
+  // the UPDATE commits snapshot 2 ('overwrite'); the ledger goes to the
+  // analytics zone so the exhibit can pin FOR VERSION AS OF queries to real
+  // snapshot ids. DROP on an is_external=false table purges its data files;
+  // clearPrefix is belt and braces for interrupted runs.
+  await runQuery(dropIceberg, ETL_OPTS);
+  await clearPrefix(ICEBERG_PREFIX);
+  const iceRun = await runQuery(icebergCtas(BUCKET, ICEBERG_PREFIX), ETL_OPTS);
+  const fixable = await runAndFetch(icebergCountFixable, 1, ETL_OPTS);
+  const updRun = await runQuery(icebergUpdate, ETL_OPTS);
+  const snaps = await runAndFetch(icebergSnapshots, 10, ETL_OPTS);
+  const iceberg = {
+    table: process.env.ICEBERG_TABLE ?? 'business_entities_iceberg',
+    builtAt: new Date().toISOString(),
+    correctedRows: Number(fixable.rows[0]?.[0] ?? 0),
+    corrections: cityCorrections,
+    ctasMs: iceRun.stats.totalMs,
+    updateMs: updRun.stats.totalMs,
+    snapshots: snaps.rows.map(([id, committedAt, operation]) => ({ id, committedAt, operation })),
+  };
+  await putJson(`${ANALYTICS_PREFIX}/iceberg.json`, iceberg);
+  console.log(`iceberg rebuilt: ${iceberg.correctedRows} rows corrected across ${iceberg.snapshots.length} snapshots`);
+
   // 4. manifest — including the count(*) that scans zero bytes (Parquet
   // answers it from row-group metadata). Two lists on purpose: a delimited
   // list rolls files up into CommonPrefixes (that's the partition count),
@@ -122,6 +150,7 @@ export async function handler() {
       format: 'Parquet + Snappy, partitioned by decade',
     },
     ctas: { ms: ctasRun.stats.totalMs, bytesScanned: ctasRun.stats.bytesScanned },
+    iceberg: { snapshots: iceberg.snapshots.length, correctedRows: iceberg.correctedRows },
     aggregates: aggStats,
   };
   await putJson(`${ANALYTICS_PREFIX}/manifest.json`, manifest);

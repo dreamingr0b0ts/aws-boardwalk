@@ -13,8 +13,11 @@ data.colorado.gov ── ingest (local, make ingest) ──► S3 raw/  (JSONL +
                                                         ▼
                               dla-etl Lambda: one Athena CTAS ──► S3 curated/  (Parquet + Snappy,
                                     + precomputed aggregates          partitioned by decade)
-                                                        │
-                                                        ▼ S3 analytics/ (dashboard JSON)
+                                                        │                 │
+                                                        │                 ▼ CTAS + one ACID UPDATE
+                                                        │             S3 iceberg/ (Apache Iceberg,
+                                                        │                 two snapshots, time travel)
+                                                        ▼ S3 analytics/ (dashboard JSON + snapshot ledger)
 CloudFront (data.demos…) ──► static dashboard ──► /api/* ──► dla-api Lambda
                                                               ├─ GET  /api/summary  (analytics zone, $0)
                                                               ├─ GET  /api/queries  (canned catalog)
@@ -47,6 +50,12 @@ CloudFront (data.demos…) ──► static dashboard ──► /api/* ──►
 - **The depth chart:** a bathymetric map of ZIP-level density (Good Standing entities at
   Census ZCTA centroids over county lines), precomputed by the ETL, drawn from vendored
   public-domain Census geometry (`scripts/build-geo.mjs` refreshes it).
+- **The time machine (Apache Iceberg):** the ETL copies the curated table into an Iceberg
+  table (CTAS, snapshot 1), then repairs ~5.4k rows of real city-name misspellings with ONE
+  ACID `UPDATE` (snapshot 2) — an enumerated variant list, not a fuzzy match. The exhibit
+  runs the identical aggregation `FOR VERSION AS OF` each snapshot: 23 spellings collapse to
+  3 and the totals reconcile exactly. Snapshot ids come from the ETL's ledger in the
+  analytics zone, never from the visitor.
 
 ## Cost
 
@@ -65,7 +74,7 @@ the same global budget, plus a **30/day per-IP** counter). No credential gate ne
 | `make deploy` | build lambdas, apply Terraform, publish frontend |
 | `make seed` | `ingest` (source → raw zone, ~5 min) + `etl` (CTAS rebuild + aggregates) |
 | `make etl` | rebuild curated zone + analytics from the current raw snapshot |
-| `make verify` | 40-check end-to-end suite against the live site |
+| `make verify` | 46-check end-to-end suite against the live site |
 | `make destroy` | tear down (lake bucket force-destroys) |
 
 The snapshot is deliberately static between refreshes (`make seed` re-pulls the source);
@@ -101,3 +110,11 @@ via CDN params and self-hosted in `frontend/images/`.
   the lake but only the etl role can write the curated zone or touch its catalog entry.
 - Socrata ingest uses **keyset pagination on `entityid`** (`$where=entityid > last`), not
   `$offset` — deep offsets crawl and can skip/duplicate rows mid-update.
+- Athena parses each **execution parameter as one expression in the `?` position** — an
+  injection-shaped value (`'x' OR '1'='1'`) fails with TYPE_MISMATCH instead of widening
+  the WHERE. Verified live before shipping the lookup.
+- **`DROP TABLE` on an `is_external=false` Iceberg table purges its S3 data files** — the
+  ETL's clearPrefix after the drop is only insurance against interrupted runs.
+- Iceberg time travel (`FOR VERSION AS OF`) runs fine in an **enforced workgroup** — only
+  CTAS `external_location` is rejected there, so visitors can read snapshots through
+  `dla-public` while the ETL writes through `dla-etl`.

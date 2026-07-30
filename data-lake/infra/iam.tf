@@ -78,6 +78,7 @@ resource "aws_iam_role_policy" "api_all" {
         Resource = [
           "${aws_s3_bucket.lake.arn}/${local.raw_prefix}/*",
           "${aws_s3_bucket.lake.arn}/${local.curated_prefix}/*",
+          "${aws_s3_bucket.lake.arn}/${local.iceberg_prefix}/*",
           "${aws_s3_bucket.lake.arn}/${local.analytics_prefix}/*",
         ]
       },
@@ -135,12 +136,14 @@ resource "aws_iam_role_policy" "etl_all" {
         Resource = "${aws_s3_bucket.lake.arn}/${local.raw_prefix}/*"
       },
       {
-        # Rebuilds start clean: delete the old Parquet, let CTAS write the new.
+        # Rebuilds start clean: delete the old Parquet, let CTAS write the
+        # new. The Iceberg zone lives here too — its DROP purges data files.
         Sid    = "RebuildCuratedAndAnalytics"
         Effect = "Allow"
         Action = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
         Resource = [
           "${aws_s3_bucket.lake.arn}/${local.curated_prefix}/*",
+          "${aws_s3_bucket.lake.arn}/${local.iceberg_prefix}/*",
           "${aws_s3_bucket.lake.arn}/${local.analytics_prefix}/*",
         ]
       },

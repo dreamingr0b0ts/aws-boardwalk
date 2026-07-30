@@ -4,7 +4,7 @@ import { DynamoDBClient, ConditionalCheckFailedException } from '@aws-sdk/client
 import { DynamoDBDocumentClient, GetCommand, PutCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { router, json, parseBody, HttpError, type ApiEvent } from '../lib/http';
 import { runAndFetch, quoteParam, type QueryResult } from '../lib/athena';
-import { catalog, catalogById, searchSql } from '../lib/queries';
+import { catalog, catalogById, searchSql, timeTravelSql } from '../lib/queries';
 
 const s3 = new S3Client({});
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
@@ -98,8 +98,58 @@ async function takeSearchSlot(event: ApiEvent): Promise<void> {
   }
 }
 
+interface IcebergLedger {
+  table: string;
+  correctedRows: number;
+  snapshots: { id: string; committedAt: string; operation: string }[];
+}
+
+// The Iceberg ledger the ETL wrote: which snapshot ids exist. Memoized per
+// container; snapshot ids only change when the ETL reruns.
+let iceMemo: { at: number; data: IcebergLedger } | null = null;
+async function icebergLedger(): Promise<IcebergLedger> {
+  if (iceMemo && Date.now() - iceMemo.at < 300_000) return iceMemo.data;
+  const data = (await getJson(`${ANALYTICS_PREFIX}/iceberg.json`)) as IcebergLedger | null;
+  if (!data?.snapshots?.length) throw new HttpError(503, 'The time machine has no ledger yet: the ETL has not rebuilt the Iceberg table.');
+  iceMemo = { at: Date.now(), data };
+  return data;
+}
+
+// The time machine: the identical aggregation against snapshot 1 (the CTAS
+// 'append', before the correction) or the current table. The pinned snapshot
+// id comes from the ETL's ledger, never from the visitor.
+const timeTravel = async (id: 'time-travel-before' | 'time-travel-after') => {
+  const ledger = await icebergLedger();
+  const first = ledger.snapshots[0];
+  const versionId = id === 'time-travel-before' ? first.id : null;
+  const sql = timeTravelSql(versionId);
+
+  const cacheKey = { PK: `CACHE#${id}`, SK: `V#${first.id}` };
+  const cached = await ddb.send(new GetCommand({ TableName: TABLE, Key: cacheKey }));
+  if (cached.Item && Number(cached.Item.ttl) > Date.now() / 1000) {
+    const result = JSON.parse(cached.Item.payload as string) as QueryResult & { executedAt: string };
+    return json(200, { id, zone: 'iceberg', sql, snapshot: versionId ? first : null, ...result, cached: true, usage: await usage() });
+  }
+
+  await takeUsageSlot();
+  let result: QueryResult;
+  try {
+    result = await runAndFetch(sql, MAX_ROWS, { withRuntime: true });
+  } catch (err) {
+    throw new HttpError(502, `Athena: ${err instanceof Error ? err.message : 'query failed'}`);
+  }
+  const payload = { ...result, executedAt: new Date().toISOString() };
+  await ddb.send(
+    new PutCommand({
+      TableName: TABLE,
+      Item: { ...cacheKey, payload: JSON.stringify(payload), ttl: Math.floor(Date.now() / 1000) + CACHE_TTL_S },
+    })
+  );
+  return json(200, { id, zone: 'iceberg', sql, snapshot: versionId ? first : null, ...payload, cached: false, usage: await usage() });
+};
+
 const getSummary = async () => {
-  const names = ['manifest', 'formations_by_year', 'entity_types', 'status_breakdown', 'top_cities', 'cohort_survival', 'map_zips'];
+  const names = ['manifest', 'formations_by_year', 'entity_types', 'status_breakdown', 'top_cities', 'cohort_survival', 'map_zips', 'iceberg'];
   const [use, ...files] = await Promise.all([usage(), ...names.map((n) => getJson(`${ANALYTICS_PREFIX}/${n}.json`))]);
   const body = Object.fromEntries(names.map((n, i) => [n, files[i]]));
   if (!body.manifest) throw new HttpError(503, 'The lake has not been built yet: the ETL has not published a manifest.');
@@ -110,6 +160,7 @@ const getQueries = async () => json(200, { queries: catalog, maxRows: MAX_ROWS }
 
 const postQuery = async (event: ApiEvent) => {
   const { id } = parseBody<{ id?: string }>(event);
+  if (id === 'time-travel-before' || id === 'time-travel-after') return timeTravel(id);
   const entry = id ? catalogById.get(id) : undefined;
   if (!entry) throw new HttpError(400, `Unknown query id. Expected one of: ${catalog.map((q) => q.id).join(', ')}`);
 
@@ -160,7 +211,7 @@ const postSearch = async (event: ApiEvent) => {
   const cached = await ddb.send(new GetCommand({ TableName: TABLE, Key: cacheKey }));
   if (cached.Item && Number(cached.Item.ttl) > Date.now() / 1000) {
     const result = JSON.parse(cached.Item.payload as string) as QueryResult & { executedAt: string; totalMatches: number };
-    return json(200, { q: term, ...result, cached: true, usage: await usage() });
+    return json(200, { q: term, zone: 'curated', ...result, cached: true, usage: await usage() });
   }
 
   await takeSearchSlot(event);
@@ -185,7 +236,7 @@ const postSearch = async (event: ApiEvent) => {
       Item: { ...cacheKey, payload: JSON.stringify(payload), ttl: Math.floor(Date.now() / 1000) + CACHE_TTL_S },
     })
   );
-  return json(200, { q: term, ...payload, cached: false, usage: await usage() });
+  return json(200, { q: term, zone: 'curated', ...payload, cached: false, usage: await usage() });
 };
 
 export const handler = router({

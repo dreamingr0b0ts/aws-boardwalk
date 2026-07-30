@@ -41,13 +41,15 @@ locals {
   account_id = data.aws_caller_identity.current.account_id
   region     = data.aws_region.current.region
 
-  # One bucket, three zones — prefixes are the boundary, IAM enforces it.
+  # One bucket, four zones — prefixes are the boundary, IAM enforces it.
   raw_prefix       = "raw/business_entities"
   curated_prefix   = "curated/business_entities"
+  iceberg_prefix   = "iceberg/business_entities"
   analytics_prefix = "analytics"
   results_prefix   = "athena-results"
 
   glue_db       = "dla_lake"
   raw_table     = "business_entities_raw"
   curated_table = "business_entities"
+  iceberg_table = "business_entities_iceberg"
 }

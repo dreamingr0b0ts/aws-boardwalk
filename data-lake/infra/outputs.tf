@@ -26,6 +26,10 @@ output "curated_table" {
   value = local.curated_table
 }
 
+output "iceberg_table" {
+  value = local.iceberg_table
+}
+
 output "workgroup" {
   value = aws_athena_workgroup.public.name
 }

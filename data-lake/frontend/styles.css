@@ -245,6 +245,27 @@ button#search-btn:disabled { opacity: 0.55; cursor: wait; }
 .stage-name { font-weight: 700; font-size: 12.5px; }
 .stage-io { font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
 
+/* ---- the time machine ---- */
+.ice-ledger { margin: 16px 0 14px; display: grid; gap: 8px; }
+.ice-snap {
+  display: grid; grid-template-columns: 110px 1fr; gap: 2px 14px; align-items: baseline;
+  border: 1px solid var(--border); border-left: 3px solid var(--lake);
+  border-radius: 8px; padding: 9px 13px; background: var(--bg);
+}
+.ice-op { grid-row: span 2; font-weight: 700; font-size: 13px; color: var(--lake); text-transform: uppercase; letter-spacing: 0.06em; }
+.ice-what { font-size: 13.5px; font-weight: 600; }
+.ice-meta { font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+button#ice-btn {
+  background: var(--buoy); color: #fff7f2; border: 0; border-radius: 9px;
+  font-weight: 700; font-size: 14px; padding: 11px 18px; cursor: pointer;
+}
+button#ice-btn:hover { filter: brightness(1.08); }
+button#ice-btn:disabled { opacity: 0.55; cursor: wait; }
+#ice-out pre.sql { margin-top: 16px; }
+.ice-grid { margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: start; }
+@media (max-width: 720px) { .ice-grid { grid-template-columns: 1fr; } }
+.ice-grid .results-scroll { margin-top: 6px; }
+
 /* ---- race ---- */
 .race { margin-top: 16px; display: grid; gap: 10px; }
 .race-row { display: grid; grid-template-columns: 130px 1fr 190px; align-items: center; gap: 12px; }

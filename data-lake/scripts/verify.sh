@@ -140,7 +140,26 @@ CODE=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$SITE/api/search" \
   -H 'content-type: application/json' -d '{"q":"a"}')
 [ "$CODE" = "400" ]; check $? "single-character search is rejected (400)"
 
-# ---- 9. the daily Athena budget is counting ----
+# ---- 9. the time machine (Apache Iceberg) ----
+grep -q 'id="ice-btn"' /tmp/dla-index.html; check $? "page carries the time machine"
+ICE_TABLE=$($TF output -raw iceberg_table)
+ICE_JSON=$(aws glue get-table --database-name "$GLUE_DB" --name "$ICE_TABLE" --output json 2>/dev/null)
+echo "$ICE_JSON" | jq -e '.Table.Parameters.table_type | ascii_upcase == "ICEBERG"' > /dev/null
+check $? "Iceberg table is in the Glue catalog (table_type=ICEBERG)"
+echo "$SUMMARY" | jq -e '(.iceberg.snapshots | length) == 2 and .iceberg.snapshots[0].operation == "append" and .iceberg.snapshots[1].operation == "overwrite"' > /dev/null
+check $? "ledger shows two snapshots: append (CTAS) then overwrite (UPDATE)"
+BEFORE=$(curl -sS -X POST "$SITE/api/query" -H 'content-type: application/json' -d '{"id":"time-travel-before"}')
+AFTER=$(curl -sS -X POST "$SITE/api/query" -H 'content-type: application/json' -d '{"id":"time-travel-after"}')
+echo "$BEFORE" | jq -e '.sql | contains("FOR VERSION AS OF")' > /dev/null
+check $? "before-query pins the first snapshot with FOR VERSION AS OF"
+NB=$(echo "$BEFORE" | jq '.rows | length'); NA=$(echo "$AFTER" | jq '.rows | length')
+[ "${NA:-0}" = "3" ] && [ "${NB:-0}" -gt 10 ]
+check $? "the UPDATE collapsed $NB spellings into $NA cities"
+SB=$(echo "$BEFORE" | jq '[.rows[][1] | tonumber] | add')
+SA=$(echo "$AFTER" | jq '[.rows[][1] | tonumber] | add')
+[ "$SB" = "$SA" ]; check $? "ACID conservation: totals reconcile exactly ($SB rows in both charts)"
+
+# ---- 10. the daily Athena budget is counting ----
 USAGE=$(curl -sS "$SITE/api/summary" | jq '.usage')
 echo "$USAGE" | jq -e '.used >= 3 and .limit == 150' > /dev/null
 check $? "global daily execution counter advanced ($(echo "$USAGE" | jq -r '.used')/150)"
