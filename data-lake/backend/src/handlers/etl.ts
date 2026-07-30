@@ -78,10 +78,11 @@ export async function handler() {
   const ctasRun = await runQuery(ctas(BUCKET, CURATED_PREFIX), ETL_OPTS);
   console.log(`ctas done: scanned ${ctasRun.stats.bytesScanned} bytes in ${ctasRun.stats.totalMs} ms (cleared ${cleared} old objects)`);
 
-  // 3. precompute dashboard aggregates
+  // 3. precompute dashboard aggregates (999 = GetQueryResults' single-page
+  // ceiling once the header row is counted; map_zips is the widest at ~450)
   const aggStats: Record<string, unknown> = {};
   for (const [name, sql] of Object.entries(aggregates)) {
-    const res = await runAndFetch(sql, 200, ETL_OPTS);
+    const res = await runAndFetch(sql, 999, ETL_OPTS);
     await putJson(`${ANALYTICS_PREFIX}/${name}.json`, { columns: res.columns, rows: res.rows });
     aggStats[name] = { rows: res.rows.length, bytesScanned: res.stats.bytesScanned };
   }
@@ -92,7 +93,20 @@ export async function handler() {
   // so sizes need their own undelimited pass.
   const count = await runAndFetch(countRows, 1, ETL_OPTS);
   const curated = await listAll(CURATED_PREFIX);
-  const partitions = (await listAll(CURATED_PREFIX, '/')).prefixes.length;
+  const partitionPrefixes = (await listAll(CURATED_PREFIX, '/')).prefixes;
+  const partitions = partitionPrefixes.length;
+
+  // Per-decade sizes feed the dashboard's partition-pruning bands: which
+  // slices of the lake a query read, drawn to scale.
+  const partitionDetail = (
+    await Promise.all(
+      partitionPrefixes.map(async (p) => {
+        const m = /decade=([^/]+)\/$/.exec(p);
+        const d = await listAll(p.replace(/\/$/, ''));
+        return { decade: m?.[1] ?? p, bytes: d.bytes, objects: d.objects };
+      })
+    )
+  ).sort((a, b) => a.decade.localeCompare(b.decade));
 
   const manifest = {
     dataset: 'Business Entities in Colorado — data.colorado.gov/resource/4ykn-tg5h (CC0, Colorado Secretary of State)',
@@ -104,6 +118,7 @@ export async function handler() {
       objects: curated.objects,
       bytes: curated.bytes,
       partitions,
+      partitionDetail,
       format: 'Parquet + Snappy, partitioned by decade',
     },
     ctas: { ms: ctasRun.stats.totalMs, bytesScanned: ctasRun.stats.bytesScanned },

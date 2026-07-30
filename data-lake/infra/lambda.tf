@@ -14,9 +14,10 @@ locals {
     CURATED_PREFIX     = local.curated_prefix
     ANALYTICS_PREFIX   = local.analytics_prefix
     WORKGROUP          = aws_athena_workgroup.public.name
-    TABLE_NAME         = aws_dynamodb_table.app.name
-    GLOBAL_DAILY_LIMIT = tostring(var.global_daily_limit)
-    CACHE_TTL_HOURS    = tostring(var.query_cache_ttl_hours)
+    TABLE_NAME            = aws_dynamodb_table.app.name
+    GLOBAL_DAILY_LIMIT    = tostring(var.global_daily_limit)
+    SEARCH_IP_DAILY_LIMIT = tostring(var.search_ip_daily_limit)
+    CACHE_TTL_HOURS       = tostring(var.query_cache_ttl_hours)
   }
 }
 

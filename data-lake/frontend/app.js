@@ -154,6 +154,70 @@ function lineChart(mount, data) {
   mount.replaceChildren(svg);
 }
 
+/* ---- the depth chart: ZIP bubbles at Census centroids over county lines.
+   Colorado is a lat/lon rectangle, so an equirectangular projection with a
+   cos(mid-latitude) x-correction is honest at this scale. Single validated
+   hue; magnitude rides on bubble AREA, and overlap alpha-compounds into the
+   darker "deep water" reading. ---- */
+function mapChart(mount, geo, rows) {
+  let minLon = Infinity, maxLon = -Infinity, minLat = Infinity, maxLat = -Infinity;
+  for (const c of geo.counties)
+    for (const poly of c.polys)
+      for (const [lon, lat] of poly[0]) {
+        if (lon < minLon) minLon = lon;
+        if (lon > maxLon) maxLon = lon;
+        if (lat < minLat) minLat = lat;
+        if (lat > maxLat) maxLat = lat;
+      }
+  const kx = Math.cos(((minLat + maxLat) / 2) * (Math.PI / 180));
+  const M = 12, W = 940;
+  const innerW = W - 2 * M;
+  const innerH = innerW * ((maxLat - minLat) / ((maxLon - minLon) * kx));
+  const H = Math.round(innerH + 2 * M);
+  const xPos = (lon) => M + innerW * ((lon - minLon) / (maxLon - minLon));
+  const yPos = (lat) => M + innerH * ((maxLat - lat) / (maxLat - minLat));
+
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img' });
+  for (const c of geo.counties) {
+    const d = c.polys
+      .map((poly) => poly.map((ring) => 'M' + ring.map(([lon, lat]) => `${xPos(lon).toFixed(1)},${yPos(lat).toFixed(1)}`).join('L') + 'Z').join(''))
+      .join('');
+    svg.append(el('path', { d, class: 'county' }));
+  }
+
+  const pts = rows
+    .map(([zip, n, city]) => ({ zip, n: +n, city, ll: geo.zips[zip] }))
+    .filter((p) => p.ll)
+    .sort((a, b) => b.n - a.n);
+  const maxN = pts[0]?.n ?? 1;
+  for (const p of pts) {
+    const r = Math.max(2.5, 30 * Math.sqrt(p.n / maxN));
+    const c = el('circle', { cx: xPos(p.ll[0]).toFixed(1), cy: yPos(p.ll[1]).toFixed(1), r: r.toFixed(1), class: 'sounding' });
+    hover(c, () => `${fmt(p.n)} in Good Standing<small>ZIP ${p.zip} · ${titleCase(p.city)}</small>`);
+    svg.append(c);
+  }
+
+  // label the biggest anchors, halo over the bubbles: one per city, and only
+  // where a label won't sit on an already-placed one (the Denver metro packs
+  // several top ZIPs into a few pixels; distance beats rank for legibility)
+  const seen = new Set();
+  const placed = [];
+  for (const p of pts) {
+    if (placed.length >= 6) break;
+    if (seen.has(p.city)) continue;
+    const x = xPos(p.ll[0]), y = yPos(p.ll[1]) - 30 * Math.sqrt(p.n / maxN) - 5;
+    if (placed.some(([px, py]) => Math.abs(px - x) < 110 && Math.abs(py - y) < 26)) continue;
+    seen.add(p.city);
+    placed.push([x, y]);
+    svg.append(
+      Object.assign(el('text', { x: x.toFixed(1), y: y.toFixed(1), 'text-anchor': 'middle', class: 'city' }),
+        { textContent: titleCase(p.city) })
+    );
+  }
+  mount.replaceChildren(svg);
+  return { plotted: pts.length, covered: pts.reduce((a, p) => a + p.n, 0), skipped: rows.length - pts.length };
+}
+
 /* ---- data plumbing ---- */
 const TYPE_LABELS = {
   DLLC: 'Domestic LLC', DPC: 'Domestic profit corp', DNC: 'Domestic nonprofit',
@@ -163,11 +227,29 @@ const TYPE_LABELS = {
 };
 const titleCase = (s) => s.toLowerCase().replace(/\b[a-z]/g, (c) => c.toUpperCase());
 
+let MANIFEST = null;
+
+async function renderMap(s) {
+  if (!s.map_zips?.rows?.length) {
+    $('map-note').textContent = 'The depth chart fills in after the next ETL run publishes its aggregate.';
+    return;
+  }
+  const geo = await (await fetch('/geo/colorado.json')).json();
+  const r = mapChart($('map-plot'), geo, s.map_zips.rows);
+  $('map-cap').textContent =
+    `${fmt(r.plotted)} ZIP codes plotted, covering ${fmt(r.covered)} entities in Good Standing. ` +
+    `Not drawn: ZIPs with fewer than 10${r.skipped > 0 ? `, and ${fmt(r.skipped)} (mostly PO-box ZIPs) without a Census area centroid` : ''}.`;
+}
+
 async function loadSummary() {
   const res = await fetch('/api/summary');
   if (!res.ok) throw new Error((await res.json()).message ?? 'summary failed');
   const s = await res.json();
   const m = s.manifest;
+  MANIFEST = m;
+  renderMap(s).catch(() => {
+    $('map-note').textContent = 'The depth chart could not load its geometry.';
+  });
 
   $('stat-rows').textContent = (m.totalRows / 1e6).toFixed(2) + 'M';
   $('stat-scan').textContent = fmtBytes(m.aggregates.status_breakdown.bytesScanned);
@@ -226,6 +308,7 @@ function select(q, btn) {
   $('qstats').hidden = true;
   $('q-error').hidden = true;
   $('q-results').hidden = true;
+  $('q-glass').hidden = true;
 }
 
 async function runQuery(id) {
@@ -240,22 +323,96 @@ async function runQuery(id) {
   return body;
 }
 
-function renderStats(r) {
-  $('s-scanned').textContent = 'scanned ' + fmtBytes(r.stats.bytesScanned);
-  $('s-time').textContent = 'engine ' + fmtMs(r.stats.engineMs);
-  $('s-cost').textContent = fmtCost(r.stats.estCostUsd);
-  const c = $('s-cache');
+function renderStats(r, p = 's', box = 'qstats') {
+  $(p + '-scanned').textContent = 'scanned ' + fmtBytes(r.stats.bytesScanned);
+  $(p + '-time').textContent = 'engine ' + fmtMs(r.stats.engineMs);
+  $(p + '-cost').textContent = fmtCost(r.stats.estCostUsd);
+  const c = $(p + '-cache');
   c.textContent = r.cached ? 'cache hit: Athena not re-run' : 'live Athena execution';
   c.classList.toggle('hit', r.cached);
-  $('qstats').hidden = false;
+  $(box).hidden = false;
 }
 
-function renderTable(r) {
+/* ---- under the glass: what the engine actually did ----
+   Two exhibits per live run: which decade partitions of the curated zone the
+   query was eligible to read (drawn to scale from the manifest's per-partition
+   sizes), and the engine's own stage tree from GetQueryRuntimeStatistics. */
+function renderGlass(mount, r) {
+  mount.replaceChildren();
+  const h = document.createElement('p');
+  h.className = 'glass-label';
+  h.textContent = 'Under the glass';
+  mount.append(h);
+
+  const detail = MANIFEST?.curated?.partitionDetail;
+  if (r.zone === 'raw') {
+    const note = document.createElement('p');
+    note.className = 'muted small';
+    note.textContent = 'The raw zone has no partitions and no columns: one gzipped JSONL stream, so the engine decompressed and read every byte of every record.';
+    mount.append(note);
+  } else if (detail?.length) {
+    const touched = new Set(r.decades ?? detail.map((p) => p.decade));
+    const total = detail.reduce((a, p) => a + p.bytes, 0);
+    const wrap = document.createElement('div');
+    wrap.className = 'bands';
+    let readB = 0;
+    for (const p of detail) {
+      const b = document.createElement('div');
+      const on = touched.has(p.decade);
+      if (on) readB += p.bytes;
+      b.className = 'band' + (on ? ' on' : '');
+      b.style.flexGrow = String(Math.max(p.bytes, total / 200));
+      hover(b, () => `${on ? 'read' : 'skipped'}<small>decade=${p.decade} · ${fmtBytes(p.bytes)} of Parquet</small>`);
+      wrap.append(b);
+    }
+    mount.append(wrap);
+    const cap = document.createElement('p');
+    cap.className = 'muted small';
+    cap.textContent = r.decades
+      ? `Partition pruning: the WHERE clause names the partition key, so ${touched.size} of ${detail.length} decade folders were eligible (${fmtBytes(readB)}); ${fmtBytes(total - readB)} of Parquet was never opened.`
+      : `No decade filter on this one, so all ${detail.length} partitions were eligible. The saving came from the columnar layout instead: only the columns in the SELECT came off the disk.`;
+    mount.append(cap);
+  }
+
+  if (r.runtime?.stages?.length) {
+    const flow = document.createElement('div');
+    flow.className = 'stageflow';
+    r.runtime.stages.forEach((st, i) => {
+      if (i > 0) {
+        const a = document.createElement('span');
+        a.className = 'arrow';
+        a.setAttribute('aria-hidden', 'true');
+        a.textContent = '→';
+        flow.append(a);
+      }
+      const box = document.createElement('div');
+      box.className = 'stage-box';
+      box.innerHTML =
+        `<span class="stage-name">Stage ${st.stage}${i === 0 ? ' · scan' : i === r.runtime.stages.length - 1 ? ' · output' : ''}</span>` +
+        `<span class="stage-io">in ${fmtK(st.inputRows)} rows · ${fmtBytes(st.inputBytes)}</span>` +
+        `<span class="stage-io">out ${fmtK(st.outputRows)} rows · ${fmtBytes(st.outputBytes)}</span>`;
+      flow.append(box);
+    });
+    mount.append(flow);
+    const tl = document.createElement('p');
+    tl.className = 'muted small';
+    const t = r.runtime.timeline;
+    tl.textContent = `The engine's own account, stage by stage (distributed workers, source first). Timeline: queued ${fmtMs(t.queueMs)} · planned ${fmtMs(t.planningMs)} · executed ${fmtMs(t.engineMs)}.`;
+    mount.append(tl);
+  } else if (r.cached) {
+    const note = document.createElement('p');
+    note.className = 'muted small';
+    note.textContent = 'This result came from the cache before the engine stats were recorded; a fresh run (after the cache expires) fills in the stage tree.';
+    mount.append(note);
+  }
+  mount.hidden = false;
+}
+
+function renderTable(r, tbl = $('q-results')) {
   const numeric = r.columns.map((_, i) => r.rows.every((row) => /^-?[\d.]+$/.test(row[i] ?? '')));
   // years are numbers but not quantities: no thousands separators on them
   const yearlike = r.columns.map((c, i) =>
     /year/i.test(c) || r.rows.every((row) => /^(1[89]|20)\d{2}$/.test(row[i] ?? '')));
-  const tbl = $('q-results');
   tbl.replaceChildren();
   const thead = tbl.createTHead().insertRow();
   r.columns.forEach((c, i) => {
@@ -285,12 +442,50 @@ $('run-btn').addEventListener('click', async () => {
     const r = await runQuery(selected.id);
     renderStats(r);
     renderTable(r);
+    renderGlass($('q-glass'), r);
   } catch (err) {
     $('q-error').textContent = err.message;
     $('q-error').hidden = false;
   } finally {
     btn.disabled = false;
     btn.textContent = 'Run in Athena';
+  }
+});
+
+/* ---- drop a line: the name lookup ---- */
+$('search-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const q = $('search-input').value.trim();
+  if (!q) return;
+  const btn = $('search-btn');
+  btn.disabled = true;
+  btn.textContent = 'Sounding…';
+  $('search-error').hidden = true;
+  try {
+    const res = await fetch('/api/search', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ q }),
+    });
+    const body = await res.json();
+    if (!res.ok) throw new Error(body.message ?? 'search failed');
+    updateUsage(body.usage);
+    $('search-found').textContent =
+      body.totalMatches === 0
+        ? `Nothing in the lake answers to "${body.q}". Fewer letters cast a wider net.`
+        : `${fmt(body.totalMatches)} registration${body.totalMatches === 1 ? '' : 's'} answer${body.totalMatches === 1 ? 's' : ''} to "${body.q}"` +
+          (body.totalMatches > body.rows.length ? `, showing the first ${body.rows.length} by name.` : '.');
+    renderStats(body, 'f', 'search-stats');
+    renderTable(body, $('search-results'));
+    $('search-results').hidden = body.rows.length === 0;
+    renderGlass($('search-glass'), body);
+    $('search-out').hidden = false;
+  } catch (err) {
+    $('search-error').textContent = err.message;
+    $('search-error').hidden = false;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Search the lake';
   }
 });
 
@@ -312,7 +507,7 @@ $('race-btn').addEventListener('click', async () => {
     $('race-verdict').textContent =
       `Same rows, same answer: the curated Parquet scanned ${ratio.toFixed(0)}× less data` +
       (raw.stats.engineMs > cur.stats.engineMs ? ` and finished ${(raw.stats.engineMs / Math.max(1, cur.stats.engineMs)).toFixed(1)}× faster.` : '.') +
-      (raw.cached || cur.cached ? ' (Served from cache — stats are from the recorded live runs.)' : '');
+      (raw.cached || cur.cached ? ' (Served from cache; stats are from the recorded live runs.)' : '');
     $('race-result').hidden = false;
   } catch (err) {
     $('race-error').textContent = err.message;

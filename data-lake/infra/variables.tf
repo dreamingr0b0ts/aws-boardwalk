@@ -27,6 +27,15 @@ variable "global_daily_limit" {
   default     = 150
 }
 
+# The name lookup is the one visitor-influenced query, so it gets a per-IP
+# slice of the global budget on top: one visitor can't drink the whole day.
+# Spend ceiling is unchanged — searches also take a global_daily_limit slot.
+variable "search_ip_daily_limit" {
+  description = "Max name-lookup executions per hashed visitor IP per UTC day (cache hits don't count)"
+  type        = number
+  default     = 30
+}
+
 variable "bytes_scanned_cutoff" {
   description = "Athena workgroup per-query scan cutoff in bytes. Must clear a full raw-zone scan (~350 MB) — the deliberately inefficient half of the raw-vs-curated demo."
   type        = number

@@ -92,6 +92,8 @@ echo "$RESP" | jq -e '.stats.estCostUsd <= 0.01' > /dev/null
 check $? "query cost a fraction of a cent (\$$(echo "$RESP" | jq -r '.stats.estCostUsd'))"
 [ "$SCANNED" -lt $((CUR_BYTES / 2)) ]
 check $? "partition pruning cut the scan (scanned $SCANNED of $CUR_BYTES curated bytes)"
+echo "$RESP" | jq -e '(.decades | length) == 2 and (.runtime.stages | length) >= 1' > /dev/null
+check $? "response carries the pruning annotation + the engine's stage tree"
 
 run_query formations-recent; check $? "second run returns rows"
 echo "$RESP" | jq -e '.cached == true' > /dev/null
@@ -105,7 +107,40 @@ RAW_SCAN=$(echo "$RESP" | jq '.stats.bytesScanned')
 [ "$RAW_SCAN" -gt $((CUR_SCAN * 3)) ]
 check $? "columnar won: raw scanned ${RAW_SCAN}, curated scanned ${CUR_SCAN}"
 
-# ---- 7. the daily Athena budget is counting ----
+# ---- 7. the depth chart ----
+grep -q 'id="map-plot"' /tmp/dla-index.html; check $? "page carries the depth chart"
+GEO=$(curl -sS "$SITE/geo/colorado.json")
+echo "$GEO" | jq -e '(.counties | length) == 64 and (.zips | length) >= 500' > /dev/null
+check $? "vendored geometry serves 64 counties + ZCTA centroids"
+NZIP=$(echo "$SUMMARY" | jq '.map_zips.rows | length')
+[ "${NZIP:-0}" -ge 400 ]; check $? "map aggregate is populated ($NZIP ZIPs)"
+echo "$SUMMARY" | jq -e '.manifest.curated.partitionDetail | length >= 15' > /dev/null
+check $? "manifest carries per-partition sizes for the pruning bands"
+
+# ---- 8. the name lookup (parameterized Athena) ----
+SR=$(curl -sS -X POST "$SITE/api/search" -H 'content-type: application/json' -d '{"q":"crested butte"}')
+echo "$SR" | jq -e '.totalMatches >= 50 and (.rows | length) == 25' > /dev/null
+check $? "name lookup finds real registrations ($(echo "$SR" | jq -r '.totalMatches') for CRESTED BUTTE)"
+# a term nobody has cached: proves a fresh parameterized execution end to end
+LIVE=$(curl -sS -X POST "$SITE/api/search" -H 'content-type: application/json' \
+  -d "{\"q\":\"ZZVERIFY $(date -u +%H%M)\"}")
+echo "$LIVE" | jq -e '.cached == false and .totalMatches == 0' > /dev/null
+check $? "fresh parameterized execution ran live (0 matches for a nonsense term)"
+echo "$LIVE" | jq -e '.stats.bytesScanned > 1000000' > /dev/null
+check $? "the sweep still read the name column ($(echo "$LIVE" | jq -r '.stats.bytesScanned') bytes)"
+echo "$LIVE" | jq -e '.runtime.stages | length >= 2' > /dev/null
+check $? "engine runtime statistics rode along ($(echo "$LIVE" | jq -r '.runtime.stages | length') stages)"
+SR2=$(curl -sS -X POST "$SITE/api/search" -H 'content-type: application/json' -d '{"q":"crested butte"}')
+echo "$SR2" | jq -e '.cached == true' > /dev/null
+check $? "repeat search was a cache hit"
+CODE=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$SITE/api/search" \
+  -H 'content-type: application/json' -d '{"q":"1=1;--"}')
+[ "$CODE" = "400" ]; check $? "characters outside the name allowlist are rejected (400)"
+CODE=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$SITE/api/search" \
+  -H 'content-type: application/json' -d '{"q":"a"}')
+[ "$CODE" = "400" ]; check $? "single-character search is rejected (400)"
+
+# ---- 9. the daily Athena budget is counting ----
 USAGE=$(curl -sS "$SITE/api/summary" | jq '.usage')
 echo "$USAGE" | jq -e '.used >= 3 and .limit == 150' > /dev/null
 check $? "global daily execution counter advanced ($(echo "$USAGE" | jq -r '.used')/150)"

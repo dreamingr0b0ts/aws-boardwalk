@@ -56,7 +56,7 @@ resource "aws_iam_role_policy" "api_all" {
       {
         Sid      = "RunQueriesInWorkgroup"
         Effect   = "Allow"
-        Action   = ["athena:StartQueryExecution", "athena:GetQueryExecution", "athena:GetQueryResults", "athena:StopQueryExecution"]
+        Action   = ["athena:StartQueryExecution", "athena:GetQueryExecution", "athena:GetQueryResults", "athena:GetQueryRuntimeStatistics", "athena:StopQueryExecution"]
         Resource = aws_athena_workgroup.public.arn
       },
       {

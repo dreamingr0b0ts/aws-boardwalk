@@ -84,6 +84,22 @@ GROUP BY city ORDER BY n DESC LIMIT 12`,
 FROM ${CURATED}
 WHERE form_year BETWEEN 1995 AND ${CUR_YEAR - 1}
 GROUP BY form_year ORDER BY form_year`,
+
+  // The depth chart: Good Standing density by 5-digit ZIP, with the modal
+  // city name per ZIP for labels. The frontend joins these to vendored
+  // Census ZCTA centroids; HAVING trims noise ZIPs so the file stays small.
+  map_zips: `WITH by_city AS (
+  SELECT zip, city, count(*) AS n
+  FROM ${CURATED}
+  WHERE status = 'Good Standing' AND state = 'CO'
+    AND zip IS NOT NULL AND length(zip) = 5 AND city IS NOT NULL AND city <> ''
+  GROUP BY zip, city
+)
+SELECT zip, sum(n) AS entities, max_by(city, n) AS top_city
+FROM by_city
+GROUP BY zip
+HAVING sum(n) >= 10
+ORDER BY entities DESC`,
 };
 
 // count(*) over Parquet is answered from row-group metadata — it scans zero
@@ -96,6 +112,10 @@ export interface CatalogEntry {
   story: string;
   zone: 'raw' | 'curated';
   sql: string;
+  /** Decade partitions the WHERE clause prunes to. Omitted = the query reads
+      every partition; the raw zone has no partitions at all. Kept next to the
+      SQL so the annotation can't drift from the clause it describes. */
+  decades?: string[];
 }
 
 export const catalog: CatalogEntry[] = [
@@ -105,6 +125,7 @@ export const catalog: CatalogEntry[] = [
     story:
       'The WHERE clause names the partition key, so Athena prunes to the 2010s/2020s Parquet folders and never touches the other sixteen decades. Watch the bytes-scanned number.',
     zone: 'curated',
+    decades: ['2010s', '2020s'],
     sql: `SELECT form_year, count(*) AS formations
 FROM ${CURATED}
 WHERE decade IN ('2010s', '2020s') AND form_year >= 2015
@@ -115,6 +136,7 @@ GROUP BY form_year ORDER BY form_year`,
     title: 'The rise of the LLC',
     story: 'Share of each year’s new entities formed as LLCs (domestic + foreign) since 2000.',
     zone: 'curated',
+    decades: ['2000s', '2010s', '2020s'],
     sql: `SELECT form_year,
   count(*) AS formed,
   round(100.0 * sum(CASE WHEN entity_type IN ('DLLC', 'FLLC') THEN 1 ELSE 0 END) / count(*), 1) AS llc_pct
@@ -137,6 +159,7 @@ GROUP BY city ORDER BY in_good_standing DESC LIMIT 10`,
     title: 'Out-of-state registrations this decade',
     story: 'Where 2020s foreign (non-Colorado) entities were originally formed.',
     zone: 'curated',
+    decades: ['2020s'],
     sql: `SELECT jurisdiction, count(*) AS registrations
 FROM ${CURATED}
 WHERE decade = '2020s' AND jurisdiction NOT IN ('CO', '')
@@ -173,3 +196,17 @@ GROUP BY entitystatus ORDER BY entities DESC`,
 ];
 
 export const catalogById = new Map(catalog.map((q) => [q.id, q]));
+
+// The name lookup: the one visitor-influenced query in the plank. The `?` is
+// an Athena execution parameter — the API binds a server-built, quoted,
+// escaped prefix pattern to it, so visitor text never enters the SQL string.
+// No decade filter can help a name search (any decade may match), which the
+// page turns into the exhibit: every partition is read, but only the columns
+// named here, so the whole sweep still costs a fraction of a cent.
+export const searchSql = `SELECT
+  entity_name, status, entity_type, city, cast(form_date AS varchar) AS formed,
+  count(*) OVER () AS total_matches
+FROM ${CURATED}
+WHERE entity_name LIKE ?
+ORDER BY entity_name, formed
+LIMIT 25`;

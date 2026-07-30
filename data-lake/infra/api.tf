@@ -26,6 +26,7 @@ locals {
     "GET /api/summary",
     "GET /api/queries",
     "POST /api/query",
+    "POST /api/search",
   ]
 }
 

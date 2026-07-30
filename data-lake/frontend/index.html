@@ -92,9 +92,51 @@
     </div>
   </section>
 
+  <!-- The depth chart: the lake drawn as water -->
+  <section class="panel">
+    <p class="sect-label">Sounding 03 · The depth chart</p>
+    <h2>Where the water is deep</h2>
+    <p class="muted" id="map-note">Businesses in Good Standing by ZIP, each plotted at its Census centroid.
+    Bubble area is the count; where bubbles crowd and overlap the chart reads darker, the way soundings
+    crowd a harbor. Drawn from the same precomputed analytics zone as the dashboard, so it costs zero
+    Athena to render.</p>
+    <figure class="chart map-fig">
+      <div id="map-plot" class="plot"></div>
+      <figcaption class="map-cap" id="map-cap"></figcaption>
+    </figure>
+  </section>
+
+  <!-- Name lookup: live parameterized Athena -->
+  <section class="panel">
+    <p class="sect-label">Sounding 04 · Drop a line</p>
+    <h2>Find your boat in the lake</h2>
+    <p class="muted">Type the first letters of any business name: yours, your employer's, one you're curious
+    about. The API binds your text to a <code>?</code> placeholder as an Athena execution parameter, so it
+    never enters the SQL string. A name can surface from any decade, which makes this the anti-pruning
+    exhibit: every partition gets read, but Parquet hands over only the few columns named in the SELECT,
+    and the sweep of all 3.1 million rows still costs a fraction of a cent.</p>
+    <form id="search-form" class="search-row">
+      <input id="search-input" type="search" maxlength="40" autocomplete="off" spellcheck="false"
+        placeholder="Try COORS, CRESTED BUTTE, or your own LLC" aria-label="Business name starts with">
+      <button id="search-btn" type="submit">Search the lake</button>
+    </form>
+    <p id="search-error" class="error" hidden></p>
+    <div id="search-out" hidden>
+      <p class="found" id="search-found"></p>
+      <div class="qstats" id="search-stats">
+        <span class="chip" id="f-scanned" title="Data scanned"></span>
+        <span class="chip" id="f-time" title="Engine execution time"></span>
+        <span class="chip" id="f-cost" title="Estimated cost at $5/TB (10 MB minimum)"></span>
+        <span class="chip" id="f-cache"></span>
+      </div>
+      <div class="results-scroll"><table id="search-results"></table></div>
+      <div class="glass" id="search-glass"></div>
+    </div>
+  </section>
+
   <!-- Live SQL -->
   <section class="panel">
-    <p class="sect-label">Sounding 03 · Live SQL</p>
+    <p class="sect-label">Sounding 05 · Live SQL</p>
     <h2>Run live SQL on the lake</h2>
     <p class="muted">These queries execute in Athena when you click, against the same 3.1M rows, inside a
     workgroup that enforces a per-query scan cutoff. The stats underneath are Athena's own numbers: what it
@@ -117,12 +159,13 @@
       </div>
       <p id="q-error" class="error" hidden></p>
       <div class="results-scroll"><table id="q-results" hidden></table></div>
+      <div class="glass" id="q-glass"></div>
     </div>
   </section>
 
   <!-- Raw vs curated -->
   <section class="panel">
-    <p class="sect-label">Sounding 04 · Raw vs curated</p>
+    <p class="sect-label">Sounding 06 · Raw vs curated</p>
     <h2>The raw-vs-curated race</h2>
     <p class="muted">The whole argument for a curated zone in one click: the identical
     <code>GROUP BY status</code> aggregation runs twice, once over the raw gzipped JSON and once over the
@@ -146,12 +189,14 @@
 
   <!-- How it's built -->
   <section class="panel">
-    <p class="sect-label">Sounding 05 · The rigging</p>
+    <p class="sect-label">Sounding 07 · The rigging</p>
     <h2>How this is built</h2>
     <div class="arch">
       <span class="chip">S3 raw / curated / analytics zones</span>
       <span class="chip">Glue Data Catalog</span>
       <span class="chip">Athena SQL + CTAS ETL</span>
+      <span class="chip">Athena execution parameters</span>
+      <span class="chip">query runtime statistics</span>
       <span class="chip">enforced workgroup + scan cutoff</span>
       <span class="chip">Parquet, partitioned by decade</span>
       <span class="chip">Lambda (Node 22, arm64)</span>
@@ -160,6 +205,7 @@
       <span class="chip">Terraform</span>
     </div>
     <p class="muted foot">Dataset: <a href="https://data.colorado.gov/Business/Business-Entities-in-Colorado/4ykn-tg5h" rel="noopener">Business Entities in Colorado</a> (CC0, Colorado Secretary of State), snapshot refreshed with the lake.
+    Depth-chart geometry: US Census Bureau county boundaries and ZCTA centroids (public domain), self-hosted.
     Hero photo: <a href="https://unsplash.com/photos/7C6Xnao43LY" rel="noopener">Liana S, Unsplash</a>.
     Part of the <a href="https://demos.planetek.org">Planetek AWS Boardwalk</a> · <a href="https://github.com/dreamingr0b0ts/aws-boardwalk" rel="noopener">source on GitHub</a>.</p>
   </section>

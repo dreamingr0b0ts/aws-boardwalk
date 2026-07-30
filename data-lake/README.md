@@ -18,7 +18,8 @@ data.colorado.gov ── ingest (local, make ingest) ──► S3 raw/  (JSONL +
 CloudFront (data.demos…) ──► static dashboard ──► /api/* ──► dla-api Lambda
                                                               ├─ GET  /api/summary  (analytics zone, $0)
                                                               ├─ GET  /api/queries  (canned catalog)
-                                                              └─ POST /api/query    (live Athena, capped)
+                                                              ├─ POST /api/query    (live Athena, capped)
+                                                              └─ POST /api/search   (parameterized name lookup)
 ```
 
 ## What it proves
@@ -33,13 +34,29 @@ CloudFront (data.demos…) ──► static dashboard ──► /api/* ──►
   scan cutoff), a DynamoDB result cache, and a global daily execution budget.
 - **BI without per-seat fees:** the dashboard is a static page rendering ETL-precomputed
   JSON — no QuickSight, $0 per viewer.
+- **Safe visitor input ("find your boat"):** the name lookup binds visitor text to a `?`
+  via Athena **execution parameters** — it never enters the SQL string. The engine parses
+  each parameter as one expression in the placeholder position (an injection-shaped value
+  fails with TYPE_MISMATCH rather than widening the WHERE), and the API allowlists the
+  charset and quotes/escapes the literal anyway. Per-IP daily counter on top of the
+  global budget.
+- **The engine under glass:** every live run returns `GetQueryRuntimeStatistics` — the
+  distributed stage tree (rows/bytes in and out per stage) plus the queue/plan/execute
+  timeline — and the dashboard draws which decade partitions were eligible vs skipped,
+  to scale, from per-partition sizes the ETL records in the manifest.
+- **The depth chart:** a bathymetric map of ZIP-level density (Good Standing entities at
+  Census ZCTA centroids over county lines), precomputed by the ETL, drawn from vendored
+  public-domain Census geometry (`scripts/build-geo.mjs` refreshes it).
 
 ## Cost
 
 Idle ≈ $0 (S3 storage pennies; no servers). Athena bills $5/TB scanned with a 10 MB
-minimum: visitors can only run the canned catalog (no arbitrary SQL), results cache for
-6 h, and live executions are capped at **150/day globally** with a **600 MB per-query
-cutoff** — worst sustained abuse ≈ $0.45/day. No credential gate needed (cf. planks 6/7).
+minimum: visitors can run the canned catalog and the name lookup (never arbitrary SQL —
+lookup input is an execution parameter, not spliced text), results cache for 6 h, and
+live executions are capped at **150/day globally** with a **600 MB per-query cutoff** —
+worst sustained abuse ≈ $0.45/day, unchanged by the lookup (searches take a slot from
+the same global budget, plus a **30/day per-IP** counter). No credential gate needed
+(cf. planks 6/7).
 
 ## Operate
 
@@ -48,7 +65,7 @@ cutoff** — worst sustained abuse ≈ $0.45/day. No credential gate needed (cf.
 | `make deploy` | build lambdas, apply Terraform, publish frontend |
 | `make seed` | `ingest` (source → raw zone, ~5 min) + `etl` (CTAS rebuild + aggregates) |
 | `make etl` | rebuild curated zone + analytics from the current raw snapshot |
-| `make verify` | 24-check end-to-end suite against the live site |
+| `make verify` | 40-check end-to-end suite against the live site |
 | `make destroy` | tear down (lake bucket force-destroys) |
 
 The snapshot is deliberately static between refreshes (`make seed` re-pulls the source);
