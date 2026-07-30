@@ -235,13 +235,39 @@
       <span class="chip">CloudFront + same-origin API</span>
       <span class="chip">Terraform</span>
     </div>
-    <p class="muted foot">Dataset: <a href="https://data.colorado.gov/Business/Business-Entities-in-Colorado/4ykn-tg5h" rel="noopener">Business Entities in Colorado</a> (CC0, Colorado Secretary of State), snapshot refreshed with the lake.
-    Depth-chart geometry: US Census Bureau county boundaries and ZCTA centroids (public domain), self-hosted.
-    Hero photo: <a href="https://unsplash.com/photos/7C6Xnao43LY" rel="noopener">Liana S, Unsplash</a>.
-    Part of the <a href="https://demos.planetek.org">Planetek AWS Boardwalk</a> · <a href="https://github.com/dreamingr0b0ts/aws-boardwalk" rel="noopener">source on GitHub</a>.</p>
   </section>
 
 </main>
+
+<footer>
+  <div class="wrap foot-grid">
+    <div>
+      <p class="foot-brand">Colorado Business Data Lake</p>
+      <p class="foot-desc">A demonstration of serverless lake analytics: raw and curated zones on S3,
+      a Glue catalog, live Athena SQL billed by the byte it scans, Apache Iceberg time travel, and a
+      BI dashboard that renders for $0. Idles at ~$0.</p>
+    </div>
+    <div>
+      <p class="foot-head">Environment</p>
+      <ul class="foot-list">
+        <li>AWS: S3 · Glue · Athena · Iceberg · Lambda · DynamoDB · CloudFront</li>
+        <li>Infrastructure as code: Terraform · Idle cost: ~$0</li>
+        <li>Data: <a href="https://data.colorado.gov/Business/Business-Entities-in-Colorado/4ykn-tg5h" rel="noopener">Business Entities in Colorado</a> (CC0, Colorado Secretary of State); the manifest shows the snapshot date</li>
+        <li>Depth-chart geometry: US Census Bureau (public domain), self-hosted</li>
+        <li>Hero photo: <a href="https://unsplash.com/photos/7C6Xnao43LY" rel="noopener">Liana S, Unsplash</a></li>
+      </ul>
+    </div>
+    <div>
+      <p class="foot-head">Planetek</p>
+      <ul class="foot-list">
+        <li><a href="https://github.com/dreamingr0b0ts/aws-boardwalk">Github</a></li>
+        <li><a href="https://planetek.org">planetek.org</a></li>
+        <li><a href="https://demos.planetek.org">More live environments</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot-bar">Demo built by Planetek. The data is real Colorado open data (CC0); this static snapshot is not an official record. Verify standing with the Colorado Secretary of State.</div>
+</footer>
 
 <div id="tooltip" class="tooltip" hidden></div>
 <script src="/app.js"></script>
