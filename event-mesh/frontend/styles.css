@@ -317,6 +317,112 @@ button:disabled { opacity: .5; cursor: wait; }
 ul.proof { margin: 12px 0 0; padding-left: 20px; display: grid; gap: 8px; font-size: 14px; color: var(--ink-2); }
 ul.proof strong { color: var(--ink); }
 
+/* ---- bad-order cards: the rip track's paperwork ---- */
+.ghost-btn {
+  background: transparent; color: var(--stop); border: 1px dashed var(--stop);
+  font-size: 14px; padding: 6px 12px;
+}
+.ghost-btn:hover { background: var(--stop-soft); filter: none; }
+.boc { margin: 12px 0 0 24px; padding-left: 14px; border-left: 2px dashed var(--stop); display: grid; gap: 10px; }
+#boc-cards { display: grid; gap: 8px; }
+.boc-card {
+  display: grid; gap: 6px; text-align: left; font: inherit; cursor: pointer;
+  background: var(--bg); border: 1px solid var(--stop); border-left: 4px solid var(--stop);
+  border-radius: 3px; padding: 10px 14px; color: var(--ink);
+  text-transform: none; letter-spacing: normal; justify-self: stretch;
+}
+.boc-card:hover { background: var(--stop-soft); filter: none; }
+.boc-head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.boc-head .id { font-family: 'Spline Sans Mono', ui-monospace, monospace; font-weight: 600; font-size: 13px; color: var(--stop); }
+.boc-head .desc { flex: 1 1 160px; font-size: 13px; color: var(--ink-2); }
+.boc-meta {
+  display: flex; gap: 8px 18px; flex-wrap: wrap;
+  font-family: 'Spline Sans Mono', ui-monospace, monospace; font-size: 11.5px; color: var(--ink-3);
+}
+.boc-meta b { color: var(--ink-2); font-weight: 600; }
+
+/* ---- interlocking tester ---- */
+.preset-row { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; margin-top: 12px; }
+.preset-row + .preset-row { margin-top: 8px; }
+.preset-label {
+  font-family: 'Spline Sans Mono', ui-monospace, monospace; font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .1em; color: var(--ink-3); min-width: 110px;
+}
+.chip {
+  font-family: 'Spline Sans Mono', ui-monospace, monospace; font-size: 12px; font-weight: 600;
+  text-transform: none; letter-spacing: .01em;
+  background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--border);
+  padding: 4px 10px; border-radius: 3px;
+}
+.chip:hover { border-color: var(--brass); color: var(--brass); filter: none; }
+.duo { margin-top: 14px; display: grid; gap: 14px; }
+@media (min-width: 720px) { .duo { grid-template-columns: 1fr 1fr; } }
+textarea.code {
+  font-family: 'Spline Sans Mono', ui-monospace, monospace; font-size: 13px; line-height: 1.5;
+  white-space: pre; overflow-x: auto;
+}
+.pt-run { margin-top: 14px; display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+.aspect {
+  display: inline-flex; gap: 9px; align-items: center;
+  font-family: 'Barlow Condensed', sans-serif; font-size: 19px; font-weight: 700;
+  letter-spacing: .06em; text-transform: uppercase;
+}
+.aspect::before { content: ""; width: 13px; height: 13px; border-radius: 50%; }
+.aspect.clear { color: var(--clear); }
+.aspect.clear::before { background: var(--clear); box-shadow: 0 0 10px 1px var(--clear); }
+.aspect.stop { color: var(--stop); }
+.aspect.stop::before { background: var(--stop); box-shadow: 0 0 10px 1px var(--stop); }
+.code-error { font-family: 'Spline Sans Mono', ui-monospace, monospace; font-size: 12.5px; font-weight: 400; white-space: pre-wrap; }
+.rule-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.rule-chip {
+  display: inline-flex; gap: 8px; align-items: center;
+  font-family: 'Spline Sans Mono', ui-monospace, monospace; font-size: 12px; font-weight: 600;
+  border: 1px solid var(--border); border-radius: 3px; padding: 5px 11px; color: var(--ink-3);
+}
+.rule-chip::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--lamp-off); }
+.rule-chip.on { border-color: var(--clear); color: var(--ink); background: var(--clear-soft); }
+.rule-chip.on::before { background: var(--clear); box-shadow: 0 0 6px 0 var(--clear); }
+.rule-chip small { font-weight: 400; color: var(--ink-3); }
+
+/* ---- the block order (race) ---- */
+.yard-track {
+  display: flex; gap: 6px; flex-wrap: wrap; align-items: center; min-height: 44px;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 3px;
+  padding: 8px 10px;
+  background-image: repeating-linear-gradient(90deg, transparent 0 12px, var(--tie) 12px 14px);
+  background-size: 100% 4px; background-position: bottom; background-repeat: no-repeat;
+}
+.car {
+  display: inline-grid; place-items: center; width: 38px; height: 30px;
+  font-family: 'Spline Sans Mono', ui-monospace, monospace; font-size: 13px; font-weight: 600;
+  border: 1px solid var(--border); border-radius: 3px; background: var(--surface); color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+.car.ok { border-color: var(--clear); background: var(--clear-soft); color: var(--ink); }
+.car.ooo { border-color: var(--approach); background: var(--approach-soft); color: var(--approach); }
+.car.ghost { border-style: dashed; color: var(--ink-3); background: transparent; }
+.track-note {
+  margin-top: 6px; font-family: 'Spline Sans Mono', ui-monospace, monospace;
+  font-size: 12px; color: var(--ink-3);
+}
+.track-note .warn { color: var(--approach); font-weight: 600; }
+.track-note .good { color: var(--clear); font-weight: 600; }
+
+/* ---- second section (replay) ---- */
+.mono-line {
+  margin-top: 10px; font-family: 'Spline Sans Mono', ui-monospace, monospace;
+  font-size: 12.5px; color: var(--ink-2);
+}
+.replay-controls { margin-top: 14px; display: grid; gap: 14px; }
+#replay-status.running { color: var(--approach); }
+#replay-status.done { color: var(--clear); }
+.badge.replay { color: var(--brass); border-color: var(--brass); border-style: dashed; }
+
+/* iOS: keep every focusable control at >=16px below 640px or Safari zooms and sticks */
+@media (max-width: 640px) {
+  textarea.code { font-size: 16px; }
+}
+
 /* ---- footer: the depot at night, in both modes ---- */
 footer { margin-top: 40px; background: #0c110d; color: #b9c0ad; font-size: 13px; }
 footer .track { border-color: #4d5a45; background: repeating-linear-gradient(90deg, #2b3527 0 3px, transparent 3px 14px); }

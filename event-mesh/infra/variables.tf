@@ -26,6 +26,24 @@ variable "global_daily_limit" {
   default     = 1000
 }
 
+variable "pattern_daily_limit" {
+  description = "Max interlocking-tester (TestEventPattern) runs across ALL visitors per UTC day. The API call is free; this is a nuisance bound."
+  type        = number
+  default     = 500
+}
+
+variable "race_daily_limit" {
+  description = "Max block-order races across ALL visitors per UTC day (each race is ~21 SQS sends + ~20 Lambda invokes, all free-tier)"
+  type        = number
+  default     = 100
+}
+
+variable "replay_daily_limit" {
+  description = "Max archive replays across ALL visitors per UTC day (one at a time; each replays at most the capped daily traffic)"
+  type        = number
+  default     = 10
+}
+
 variable "heartbeat_rate" {
   description = "EventBridge Scheduler rate for the synthetic heartbeat request that keeps the live dashboard populated between visitors"
   type        = string

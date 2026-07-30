@@ -19,8 +19,10 @@ export async function handler(): Promise<{ deletedItems: number; purgedQueues: n
     const page = await ddb.send(
       new ScanCommand({
         TableName: TABLE,
-        FilterExpression: 'begins_with(PK, :req)',
-        ExpressionAttributeValues: { ':req': 'REQ#' },
+        // Request traces, block-order races, and the replay lock/last records
+        // all start the day fresh; STATS and USAGE stay (USAGE expires via TTL).
+        FilterExpression: 'begins_with(PK, :req) OR begins_with(PK, :race) OR PK = :replay',
+        ExpressionAttributeValues: { ':req': 'REQ#', ':race': 'RACE#', ':replay': 'REPLAY' },
         ProjectionExpression: 'PK, SK',
         ExclusiveStartKey: startKey,
       })

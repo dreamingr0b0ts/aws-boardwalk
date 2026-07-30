@@ -76,9 +76,11 @@ resource "aws_iam_role_policy" "api_all" {
         Resource = aws_cloudwatch_event_bus.mesh.arn
       },
       {
+        # DeleteItem is for the replay LOCK record only (release on failure
+        # or completion) — traces themselves expire via TTL / nightly reset.
         Sid      = "TraceReadsWritesAndCounters"
         Effect   = "Allow"
-        Action   = ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:Query", "dynamodb:Scan"]
+        Action   = ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:DeleteItem", "dynamodb:Query", "dynamodb:Scan"]
         Resource = aws_dynamodb_table.events.arn
       },
       {
@@ -101,6 +103,37 @@ resource "aws_iam_role_policy" "api_all" {
         Action   = ["sqs:SendMessage"]
         Resource = local.dispatch_queue_arns
       },
+      {
+        # The block-order race: the API is the only producer for both race
+        # queues (same-account IAM grant, so no queue policy is needed).
+        Sid      = "RaceProducer"
+        Effect   = "Allow"
+        Action   = ["sqs:SendMessage"]
+        Resource = [aws_sqs_queue.race_standard.arn, aws_sqs_queue.race_fifo.arn]
+      },
+      {
+        # The interlocking tester. TestEventPattern is a pure matcher with no
+        # resource-level permission support, hence the lone wildcard.
+        Sid      = "PatternTester"
+        Effect   = "Allow"
+        Action   = ["events:TestEventPattern"]
+        Resource = "*"
+      },
+      {
+        # The second-section exhibit: start a replay of the archive back onto
+        # the bus and poll its progress. StartReplay authorizes against the
+        # DESTINATION EVENT BUS arn (verified live: AccessDenied named the
+        # bus, not the archive), so the bus is in the list alongside the
+        # archive (DescribeArchive) and the replay names (DescribeReplay).
+        Sid    = "SecondSection"
+        Effect = "Allow"
+        Action = ["events:StartReplay", "events:DescribeReplay", "events:DescribeArchive"]
+        Resource = [
+          aws_cloudwatch_event_bus.mesh.arn,
+          aws_cloudwatch_event_archive.mesh.arn,
+          "arn:aws:events:${local.region}:${local.account_id}:replay/${local.prefix}-replay-*",
+        ]
+      },
     ]
   })
 }
@@ -112,10 +145,14 @@ resource "aws_iam_role_policy" "worker_all" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid      = "ConsumeDispatchAndAudit"
-        Effect   = "Allow"
-        Action   = ["sqs:ReceiveMessage", "sqs:DeleteMessage", "sqs:GetQueueAttributes"]
-        Resource = concat(local.dispatch_queue_arns, [aws_sqs_queue.audit.arn])
+        Sid    = "ConsumeDispatchAuditAndRace"
+        Effect = "Allow"
+        Action = ["sqs:ReceiveMessage", "sqs:DeleteMessage", "sqs:GetQueueAttributes"]
+        Resource = concat(local.dispatch_queue_arns, [
+          aws_sqs_queue.audit.arn,
+          aws_sqs_queue.race_standard.arn,
+          aws_sqs_queue.race_fifo.arn,
+        ])
       },
       {
         Sid      = "TraceWrites"

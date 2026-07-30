@@ -3,14 +3,14 @@
 // records the hop as its evidence.
 
 import type { SNSEvent } from 'aws-lambda';
-import { addHop, bumpStats, ensureMeta, type RequestDetail } from '../lib/trace.js';
+import { addHop, bumpStats, ensureMeta, resolveEvent } from '../lib/trace.js';
 
 export async function handler(event: SNSEvent): Promise<void> {
   for (const record of event.Records) {
-    // Heartbeats carry no requestId; fall back to the envelope's event id
-    // (same convention as the worker) so all legs trace together.
-    const evt = JSON.parse(record.Sns.Message);
-    const detail: RequestDetail = { ...evt.detail, requestId: evt.detail.requestId || evt.id };
+    // resolveEvent applies both shared conventions: heartbeats borrow the
+    // envelope's event id, and replayed events get their own second-section
+    // trace id.
+    const detail = resolveEvent(JSON.parse(record.Sns.Message));
     await ensureMeta(detail);
     await addHop(
       detail.requestId,

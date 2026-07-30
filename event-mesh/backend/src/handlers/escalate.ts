@@ -3,14 +3,18 @@
 // against the trace, not a dice roll — so the Step Functions retry policy
 // (3s backoff) fires visibly and deterministically in every demo.
 
-import { addHop, bumpStats, ensureMeta, getTrace, setMeta, type RequestDetail } from '../lib/trace.js';
+import { addHop, bumpStats, ensureMeta, getTrace, resolveEvent, setMeta } from '../lib/trace.js';
 
 interface StepInput {
   action: 'triage' | 'dispatch' | 'resolve';
-  detail: RequestDetail;
+  // The whole EventBridge envelope: replayed events carry a top-level
+  // "replay-name" that resolveEvent turns into a second-section trace id
+  // (with a fresh trace, the deterministic first-attempt fault fires again).
+  event: { id: string; detail: Record<string, unknown>; 'replay-name'?: string };
 }
 
-export async function handler({ action, detail }: StepInput): Promise<void> {
+export async function handler({ action, event }: StepInput): Promise<void> {
+  const detail = resolveEvent(event);
   const id = detail.requestId;
 
   switch (action) {

@@ -10,15 +10,39 @@ renders the journey live.
 
 ```
                           ┌─ rule category=roads ────→ SQS ─→ worker ─┐
-                          ├─ rule category=utilities → SQS ─→ worker ─┼─→ (3 DLQs, redrive via API)
+                          ├─ rule category=utilities → SQS ─→ worker ─┼─→ (3 DLQs: peek + redrive via API)
 POST /api/requests ─→ EventBridge bus (evt-bus)                       │
                           ├─ rule category=parks ────→ SQS ─→ worker ─┘
                           ├─ rule (all) ─→ SNS ─┬─→ notifier Lambda
                           │                     └─→ audit SQS queue
-                          └─ rule priority=urgent ─→ Step Functions (Express):
-                                                    triage → dispatch (retry ×2) → resolve
+                          ├─ rule priority=urgent ─→ Step Functions (Express):
+                          │                         triage → dispatch (retry ×2) → resolve
+                          └─ archive (2 days, excludes replays) ⇄ visitor-triggered StartReplay
 every hop ──────────────────────────────────────→ DynamoDB trace table (48h TTL)
 ```
+
+## Interactive exhibits
+
+- **The interlocking tester**: visitors edit an event and a pattern and run them through a real
+  `TestEventPattern` call, plus the same event against the mesh's five live rules (their patterns
+  are read off the deployed rule resources, so the tester can never drift). EventBridge's own
+  `InvalidEventPatternException` reasons are surfaced verbatim as the error copy.
+- **The block order**: the same cut of 10 numbered cars goes to a standard queue and a FIFO queue
+  in one `SendMessageBatch` each; a Lambda consumer records every arrival's position (atomic
+  DynamoDB counter) and the page renders the orders side by side. Car 7 is offered to the FIFO
+  queue twice under one deduplication id: SQS answers the duplicate send with the original
+  `MessageId` and delivers once, and the page shows that receipt.
+- **The second section**: an EventBridge archive records the bus for 2 days, and a visitor-triggered
+  `StartReplay` runs a chosen window (1h/6h/24h) through the mesh again. Replayed events arrive
+  with a `replay-name` envelope field; every consumer hashes (original id, replay name) into a
+  deterministic fresh trace id, so each re-run appears as its own "second section" on the arrivals
+  board, flagged with the run it repeats. One replay at a time (DynamoDB lock, 409 hands a second
+  visitor the in-flight name), 10/day.
+- **The bad-order cards**: the DLQ strip can peek dead letters without consuming them
+  (`ReceiveMessage` with `VisibilityTimeout=0`, a true peek): body, `ApproximateReceiveCount`,
+  original enqueue time, and the `DeadLetterQueueSourceArn` receipt naming the track that
+  sidelined it. Zero visibility timeout matters: even a 1s in-flight window can race a redrive
+  into a completed-but-moved-nothing message move task.
 
 ## The deliberate failure modes
 
@@ -34,15 +58,18 @@ every hop ───────────────────────�
 
 All six services are free-tier or fractions of a cent per million at demo volume, so the plank is
 public with no credential gate (unlike planks 6/7, where requests spend real money). Guardrails are
-for nuisance, not spend: 5 rps edge throttle, a 1,000/day global counter (429 past it), 48h TTL on
-traces, nightly DLQ purge + trace sweep at 09:00 UTC, and a heartbeat every 30 minutes so the
-dashboard never looks dead. Idle cost ≈ $0.
+for nuisance, not spend: 5 rps edge throttle, per-exhibit daily counters (1,000 requests, 500
+pattern tests, 100 races, 10 replays; 429 past each), one replay at a time, 48h TTL on traces,
+nightly DLQ purge + trace sweep at 09:00 UTC, and a heartbeat every 30 minutes so the dashboard
+never looks dead. The archive stores a few hundred KB at most (2-day retention, and its pattern
+excludes replayed events so replays can never compound). Idle cost ≈ $0.
 
 ## Operating it
 
 ```bash
 make deploy    # bundle Lambdas, terraform apply, publish the frontend
-make verify    # 29 end-to-end checks against the live URL (incl. DLQ + redrive drill)
+make verify    # 52 end-to-end checks against the live URL (~12-15 min: DLQ drill,
+               # pattern tester, FIFO race, archive replay + its own cleanup)
 make reset     # sweep traces + purge DLQs now (also runs nightly)
 make destroy
 ```

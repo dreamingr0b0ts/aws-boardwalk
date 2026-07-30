@@ -32,12 +32,17 @@ resource "aws_sfn_state_machine" "escalation" {
     TimeoutSeconds = 120
 
     States = {
+      # Each step gets the WHOLE EventBridge envelope, not just $.detail: a
+      # replayed event carries a top-level "replay-name" field the handler
+      # needs to trace the run as its own second section. (Referencing
+      # $['replay-name'] directly in Parameters would fail on non-replayed
+      # events — JSONPath to a missing field is a States.Runtime error.)
       Triage = {
         Type     = "Task"
         Resource = aws_lambda_function.escalate.arn
         Parameters = {
-          action     = "triage"
-          "detail.$" = "$.detail"
+          action    = "triage"
+          "event.$" = "$"
         }
         ResultPath = null # pass the original event through unchanged
         Catch      = local.catch_to_failed
@@ -48,8 +53,8 @@ resource "aws_sfn_state_machine" "escalation" {
         Type     = "Task"
         Resource = aws_lambda_function.escalate.arn
         Parameters = {
-          action     = "dispatch"
-          "detail.$" = "$.detail"
+          action    = "dispatch"
+          "event.$" = "$"
         }
         ResultPath = null
         Retry = [{
@@ -66,8 +71,8 @@ resource "aws_sfn_state_machine" "escalation" {
         Type     = "Task"
         Resource = aws_lambda_function.escalate.arn
         Parameters = {
-          action     = "resolve"
-          "detail.$" = "$.detail"
+          action    = "resolve"
+          "event.$" = "$"
         }
         ResultPath = null
         Catch      = local.catch_to_failed
@@ -76,6 +81,10 @@ resource "aws_sfn_state_machine" "escalation" {
 
       # Direct DynamoDB integration (no Lambda): flip the escalation field so
       # the dashboard never shows an urgent request stuck "in progress".
+      # Accepted edge: for a REPLAYED event this keys on the original
+      # requestId, not the second-section id — this path only fires on real
+      # bugs (every deliberate fault is retried or recovered upstream), and a
+      # direct integration can't derive the hashed replay id.
       MarkEscalationFailed = {
         Type     = "Task"
         Resource = "arn:aws:states:::dynamodb:updateItem"

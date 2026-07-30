@@ -346,8 +346,10 @@
       <div class="card-top"><span class="num">Events</span><span class="chip live">always-on</span></div>
       <h3>Event-Driven &amp; Messaging</h3>
       <p>A live event mesh you can poke: submit a 311-style request and watch it fan out through EventBridge
-      rules to department queues, SNS pub/sub, and a Step Functions escalation, with a poison-message
-      dead-letter drill, operator redrive, and a deliberately-retried transient fault, all traced hop by hop.</p>
+      rules to department queues, SNS pub/sub, and a Step Functions escalation, traced hop by hop. Test your
+      own routing patterns against the real matcher, race a standard queue against a FIFO queue (with a
+      duplicate absorbed on camera), read the dead-letter evidence before you redrive it, and replay the
+      2-day event archive back through the mesh.</p>
       <span class="stack">EventBridge · SQS · SNS · Step Functions · Lambda · DynamoDB</span>
       <div class="card-links">
         <a href="https://events.demos.planetek.org">Watch the mesh</a>

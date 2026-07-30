@@ -15,6 +15,34 @@ locals {
       dlqArn   = aws_sqs_queue.dlq[d].arn
     }
   })
+
+  race_json = jsonencode({
+    standardUrl = aws_sqs_queue.race_standard.url
+    fifoUrl     = aws_sqs_queue.race_fifo.url
+  })
+
+  # The interlocking tester checks visitor events against the mesh's REAL
+  # rules. Reading the patterns off the rule resources themselves means the
+  # tester can never drift from what the bus actually matches.
+  rule_patterns_json = jsonencode(concat(
+    [for d in local.departments : {
+      name        = "route-${d}"
+      description = "routes to the ${d} dispatch queue"
+      pattern     = aws_cloudwatch_event_rule.route[d].event_pattern
+    }],
+    [
+      {
+        name        = "notify-all"
+        description = "fans out through SNS to every subscriber"
+        pattern     = aws_cloudwatch_event_rule.notify_all.event_pattern
+      },
+      {
+        name        = "escalate-urgent"
+        description = "starts the Step Functions escalation"
+        pattern     = aws_cloudwatch_event_rule.escalate_urgent.event_pattern
+      },
+    ]
+  ))
 }
 
 data "archive_file" "handler" {
@@ -37,11 +65,19 @@ resource "aws_lambda_function" "api" {
 
   environment {
     variables = {
-      TABLE_NAME         = aws_dynamodb_table.events.name
-      BUS_NAME           = aws_cloudwatch_event_bus.mesh.name
-      EVENT_SOURCE       = local.event_source
-      QUEUES_JSON        = local.queues_json
-      GLOBAL_DAILY_LIMIT = tostring(var.global_daily_limit)
+      TABLE_NAME          = aws_dynamodb_table.events.name
+      BUS_NAME            = aws_cloudwatch_event_bus.mesh.name
+      BUS_ARN             = aws_cloudwatch_event_bus.mesh.arn
+      EVENT_SOURCE        = local.event_source
+      QUEUES_JSON         = local.queues_json
+      RACE_JSON           = local.race_json
+      RULE_PATTERNS_JSON  = local.rule_patterns_json
+      ARCHIVE_NAME        = aws_cloudwatch_event_archive.mesh.name
+      ARCHIVE_ARN         = aws_cloudwatch_event_archive.mesh.arn
+      GLOBAL_DAILY_LIMIT  = tostring(var.global_daily_limit)
+      PATTERN_DAILY_LIMIT = tostring(var.pattern_daily_limit)
+      RACE_DAILY_LIMIT    = tostring(var.race_daily_limit)
+      REPLAY_DAILY_LIMIT  = tostring(var.replay_daily_limit)
     }
   }
 
@@ -88,6 +124,23 @@ resource "aws_lambda_event_source_mapping" "audit" {
   event_source_arn        = aws_sqs_queue.audit.arn
   function_name           = aws_lambda_function.worker.arn
   batch_size              = 10
+  function_response_types = ["ReportBatchItemFailures"]
+}
+
+# Race queues get one car per invoke (batch_size = 1): standard-queue cars
+# arrive via concurrent invokes that genuinely race, FIFO cars arrive
+# sequentially because a single message group is never delivered in parallel.
+resource "aws_lambda_event_source_mapping" "race_standard" {
+  event_source_arn        = aws_sqs_queue.race_standard.arn
+  function_name           = aws_lambda_function.worker.arn
+  batch_size              = 1
+  function_response_types = ["ReportBatchItemFailures"]
+}
+
+resource "aws_lambda_event_source_mapping" "race_fifo" {
+  event_source_arn        = aws_sqs_queue.race_fifo.arn
+  function_name           = aws_lambda_function.worker.arn
+  batch_size              = 1
   function_response_types = ["ReportBatchItemFailures"]
 }
 

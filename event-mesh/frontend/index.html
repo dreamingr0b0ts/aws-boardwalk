@@ -125,6 +125,13 @@
       <div class="dlq-strip" id="dlq-strip">
         <span class="node dlq" data-node="dlq">dead-letter queues<small id="dlq-detail">all empty</small></span>
         <span class="dlq-actions" id="dlq-actions"></span>
+        <button type="button" id="boc-btn" class="ghost-btn" hidden>Read the bad-order cards</button>
+      </div>
+      <div id="boc" class="boc" hidden>
+        <p class="muted">Every car on the rip track carries its own record, read live off the
+        queue with <code>ReceiveMessage</code> (peeked, not consumed): what it was, how many
+        deliveries failed, when it was first waybilled, and which track sidelined it.</p>
+        <div id="boc-cards"></div>
       </div>
 
       <p class="lane-tag">Pub/sub fan-out · one topic, two subscriber types</p>
@@ -170,6 +177,97 @@
     <div id="feed" class="feed"><p class="muted">Loading…</p></div>
   </section>
 
+  <!-- Interactive: the pattern matcher under glass -->
+  <section class="panel">
+    <p class="plate">Interlocking tester · 04</p>
+    <h2>Test a routing pattern</h2>
+    <p class="muted">EventBridge decides where an event goes by matching JSON patterns against its
+    envelope. Edit the event and the pattern below, then throw the lever: the tester runs a real
+    <code>TestEventPattern</code> call, the exact matcher the bus uses. Your event is also checked
+    against the yard's five live rules, read straight from the deployed rule resources so the
+    tester can never drift from the real interlocking.</p>
+
+    <div class="preset-row"><span class="preset-label">Event presets</span>
+      <button type="button" class="chip" data-pt-event="roads">roads pothole</button>
+      <button type="button" class="chip" data-pt-event="urgent">urgent parks callout</button>
+      <button type="button" class="chip" data-pt-event="foreign">foreign source (off timetable)</button>
+    </div>
+    <div class="preset-row"><span class="preset-label">Pattern presets</span>
+      <button type="button" class="chip" data-pt-pattern="category">match two categories</button>
+      <button type="button" class="chip" data-pt-pattern="urgent">match urgent only</button>
+      <button type="button" class="chip" data-pt-pattern="prefix">prefix match on source</button>
+      <button type="button" class="chip" data-pt-pattern="anything-but">anything-but parks</button>
+    </div>
+
+    <div class="duo">
+      <label class="txt">The event
+        <textarea id="pt-event" class="code" rows="13" spellcheck="false" autocomplete="off"></textarea>
+      </label>
+      <label class="txt">Your pattern
+        <textarea id="pt-pattern" class="code" rows="13" spellcheck="false" autocomplete="off"></textarea>
+      </label>
+    </div>
+
+    <div class="pt-run">
+      <button type="button" id="pt-btn">Throw the lever</button>
+      <span id="pt-result" class="aspect" hidden></span>
+    </div>
+    <p id="pt-error" class="error code-error" hidden></p>
+    <div id="pt-rules" hidden>
+      <h4>The same event against the yard's live rules</h4>
+      <div class="rule-chips" id="pt-rule-chips"></div>
+    </div>
+  </section>
+
+  <!-- Interactive: standard vs FIFO ordering + dedup -->
+  <section class="panel">
+    <p class="plate">Classification · 05</p>
+    <h2>The block order: standard vs FIFO</h2>
+    <p class="muted">A standard queue promises delivery, not order; a FIFO queue promises both,
+    and absorbs duplicates. This sends the same cut of 10 numbered cars to both queues in one
+    <code>SendMessageBatch</code> each, with one twist: car 7 is offered to the FIFO queue a
+    second time under the same deduplication id. 21 sends are accepted, 20 cars arrive. Each
+    arrival below is a real Lambda consumer recording its position.</p>
+
+    <button type="button" id="race-btn">Send a cut of 10 cars</button>
+    <p id="race-error" class="error" hidden></p>
+
+    <div id="race-board" hidden>
+      <h4>Standard track · evt-race-standard</h4>
+      <div class="yard-track" id="race-std" aria-live="polite"></div>
+      <p class="track-note" id="race-std-note"></p>
+      <h4>FIFO track · evt-race.fifo · one message group</h4>
+      <div class="yard-track" id="race-fifo" aria-live="polite"></div>
+      <p class="track-note" id="race-fifo-note"></p>
+    </div>
+  </section>
+
+  <!-- Interactive: archive replay -->
+  <section class="panel">
+    <p class="plate">Second section · 06</p>
+    <h2>Replay the archive</h2>
+    <p class="muted">Queues and topics forget a message the moment it is consumed. The bus does
+    not have to: an EventBridge archive records every event for 2 days, and a replay runs a past
+    window through the mesh again. Every rule matches the recorded events a second time, and each
+    re-run traces as its own <em>second section</em> on the arrivals board, flagged with the run
+    it repeats. Replay a window that includes a poison message and the rip track fills again;
+    replay yesterday after the nightly sweep and the archive restores what the board forgot.</p>
+
+    <p class="mono-line" id="replay-archive">Reading the vault…</p>
+
+    <div class="replay-controls">
+      <fieldset class="seg" id="replay-window">
+        <legend>Window to re-run</legend>
+        <label><input type="radio" name="window" value="1h" checked><span>Last hour</span></label>
+        <label><input type="radio" name="window" value="6h"><span>Last 6 hours</span></label>
+        <label><input type="radio" name="window" value="24h"><span>Last 24 hours</span></label>
+      </fieldset>
+      <button type="button" id="replay-btn">Run the second section</button>
+    </div>
+    <p id="replay-status" class="mono-line" hidden></p>
+    <p id="replay-error" class="error" hidden></p>
+  </section>
+
   <figure class="interlude">
     <picture>
       <source media="(max-width: 720px)" srcset="/img/yard-800.webp">
@@ -182,18 +280,26 @@
   </figure>
 
   <section class="panel">
-    <p class="plate">Timetable notes · 04</p>
+    <p class="plate">Timetable notes · 07</p>
     <h2>What this plank proves</h2>
     <ul class="proof">
       <li><strong>Decoupled, event-driven architecture:</strong> the producer knows nothing about
       the consumers. One published event is matched by up to five EventBridge rules, each fanning
       out independently to SQS, SNS, and Step Functions.</li>
-      <li><strong>Content-based routing:</strong> rules match on the event payload
+      <li><strong>Content-based routing you can poke:</strong> rules match on the event payload
       (<code>detail.category</code>, <code>detail.priority</code>), the pattern behind department
-      inboxes, regional routing, and premium-tier handling.</li>
+      inboxes, regional routing, and premium-tier handling. The interlocking tester runs your own
+      patterns through the real matcher via <code>TestEventPattern</code>.</li>
       <li><strong>Failure handling that's designed, not hoped for:</strong> per-message retry with
-      visibility-timeout backoff, a dead-letter queue after three attempts, and an operator redrive
-      path. The poison message demo exercises all of it.</li>
+      visibility-timeout backoff, a dead-letter queue after three attempts, readable dead-letter
+      evidence (delivery counts, timestamps, source queue), and an operator redrive path. The
+      poison message demo exercises all of it.</li>
+      <li><strong>Replayability:</strong> an EventBridge archive records the bus for 2 days and
+      visitor-triggered replays run past traffic through the mesh again, something a queue or
+      topic cannot do once a message is consumed.</li>
+      <li><strong>Ordering and exactly-once where they matter:</strong> the block-order race shows
+      a standard queue's best-effort delivery next to a FIFO queue's guaranteed order and
+      5-minute deduplication window, with the same producer batch feeding both.</li>
       <li><strong>Orchestration with retries:</strong> an Express Step Functions workflow absorbs a
       deliberate transient fault via its declarative retry policy. Visible in the trace, invisible
       to the citizen.</li>

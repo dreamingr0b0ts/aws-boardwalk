@@ -26,6 +26,12 @@ locals {
     "GET /api/requests/{id}",
     "POST /api/requests",
     "POST /api/redrive",
+    "POST /api/pattern-test",
+    "GET /api/dlq/{dept}",
+    "POST /api/race",
+    "GET /api/race/{id}",
+    "GET /api/replay",
+    "POST /api/replay",
   ]
 }
 

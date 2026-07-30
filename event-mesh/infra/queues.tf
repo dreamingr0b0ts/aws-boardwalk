@@ -38,6 +38,30 @@ resource "aws_sqs_queue_redrive_allow_policy" "dlq" {
   })
 }
 
+# The block-order race: the same cut of 10 numbered cars is sent to a
+# standard queue and a FIFO queue in one SendMessageBatch each, and the
+# dashboard renders the arrival order side by side. The API Lambda is the
+# only producer (IAM, no queue policy needed), the worker the only consumer.
+# batch_size = 1 on their event source mappings keeps one car per invoke, so
+# standard-queue arrivals genuinely race each other through concurrent
+# Lambda invokes while the FIFO queue's single message group is delivered
+# strictly in order.
+resource "aws_sqs_queue" "race_standard" {
+  name                       = "${local.prefix}-race-standard"
+  visibility_timeout_seconds = 30
+  message_retention_seconds  = 3600
+  sqs_managed_sse_enabled    = true
+}
+
+resource "aws_sqs_queue" "race_fifo" {
+  name                        = "${local.prefix}-race.fifo"
+  fifo_queue                  = true
+  content_based_deduplication = false # explicit MessageDeduplicationId — the dedup exhibit depends on it
+  visibility_timeout_seconds  = 30
+  message_retention_seconds   = 3600
+  sqs_managed_sse_enabled     = true
+}
+
 # The second SNS subscriber (alongside the notifier Lambda): a queue-type
 # subscriber demonstrating durable pub/sub fan-out. Raw delivery keeps the
 # body identical to what the department queues receive.
