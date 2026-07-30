@@ -49,17 +49,48 @@
   <section class="panel">
     <p class="station">№ 01 · The counter</p>
     <h2>Launch a container</h2>
-    <p class="muted">Each launch is a genuine <code>ecs:RunTask</code> against a scale-to-zero
-    Fargate cluster: 0.25 vCPU / 512 MiB, the smallest size Fargate sells, about $0.001 per run.
-    The oven holds one batch at a time and there is a global daily cap, so if someone else's
-    container is in flight you'll be handed theirs to watch instead.</p>
+    <p class="muted">Every button here is a genuine <code>ecs:RunTask</code> against a
+    scale-to-zero Fargate cluster; nothing is simulated. The oven bay holds one launch at a time
+    and there is a global daily cap, so if someone else's container is in flight you'll be handed
+    theirs to watch instead.</p>
 
-    <div class="launch-row">
-      <button id="launch-report">▶ Run the nightly report job</button>
-      <button id="launch-fail" class="secondary">Run the failing job</button>
-      <p class="muted small">The failing job is the burnt batch: a deliberate bad-input error,
-      exit 1, so you can see how a container failure actually surfaces. Non-zero exit code,
-      stopped reason, no artifact.</p>
+    <div class="launch-group">
+      <h3>The daily bake</h3>
+      <div class="launch-row">
+        <button id="launch-report">▶ Run the nightly report job</button>
+        <p class="muted small">0.25 vCPU / 512 MiB, the smallest size Fargate sells: builds the
+        fictional City of Alpenglow operations report and files it to S3 with its task role,
+        about a tenth of a cent per run. The ticket below prices it to the fraction.</p>
+      </div>
+    </div>
+
+    <div class="launch-group">
+      <h3>The bake-off <span class="tag2">two ovens fire at once</span></h3>
+      <div class="launch-row">
+        <button id="launch-race-size" class="race-btn">⚖ Race the ovens: ¼ vCPU vs 1 vCPU</button>
+        <button id="launch-race-image" class="race-btn">⚖ Race the recipes: slim vs heavy image</button>
+        <p class="muted small">A race launches the identical job in two real tasks side by side
+        and takes two of the day's launch slots. The oven race runs a fixed CPU workload, so the
+        wall clock shows exactly what paying for 4x the compute buys. The recipe race bakes the
+        same app from a slim alpine image and a deliberately heavy Debian one: that race is
+        decided before the job even starts.</p>
+      </div>
+    </div>
+
+    <div class="launch-group">
+      <h3>The failure museum</h3>
+      <div class="launch-row">
+        <button id="launch-fail" class="secondary">Burnt batch: exit 1</button>
+        <button id="launch-oom" class="secondary">Outgrew the pan: OOM kill</button>
+        <button id="launch-drain" class="secondary">Overnight proof: clean drain</button>
+        <button id="launch-stubborn" class="secondary">The batch that would not come out</button>
+      </div>
+      <p class="muted small">Four honest endings. The burnt batch hits a deliberate bad-input
+      error (exit 1). The pan-outgrower allocates memory until Fargate's 512 MiB task limit kills
+      it (exit 137, OutOfMemoryError, mid-sentence). The two proofs run about three and a half
+      minutes on their own; pull them early from the oven instead: the clean drain traps SIGTERM
+      and exits 0 inside the 30 second grace window, the stubborn one ignores the bell until ECS
+      sends SIGKILL.</p>
     </div>
     <p id="launch-error" class="error" hidden></p>
   </section>
@@ -72,25 +103,61 @@
       <p class="muted" id="watching">Launch a container above, or click a recent run.</p>
     </div>
 
-    <div class="lifecycle" id="lifecycle">
-      <span class="node stage" data-stage="0">PROVISIONING<small>the oven fires: Fargate finds capacity, attaches an ENI</small></span>
-      <span class="arr">→</span>
-      <span class="node stage" data-stage="1">PENDING<small>proofing: the image pulls from ECR</small></span>
-      <span class="arr">→</span>
-      <span class="node stage" data-stage="2">RUNNING<small>in the oven: your job, logging to CloudWatch</small></span>
-      <span class="arr">→</span>
-      <span class="node stage" data-stage="3">DEPROVISIONING<small>cooling rack: the ENI tears down</small></span>
-      <span class="arr">→</span>
-      <span class="node stage" data-stage="4">STOPPED<small>out: exit code recorded</small></span>
+    <div id="single-view">
+      <div class="lifecycle" id="lifecycle">
+        <span class="node stage" data-stage="0">PROVISIONING<small>the oven fires: Fargate finds capacity, attaches an ENI</small></span>
+        <span class="arr">→</span>
+        <span class="node stage" data-stage="1">PENDING<small>proofing: the image pulls from ECR</small></span>
+        <span class="arr">→</span>
+        <span class="node stage" data-stage="2">RUNNING<small>in the oven: your job, logging to CloudWatch</small></span>
+        <span class="arr">→</span>
+        <span class="node stage" data-stage="3">DEPROVISIONING<small>cooling rack: the ENI tears down</small></span>
+        <span class="arr">→</span>
+        <span class="node stage" data-stage="4">STOPPED<small>out: exit code recorded</small></span>
+      </div>
+
+      <div class="term" id="term"><p class="term-empty" id="term-empty">container stdout will stream here once the oven is lit</p><pre id="term-log"></pre></div>
+
+      <div class="stoprow" id="stoprow" hidden>
+        <button id="btn-stop" class="secondary">⏱ Pull the batch early (SIGTERM)</button>
+        <span class="muted small" id="stop-note"></span>
+      </div>
+
+      <div class="result" id="result" hidden>
+        <span class="badge" id="result-exit"></span>
+        <span class="result-item" id="result-duration"></span>
+        <span class="result-item" id="result-reason"></span>
+        <a id="result-artifact" href="#" target="_blank" rel="noopener" hidden>Open the report this container produced ↗</a>
+      </div>
+
+      <div class="anatomy" id="anatomy" hidden>
+        <h3 class="sub-head">Cold-start anatomy</h3>
+        <p class="muted small">Every second of this run, measured by ECS itself
+        (<code>DescribeTasks</code> timestamps). What you wait for is capacity and the image
+        pull, not your code; the bake ticket prices the whole thing from published us-east-1
+        rates.</p>
+        <div class="waterfall" id="waterfall"></div>
+        <div class="receipt" id="receipt"></div>
+      </div>
     </div>
 
-    <div class="term" id="term"><p class="term-empty" id="term-empty">container stdout will stream here once the oven is lit</p><pre id="term-log"></pre></div>
-
-    <div class="result" id="result" hidden>
-      <span class="badge" id="result-exit"></span>
-      <span class="result-item" id="result-duration"></span>
-      <span class="result-item" id="result-reason"></span>
-      <a id="result-artifact" href="#" target="_blank" rel="noopener" hidden>Open the report this container produced ↗</a>
+    <div id="race-view" hidden>
+      <p class="muted small" id="race-note"></p>
+      <div class="race-grid">
+        <div class="lane">
+          <div class="lane-head"><span class="lane-name" id="lane-0-name">lane one</span> <span class="badge" id="lane-0-status">waiting</span></div>
+          <div class="term lane-term" id="lane-0-term"><p class="term-empty" id="lane-0-empty">oven one is lighting</p><pre id="lane-0-log"></pre></div>
+          <div class="waterfall" id="lane-0-waterfall"></div>
+          <div class="receipt" id="lane-0-receipt"></div>
+        </div>
+        <div class="lane">
+          <div class="lane-head"><span class="lane-name" id="lane-1-name">lane two</span> <span class="badge" id="lane-1-status">waiting</span></div>
+          <div class="term lane-term" id="lane-1-term"><p class="term-empty" id="lane-1-empty">oven two is lighting</p><pre id="lane-1-log"></pre></div>
+          <div class="waterfall" id="lane-1-waterfall"></div>
+          <div class="receipt" id="lane-1-receipt"></div>
+        </div>
+      </div>
+      <div class="race-verdict" id="race-verdict" hidden></div>
     </div>
   </section>
 
@@ -116,6 +183,14 @@
     </div>
 
     <div id="scan-counts" class="scan-counts"></div>
+
+    <div class="compare" id="image-compare" hidden>
+      <h3 class="sub-head">Two recipes, one app: the health inspection</h3>
+      <p class="muted small">The bake-off's heavy image is byte-for-byte the same job on a full
+      Debian node base instead of alpine. Same source, same <code>npm ci</code>, same command.
+      The registry tells the rest of the story.</p>
+      <div class="compare-scroll"><table class="compare-table" id="compare-table"></table></div>
+    </div>
   </section>
 
   <figure class="interlude">
@@ -153,8 +228,16 @@
       <li><strong>No NAT tax:</strong> tasks get a public IP in a public subnet with a no-ingress
       security group, the documented pattern for internet-reachable AWS APIs without a $32/mo NAT
       gateway.</li>
-      <li><strong>Failure is part of the demo:</strong> the burnt batch shows exactly what operators
-      get. An exit code, a stopped reason, and logs up to the fault.</li>
+      <li><strong>Cold starts, itemized:</strong> the anatomy bar splits every run into capacity,
+      image pull, container start, and the job itself, straight from <code>DescribeTasks</code>
+      timestamps, and the bake ticket prices the run to the fraction of a cent while it happens.</li>
+      <li><strong>Sizing and image weight, raced honestly:</strong> the bake-off runs identical
+      workloads in two live tasks. Four times the vCPU finishes the same batch about four times
+      sooner for nearly the same money, and a heavy base image loses the pull race before its job
+      starts.</li>
+      <li><strong>Failure is part of the demo:</strong> exit 1 with logs up to the fault, a real
+      OOM kill at the task memory limit (exit 137), and both endings of SIGTERM: a clean drain
+      inside the 30s stopTimeout and a SIGKILL when a job refuses to listen.</li>
     </ul>
   </section>
 

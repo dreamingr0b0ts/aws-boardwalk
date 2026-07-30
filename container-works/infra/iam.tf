@@ -51,11 +51,15 @@ resource "aws_iam_role_policy" "api_all" {
     Version = "2012-10-17"
     Statement = [
       {
-        # Launch is fenced two ways: only this task family, only this cluster.
-        Sid       = "LaunchJobTask"
-        Effect    = "Allow"
-        Action    = ["ecs:RunTask"]
-        Resource  = "arn:aws:ecs:${local.region}:${local.account_id}:task-definition/${aws_ecs_task_definition.app.family}:*"
+        # Launch is fenced two ways: only these task families, only this cluster.
+        Sid    = "LaunchJobTask"
+        Effect = "Allow"
+        Action = ["ecs:RunTask"]
+        Resource = [
+          "arn:aws:ecs:${local.region}:${local.account_id}:task-definition/${aws_ecs_task_definition.app.family}:*",
+          "arn:aws:ecs:${local.region}:${local.account_id}:task-definition/${aws_ecs_task_definition.app_boost.family}:*",
+          "arn:aws:ecs:${local.region}:${local.account_id}:task-definition/${aws_ecs_task_definition.app_fat.family}:*",
+        ]
         Condition = { ArnEquals = { "ecs:cluster" = aws_ecs_cluster.works.arn } }
       },
       {
@@ -69,6 +73,15 @@ resource "aws_iam_role_policy" "api_all" {
         Sid       = "WatchTasks"
         Effect    = "Allow"
         Action    = ["ecs:DescribeTasks"]
+        Resource  = "arn:aws:ecs:${local.region}:${local.account_id}:task/${aws_ecs_cluster.works.name}/*"
+        Condition = { ArnEquals = { "ecs:cluster" = aws_ecs_cluster.works.arn } }
+      },
+      {
+        # The "pull the batch early" button: SIGTERM a task this plank
+        # launched. Same fence as watching — this cluster's tasks only.
+        Sid       = "StopVisitorTask"
+        Effect    = "Allow"
+        Action    = ["ecs:StopTask"]
         Resource  = "arn:aws:ecs:${local.region}:${local.account_id}:task/${aws_ecs_cluster.works.name}/*"
         Condition = { ArnEquals = { "ecs:cluster" = aws_ecs_cluster.works.arn } }
       },

@@ -1,6 +1,9 @@
-# CodeBuild pipeline: docker build → tag (latest + build number) → push to ECR,
-# where scan-on-push runs basic vulnerability scanning automatically.
-# ECR_REPO_URI is injected by the CodeBuild project (terraform).
+# CodeBuild pipeline: docker build → tag → push to ECR, where scan-on-push
+# runs basic vulnerability scanning automatically. Builds BOTH image variants:
+# the slim image the plank actually runs (latest + b<n>) and the deliberately
+# heavy exhibit image (fat + fat-b<n>) used by the image race and the
+# health-inspection comparison. ECR_REPO_URI is injected by the CodeBuild
+# project (terraform).
 version: 0.2
 
 phases:
@@ -11,8 +14,12 @@ phases:
   build:
     commands:
       - docker build -t "$ECR_REPO_URI:latest" -t "$ECR_REPO_URI:b$CODEBUILD_BUILD_NUMBER" .
+      - docker build -f Dockerfile.fat -t "$ECR_REPO_URI:fat" -t "$ECR_REPO_URI:fat-b$CODEBUILD_BUILD_NUMBER" .
   post_build:
     commands:
       - docker push "$ECR_REPO_URI:latest"
       - docker push "$ECR_REPO_URI:b$CODEBUILD_BUILD_NUMBER"
-      - docker image inspect "$ECR_REPO_URI:latest" --format 'pushed {{.Id}} ({{.Size}} bytes)'
+      - docker push "$ECR_REPO_URI:fat"
+      - docker push "$ECR_REPO_URI:fat-b$CODEBUILD_BUILD_NUMBER"
+      - docker image inspect "$ECR_REPO_URI:latest" --format 'slim {{.Id}} ({{.Size}} bytes)'
+      - docker image inspect "$ECR_REPO_URI:fat" --format 'fat  {{.Id}} ({{.Size}} bytes)'

@@ -1,0 +1,18 @@
+# The overloaded pan: byte-for-byte the same job as Dockerfile, but on the
+# full Debian node base instead of alpine. Exists ONLY so the dashboard can
+# race the two and compare their ECR scan findings — same app, ~10x the image,
+# a visibly slower Fargate pull, and a base OS with far more CVE surface.
+FROM public.ecr.aws/docker/library/node:22
+
+WORKDIR /job
+ENV NODE_ENV=production
+
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev --no-fund --no-audit
+
+COPY src ./src
+
+# Run unprivileged; the task definition also mounts the root fs read-only.
+USER node
+
+CMD ["node", "src/run.mjs"]

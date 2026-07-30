@@ -26,6 +26,14 @@ output "task_family" {
   value = aws_ecs_task_definition.app.family
 }
 
+output "task_family_boost" {
+  value = aws_ecs_task_definition.app_boost.family
+}
+
+output "task_family_fat" {
+  value = aws_ecs_task_definition.app_fat.family
+}
+
 output "ecr_repo_url" {
   value = aws_ecr_repository.app.repository_url
 }

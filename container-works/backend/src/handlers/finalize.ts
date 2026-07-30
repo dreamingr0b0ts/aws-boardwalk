@@ -1,6 +1,6 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb';
-import { normalizeTask, saveRun } from '../lib/runs.js';
+import { normalizeTask, saveRun, pricesFromEnv } from '../lib/runs.js';
 
 // EventBridge → here on every ECS task state change in the ctr cluster. This
 // is what makes run records complete even when nobody is watching the
@@ -11,9 +11,10 @@ const doc = DynamoDBDocument.from(new DynamoDBClient({}), {
   marshallOptions: { removeUndefinedValues: true },
 });
 const TABLE = process.env.TABLE_NAME!;
+const PRICES = pricesFromEnv();
 
 export const handler = async (event: { detail?: Record<string, unknown> }): Promise<void> => {
-  const run = event.detail ? normalizeTask(event.detail) : null;
+  const run = event.detail ? normalizeTask(event.detail, PRICES) : null;
   if (!run) {
     console.warn('event without a task detail — ignoring');
     return;

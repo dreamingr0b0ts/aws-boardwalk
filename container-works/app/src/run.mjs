@@ -7,18 +7,32 @@
 // write only under artifacts/). Logs go to stdout → awslogs → CloudWatch,
 // where the dashboard tails them live.
 //
-// JOB=report  → full run, exit 0
-// JOB=fail    → hits a (deliberate) bad-input error after aggregation, exit 1,
-//               so the dashboard's exit-code / stopped-reason handling is
-//               demonstrable on demand.
+// JOB=report   → full run, exit 0
+// JOB=fail     → hits a (deliberate) bad-input error after aggregation, exit 1,
+//                so the dashboard's exit-code / stopped-reason handling is
+//                demonstrable on demand.
+// JOB=crunch   → fixed CPU-bound workload (PBKDF2), identical in every lane of
+//                the bake-off; only the oven size changes the wall clock.
+// JOB=oom      → allocates past the 512 MiB task limit until Fargate kills the
+//                container (exit 137, OutOfMemoryError stopped reason).
+// JOB=drain    → long-running proof that traps SIGTERM and exits 0 cleanly
+//                inside the 30s stopTimeout grace window.
+// JOB=stubborn → long-running proof that IGNORES SIGTERM, so ECS SIGKILLs it
+//                when the 30s grace window runs out (exit 137).
 
 import { hostname } from 'node:os';
+import { pbkdf2Sync } from 'node:crypto';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
 const JOB = process.env.JOB ?? 'report';
 const SOURCE = process.env.SOURCE ?? 'manual';
+const VARIANT = process.env.VARIANT ?? 'standard';
+const RACE_ID = process.env.RACE_ID ?? '';
 const BUCKET = process.env.ARTIFACT_BUCKET;
 const PREFIX = process.env.ARTIFACT_PREFIX ?? 'artifacts/';
+// The bake-off workload is FIXED per race (both lanes hash the same count);
+// the API can retune it via env override without an image rebuild.
+const WORK_ITERS = Number(process.env.WORK_ITERS ?? '6000000');
 
 const t0 = Date.now();
 const log = (msg) => console.log(`+${String(Date.now() - t0).padStart(5, ' ')}ms ${msg}`);
@@ -131,14 +145,99 @@ Part of the <a href="https://demos.planetek.org">Planetek AWS Boardwalk</a>; not
 </div></body></html>`;
 }
 
+// ---- bake-off lane: fixed CPU-bound workload -----------------------------------
+// Both lanes of a race hash exactly the same number of PBKDF2-SHA512
+// iterations; the only variable is how much oven Fargate gives each one.
+async function runCrunch() {
+  const CHUNKS = 50;
+  const perChunk = Math.ceil(WORK_ITERS / CHUNKS);
+  log(`[crunch] fixed workload: ${(WORK_ITERS / 1e6).toFixed(1)}M PBKDF2-SHA512 iterations, identical in every lane`);
+  const t1 = Date.now();
+  for (let c = 1; c <= CHUNKS; c++) {
+    pbkdf2Sync('alpenglow', `salt-${c}`, perChunk, 64, 'sha512');
+    if (c % 5 === 0) {
+      const pct = (c / CHUNKS) * 100;
+      log(`[crunch] ${String(pct).padStart(3, ' ')}% · ${(((c * perChunk) / 1e6)).toFixed(1)}M of ${(WORK_ITERS / 1e6).toFixed(1)}M iterations`);
+    }
+    await sleep(0); // yield so a SIGTERM handler could run between chunks
+  }
+  const secs = (Date.now() - t1) / 1000;
+  log(`[crunch] done: ${(WORK_ITERS / 1e6).toFixed(1)}M iterations in ${secs.toFixed(1)}s (${Math.round(WORK_ITERS / secs / 1000)}k iters/s), exiting 0`);
+}
+
+// ---- the batch that outgrows its pan -------------------------------------------
+// Fargate enforces memory at the TASK level (this container's own cgroup looks
+// unlimited), so the honest way to show the limit is to walk into it. The
+// kernel OOM killer ends this mid-sentence: no goodbye line, exit 137, and
+// ECS records "OutOfMemoryError" as the container's stopped reason.
+async function runOom(limits) {
+  const held = [];
+  const stepMiB = 48;
+  log(`[oom] this batch will not stop rising: allocating ${stepMiB} MiB at a time inside a ${limits.memMiB} MiB pan`);
+  log('[oom] note: the container cgroup reports NO limit; the task-level limit is what kills you');
+  for (let i = 1; i <= 24; i++) {
+    // fill() with a non-zero byte, or the kernel hands back copy-on-write
+    // zero pages and never commits them — a zero-filled "allocation" can
+    // balloon far past the task limit without tripping the OOM killer
+    // (verified live: Buffer.alloc alone survived to 1152 MiB in a 512 pan).
+    held.push(Buffer.allocUnsafe(stepMiB * 1024 * 1024).fill(0xa5));
+    log(`[oom] holding ${held.length * stepMiB} MiB of a ${limits.memMiB} MiB pan`);
+    await sleep(900);
+  }
+  // Unreachable once pages are really committed. Belt and braces for local runs.
+  throw new Error('oom job survived past its pan somehow');
+}
+
+// ---- the overnight proofs: SIGTERM behavior, both endings -----------------------
+// drain: traps SIGTERM, finishes its tray, exits 0 inside the 30s grace window.
+// stubborn: ignores SIGTERM and keeps going until ECS SIGKILLs it (exit 137).
+// Left alone, both come out on their own after ~3.5 minutes.
+async function runProof(kind) {
+  if (kind === 'drain') {
+    process.on('SIGTERM', () => {
+      log('[sigterm] stop requested: ECS sent SIGTERM, the 30s grace window is open');
+      log('[sigterm] pulling the batch early: finishing the current tray, closing the ledger');
+      setTimeout(() => {
+        log('[sigterm] clean shutdown inside the grace window, exiting 0');
+        process.exit(0);
+      }, 700);
+    });
+    log('[proof] overnight proof started: this job traps SIGTERM and shuts down cleanly');
+    log('[proof] press "pull the batch early" on the dashboard to send a real StopTask');
+  } else {
+    process.on('SIGTERM', () => {
+      log('[sigterm] heard the bell, IGNORING it: this batch is not coming out');
+      log('[sigterm] ECS will wait out the 30s stopTimeout, then SIGKILL (exit 137, no goodbye line)');
+    });
+    log('[proof] stubborn proof started: this job IGNORES SIGTERM on purpose');
+    log('[proof] stop it and watch the 30s stopTimeout expire into a SIGKILL');
+  }
+  for (let tray = 1; tray <= 42; tray++) {
+    await sleep(5000);
+    log(`[proof] tray ${tray} of 42 still proofing`);
+  }
+  log('[proof] nobody pulled it: the batch came out on its own, exiting 0');
+}
+
 async function main() {
   const identity = await taskIdentity();
   const limits = { vcpu: identity.vcpu, memMiB: identity.memMiB };
   const dateStr = (process.env.REPORT_DATE ?? new Date().toISOString()).slice(0, 10);
 
-  log(`[boot] Alpenglow Batch Works job starting: job=${JOB} source=${SOURCE}`);
+  log(`[boot] Alpenglow Batch Works job starting: job=${JOB} source=${SOURCE}${RACE_ID ? ` race=${RACE_ID} lane=${VARIANT}` : ''}`);
   log(`[boot] task ${identity.taskId} on ${identity.launchType} in ${identity.az}, host ${hostname()}`);
   log(`[boot] node ${process.version} ${process.arch}, task limits: ${limits.vcpu} vCPU / ${limits.memMiB} MiB (task metadata endpoint)`);
+
+  if (JOB === 'crunch') return runCrunch();
+  if (JOB === 'oom') return runOom(limits);
+  if (JOB === 'drain' || JOB === 'stubborn') return runProof(JOB);
+
+  // report and fail both bake the ledger; report also traps SIGTERM so even
+  // the everyday job demonstrates a clean drain if someone pulls it early.
+  process.on('SIGTERM', () => {
+    log('[sigterm] stop requested mid-bake: flushing and exiting 0 inside the grace window');
+    setTimeout(() => process.exit(0), 500);
+  });
   await sleep(1200);
 
   log(`[1/5] generating service-request ledger for ${dateStr} (seeded by date, deterministic)`);

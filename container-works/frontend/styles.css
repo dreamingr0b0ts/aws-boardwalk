@@ -247,6 +247,93 @@ ul.proof { margin: 12px 0 0; padding-left: 20px; display: grid; gap: 8px; font-s
 ul.proof li::marker { color: var(--crust-edge); }
 ul.proof strong { color: var(--ink); }
 
+/* ---- launcher groups: counter, bake-off, failure museum ---- */
+.launch-group { margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--border-strong); }
+.launch-group:first-of-type { border-top: 0; padding-top: 0; }
+.launch-group h3 {
+  font: 700 13px var(--mono); text-transform: uppercase; letter-spacing: .08em;
+  color: var(--ink-2); margin-bottom: 10px;
+}
+.tag2 {
+  font: 400 11px var(--mono); text-transform: none; letter-spacing: .02em;
+  color: var(--ember); border: 1px dashed var(--ember); border-radius: 999px; padding: 1px 9px; margin-left: 8px;
+}
+button.race-btn {
+  background: transparent; color: var(--ember); border: 1.5px solid var(--ember);
+  box-shadow: none;
+}
+button.race-btn:hover { background: var(--ember-soft); filter: none; }
+
+/* ---- stop row: pull the batch early ---- */
+.stoprow { margin-top: 12px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+
+/* ---- cold-start anatomy: the waterfall ---- */
+.anatomy { margin-top: 20px; padding-top: 14px; border-top: 1px dashed var(--border-strong); }
+.sub-head { font: 800 16px/1.2 var(--display); margin-bottom: 6px; }
+.waterfall { margin-top: 12px; }
+.wf-bar {
+  position: relative; height: 26px; border-radius: 8px; overflow: hidden;
+  background: var(--chip-bg); border: 1px solid var(--border);
+}
+.wf-seg { position: absolute; top: 0; bottom: 0; display: block; }
+.wf-seg.live { animation: wfpulse 1.2s ease-in-out infinite; }
+@keyframes wfpulse { 50% { opacity: .55; } }
+@media (prefers-reduced-motion: reduce) { .wf-seg.live { animation: none; } }
+.seg-cap  { background: var(--border-strong); }
+.seg-pull { background: var(--crust-edge); }
+.seg-boot { background: #d98e4a; }
+.seg-job  { background: var(--ember); }
+.seg-out  { background: var(--ink-3); }
+.wf-legend {
+  margin-top: 8px; display: flex; gap: 6px 14px; flex-wrap: wrap; align-items: center;
+  font: 400 11.5px var(--mono); color: var(--ink-2);
+}
+.wf-key { display: inline-flex; align-items: center; gap: 5px; }
+.wf-key i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.wf-key b { font-weight: 700; }
+.wf-total { margin-left: auto; color: var(--ink); }
+
+/* ---- the bake ticket: per-run cost receipt ---- */
+.receipt { margin-top: 14px; }
+.rc {
+  max-width: 420px; background: var(--chip-bg); border: 1.5px dashed var(--border-strong);
+  border-radius: 10px; padding: 14px 16px; font: 400 12.5px/1.7 var(--mono); color: var(--ink-2);
+}
+.rc-head { font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--crust); margin-bottom: 6px; }
+.rc-live .rc-head { color: var(--ember); }
+.rc-line { display: flex; align-items: baseline; gap: 8px; }
+.rc-dots { flex: 1; border-bottom: 1.5px dotted var(--border-strong); transform: translateY(-3px); }
+.rc-total { font-weight: 700; color: var(--ink); margin-top: 4px; }
+.rc-note { margin-top: 8px; font-size: 10.5px; color: var(--ink-3); line-height: 1.5; }
+
+/* ---- the bake-off: two lanes, one wall clock ---- */
+.race-grid { margin-top: 16px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+@media (min-width: 760px) { .race-grid { grid-template-columns: 1fr 1fr; } }
+.lane { min-width: 0; }
+.lane-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.lane-name { font: 700 12.5px var(--mono); letter-spacing: .04em; text-transform: uppercase; color: var(--ink-2); }
+.lane .term { margin-top: 10px; min-height: 110px; max-height: 220px; border-radius: 28px 28px 10px 10px; padding: 16px 14px 12px; }
+.lane .term pre { font-size: 11px; }
+.lane .receipt .rc { max-width: none; }
+.race-verdict {
+  margin-top: 16px; padding: 14px 18px; border-radius: 10px; font-size: 14.5px; color: var(--ink-2);
+  background: var(--crust-soft); border: 1.5px solid var(--crust-edge);
+}
+.race-verdict strong { color: var(--ink); font-family: var(--display); }
+.badge.race { border-color: var(--ember); color: var(--ember); }
+
+/* ---- slim vs fat: the health inspection ---- */
+.compare { margin-top: 20px; padding-top: 14px; border-top: 1px dashed var(--border-strong); }
+.compare-scroll { overflow-x: auto; margin-top: 10px; }
+.compare-table { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 520px; }
+.compare-table th, .compare-table td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border); }
+.compare-table th { font: 700 11.5px var(--mono); text-transform: uppercase; letter-spacing: .05em; color: var(--ink-3); }
+.compare-table td:first-child { color: var(--ink-3); font-size: 12.5px; }
+.compare-table td { font-family: var(--mono); font-size: 12.5px; color: var(--ink); }
+
+/* sigterm log lines: the bell */
+.term pre .sig { color: #7ec8ff; font-weight: 700; }
+
 /* ---- footer ---- */
 footer { margin-top: 40px; background: var(--foot-bg); color: #cbb392; font-size: 13px; }
 .foot-grid { display: grid; gap: 28px; padding: 34px 20px 28px; }

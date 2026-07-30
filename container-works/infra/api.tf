@@ -27,6 +27,7 @@ locals {
     "GET /api/runs",
     "GET /api/runs/{id}",
     "POST /api/runs",
+    "POST /api/runs/{id}/stop",
   ]
 }
 

@@ -32,6 +32,27 @@ variable "max_concurrent_tasks" {
   default     = 1
 }
 
+# Published us-east-1 Fargate + public IPv4 rates, used ONLY for the on-page
+# cost receipt (the "bake ticket"). Terraform vars so a price change is a
+# config edit, not a code edit — same pattern as planks 5 and 7.
+variable "price_vcpu_hour" {
+  description = "Fargate per-vCPU-hour rate (us-east-1, Linux/x86)"
+  type        = number
+  default     = 0.04048
+}
+
+variable "price_gb_hour" {
+  description = "Fargate per-GB-hour memory rate (us-east-1, Linux/x86)"
+  type        = number
+  default     = 0.004445
+}
+
+variable "price_public_ip_hour" {
+  description = "Public IPv4 per-hour rate"
+  type        = number
+  default     = 0.005
+}
+
 variable "scheduled_report" {
   description = "Cron for the daily scheduled run (the 'or scheduled' half of run-task; also keeps the recent-runs feed alive between visitors)"
   type        = string

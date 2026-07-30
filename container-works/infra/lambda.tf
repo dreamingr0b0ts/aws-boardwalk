@@ -29,6 +29,8 @@ resource "aws_lambda_function" "api" {
       TABLE_NAME         = aws_dynamodb_table.runs.name
       CLUSTER_ARN        = aws_ecs_cluster.works.arn
       TASK_FAMILY        = aws_ecs_task_definition.app.family
+      TASK_FAMILY_BOOST  = aws_ecs_task_definition.app_boost.family
+      TASK_FAMILY_FAT    = aws_ecs_task_definition.app_fat.family
       SUBNETS_JSON       = jsonencode(data.aws_subnets.default_public.ids)
       SECURITY_GROUP     = aws_security_group.task.id
       LOG_GROUP          = aws_cloudwatch_log_group.app.name
@@ -38,6 +40,9 @@ resource "aws_lambda_function" "api" {
       MAX_CONCURRENT     = tostring(var.max_concurrent_tasks)
       TASK_ROLE_ARN      = aws_iam_role.task.arn
       TASK_EXEC_ROLE_ARN = aws_iam_role.task_exec.arn
+      PRICE_VCPU_HOUR    = tostring(var.price_vcpu_hour)
+      PRICE_GB_HOUR      = tostring(var.price_gb_hour)
+      PRICE_PUBIP_HOUR   = tostring(var.price_public_ip_hour)
     }
   }
 
@@ -63,6 +68,11 @@ resource "aws_lambda_function" "finalize" {
   environment {
     variables = {
       TABLE_NAME = aws_dynamodb_table.runs.name
+      # finalize stamps the finished run's cost onto the record, so the
+      # receipt survives the few minutes ECS keeps stopped tasks describable
+      PRICE_VCPU_HOUR  = tostring(var.price_vcpu_hour)
+      PRICE_GB_HOUR    = tostring(var.price_gb_hour)
+      PRICE_PUBIP_HOUR = tostring(var.price_public_ip_hour)
     }
   }
 
