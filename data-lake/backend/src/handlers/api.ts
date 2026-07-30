@@ -207,7 +207,9 @@ const postSearch = async (event: ApiEvent) => {
     throw new HttpError(400, "Names here use letters, digits, spaces, and &.,'()#/+- only.");
   }
 
-  const cacheKey = { PK: `CACHE#search:${term}`, SK: 'RESULT' };
+  // v2: the v1 namespace cached case-sensitive misses (mixed-case names
+  // matched nothing); let those age out via TTL rather than serve them.
+  const cacheKey = { PK: `CACHE#search:v2:${term}`, SK: 'RESULT' };
   const cached = await ddb.send(new GetCommand({ TableName: TABLE, Key: cacheKey }));
   if (cached.Item && Number(cached.Item.ttl) > Date.now() / 1000) {
     const result = JSON.parse(cached.Item.payload as string) as QueryResult & { executedAt: string; totalMatches: number };

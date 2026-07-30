@@ -121,6 +121,11 @@ check $? "manifest carries per-partition sizes for the pruning bands"
 SR=$(curl -sS -X POST "$SITE/api/search" -H 'content-type: application/json' -d '{"q":"crested butte"}')
 echo "$SR" | jq -e '.totalMatches >= 50 and (.rows | length) == 25' > /dev/null
 check $? "name lookup finds real registrations ($(echo "$SR" | jq -r '.totalMatches') for CRESTED BUTTE)"
+# newer SoS records are stored mixed-case ("Planetek LLC") while older ones
+# are ALL CAPS — this fixture proves the lookup is case-insensitive
+MC=$(curl -sS -X POST "$SITE/api/search" -H 'content-type: application/json' -d '{"q":"planetek"}')
+echo "$MC" | jq -e '.totalMatches >= 1' > /dev/null
+check $? "mixed-case-era names are found (Planetek LLC answers)"
 # a term nobody has cached: proves a fresh parameterized execution end to end
 LIVE=$(curl -sS -X POST "$SITE/api/search" -H 'content-type: application/json' \
   -d "{\"q\":\"ZZVERIFY $(date -u +%H%M)\"}")

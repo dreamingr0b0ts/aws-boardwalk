@@ -260,10 +260,13 @@ GROUP BY city ORDER BY entities DESC`;
 // No decade filter can help a name search (any decade may match), which the
 // page turns into the exhibit: every partition is read, but only the columns
 // named here, so the whole sweep still costs a fraction of a cent.
+// upper() on the column is load-bearing: the source stores older entity
+// names in ALL CAPS but newer ones in mixed case ("Planetek LLC"), and
+// LIKE is case-sensitive.
 export const searchSql = `SELECT
   entity_name, status, entity_type, city, cast(form_date AS varchar) AS formed,
   count(*) OVER () AS total_matches
 FROM ${CURATED}
-WHERE entity_name LIKE ?
+WHERE upper(entity_name) LIKE ?
 ORDER BY entity_name, formed
 LIMIT 25`;

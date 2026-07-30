@@ -74,7 +74,7 @@ the same global budget, plus a **30/day per-IP** counter). No credential gate ne
 | `make deploy` | build lambdas, apply Terraform, publish frontend |
 | `make seed` | `ingest` (source → raw zone, ~5 min) + `etl` (CTAS rebuild + aggregates) |
 | `make etl` | rebuild curated zone + analytics from the current raw snapshot |
-| `make verify` | 46-check end-to-end suite against the live site |
+| `make verify` | 47-check end-to-end suite against the live site |
 | `make destroy` | tear down (lake bucket force-destroys) |
 
 The snapshot is deliberately static between refreshes (`make seed` re-pulls the source);
