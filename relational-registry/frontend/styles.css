@@ -49,6 +49,7 @@
   --ok-bg: #e2ecdc; --ok-ink: #33633c;
   --bad-bg: #f0dcd2; --bad-ink: #8e2f26;
   --warn-bg: #efe5c9; --warn-ink: #7c5f1d;
+  --chart-trace: #94701f;   /* instrument brass, validated on the light surface */
   --serif: "Besley", "Iowan Old Style", Georgia, serif;
   --mono: "Fragment Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 }
@@ -72,6 +73,7 @@
     --ok-bg: rgba(88, 155, 100, .16); --ok-ink: #8fc79a;
     --bad-bg: rgba(198, 90, 77, .15); --bad-ink: #e39288;
     --warn-bg: rgba(201, 163, 90, .14); --warn-ink: #d7b76c;
+    --chart-trace: #b58c3e; /* instrument brass, validated on the dark surface */
   }
 }
 
@@ -196,6 +198,67 @@ pre code { background: none; padding: 0; }
   .badge.live { animation: none; }
   .wake-note .spin { animation-duration: 2.5s; }
 }
+
+/* ---- the seal watch: three brass instruments on the recording desk ---- */
+.seal-watch { margin: 16px 0 14px; display: grid; gap: 12px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 700px) { .seal-watch { grid-template-columns: minmax(0, 1fr); } }
+.sw-card {
+  border: 1px solid var(--border); border-top: 3px solid var(--brass);
+  border-radius: 3px; background: var(--paper); padding: 12px 14px 10px; min-width: 0;
+}
+.sw-label {
+  font: 10.5px/1.5 var(--mono); letter-spacing: .14em; text-transform: uppercase;
+  color: var(--brass);
+}
+.sw-card svg { display: block; width: 100%; height: auto; margin-top: 8px; }
+.sw-read { margin-top: 6px; font: 11.5px/1.55 var(--mono); color: var(--ink-3); }
+.sw-big {
+  margin-top: 14px; font: 400 34px/1.1 var(--mono); color: var(--ink);
+  letter-spacing: .04em; font-variant-numeric: tabular-nums;
+}
+.sw-big.sealed {
+  display: inline-block; font-size: 21px; letter-spacing: .22em; color: var(--wax);
+  border: 1.5px solid var(--wax); outline: 1px solid var(--wax); outline-offset: -4px;
+  border-radius: 3px; padding: 6px 14px 5px; margin-top: 16px;
+}
+svg .grid { stroke: var(--border); stroke-width: 1; }
+svg .grid.faint { stroke-dasharray: 2 4; }
+svg .trace { stroke: var(--chart-trace); stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+svg .trace.bridge { stroke-dasharray: 3 4; opacity: .55; }
+svg .trace.dot { stroke-width: 6; }
+svg .bar { fill: var(--chart-trace); }
+svg .axis { font: 9px var(--mono); fill: var(--ink-3); }
+svg .dlabel { font: 10px var(--mono); fill: var(--ink-2); }
+
+/* ---- title search: the grantor index desk ---- */
+.search-row { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+#search-q {
+  flex: 1 1 240px; min-width: 0;
+  /* 16px always: under that, iOS Safari focus-zooms and sticks (plank 1 lesson) */
+  font: 16px/1.4 var(--mono);
+  padding: 9px 12px; border: 1px solid var(--border); border-radius: 3px;
+  background: var(--paper); color: var(--ink);
+}
+#search-q:focus { outline: 2px solid var(--brass); outline-offset: 1px; }
+#search-q:disabled { opacity: .5; }
+.search-presets { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.chip {
+  font: 12px/1.5 var(--mono); padding: 4px 12px; border-radius: 3px; cursor: pointer;
+  border: 1px solid var(--border); background: var(--chip-bg); color: var(--ink-2);
+}
+.chip:hover { border-color: var(--brass); color: var(--ink); }
+.chip:disabled { opacity: .5; cursor: wait; }
+.bound-box {
+  margin-top: 12px; border: 1.5px solid var(--brass); border-left-width: 4px;
+  background: var(--chip-bg); color: var(--ink-2);
+  border-radius: 3px; padding: 10px 14px; font: 12.5px/1.55 var(--mono); overflow-wrap: anywhere;
+}
+details.plan-details { margin-top: 12px; }
+details.plan-details summary {
+  cursor: pointer; font: 12px/1.5 var(--mono); color: var(--brass);
+}
+details.plan-details summary:hover { color: var(--ink); }
+.section-label { margin-top: 14px; font-family: var(--mono); font-size: 12px; }
 
 /* ---- chain of access ---- */
 .pipe { margin-top: 18px; display: flex; align-items: stretch; gap: 8px; flex-wrap: wrap; }

@@ -175,10 +175,210 @@ async function collectPlans() {
   const planText = (r) => r.rows.map((row) => Object.values(row)[0]).join("\n");
   const execTime = (text) => Number(/Execution Time: ([\d.]+) ms/.exec(text)?.[1] ?? NaN);
   const indexed = planText(await exec(`EXPLAIN ANALYZE SELECT * FROM registry.parcels WHERE parcel_number = 'AP-01207'`));
-  const seq = planText(await exec(`EXPLAIN ANALYZE SELECT * FROM registry.parcels WHERE owner_name = 'Nobody Real'`));
+  // address stays deliberately unindexed; owner_name now carries the search
+  // exhibit's trigram index, so it no longer demonstrates a sequential scan.
+  const seq = planText(await exec(`EXPLAIN ANALYZE SELECT * FROM registry.parcels WHERE address = '1 Nowhere Ln'`));
   return {
     indexed: { usesIndexScan: /Index Scan/.test(indexed), executionMs: execTime(indexed), plan: indexed },
     seqScan: { usesSeqScan: /Seq Scan/.test(seq), executionMs: execTime(seq), plan: seq },
+  };
+}
+
+// ---- the season's additions: history, concurrency, tenancy, search ---------
+
+async function collectHistory() {
+  const chain = await exec(
+    `SELECT count(*) AS entries FROM registry.permit_history
+      WHERE permit_id = (SELECT permit_id FROM registry.permit_history
+                          GROUP BY permit_id ORDER BY count(*) DESC, permit_id LIMIT 1)`
+  );
+  const total = await exec(`SELECT count(*) AS entries FROM registry.permit_history`);
+  // as-of check: for the fullest chain, the status shortly after filing must
+  // differ from the status on record today.
+  const asOf = await exec(
+    `WITH target AS (
+       SELECT p.id, p.status AS now_status, p.submitted_at::timestamptz AS filed
+         FROM registry.permits p
+         JOIN registry.permit_history h ON h.permit_id = p.id
+        GROUP BY p.id ORDER BY count(h.id) DESC, p.id LIMIT 1
+     )
+     SELECT t.now_status, h.status AS then_status
+       FROM target t
+       JOIN registry.permit_history h
+         ON h.permit_id = t.id
+        AND h.valid_from <= t.filed + interval '5 days'
+        AND t.filed + interval '5 days' < h.valid_to`
+  );
+  const thenStatus = asOf.rows[0]?.then_status ?? null;
+  const nowStatus = asOf.rows[0]?.now_status ?? null;
+  const tx = (await data.send(
+    new BeginTransactionCommand({ resourceArn: CLUSTER_ARN, secretArn: APP_SECRET_ARN, database: DATABASE })
+  )).transactionId;
+  let trigger = { fired: false };
+  try {
+    await exec(`SET LOCAL registry.amendment_note = 'Evidence run amendment, always voided'`, { transactionId: tx });
+    await exec(`UPDATE registry.permits SET valuation = valuation + 1 WHERE id = (SELECT min(id) FROM registry.permits WHERE status = 'issued')`, { transactionId: tx });
+    const row = await exec(
+      `SELECT amended_by, note FROM registry.permit_history
+        WHERE permit_id = (SELECT min(id) FROM registry.permits WHERE status = 'issued')
+        ORDER BY id DESC LIMIT 1`,
+      { transactionId: tx }
+    );
+    trigger = {
+      fired: row.rows[0]?.amended_by === "app_user" && /voided/.test(row.rows[0]?.note ?? ""),
+      amendedBy: row.rows[0]?.amended_by ?? null,
+    };
+  } finally {
+    await data
+      .send(new RollbackTransactionCommand({ resourceArn: CLUSTER_ARN, secretArn: APP_SECRET_ARN, transactionId: tx }))
+      .catch(() => {});
+  }
+  return {
+    ok: Number(chain.rows[0]?.entries ?? 0) >= 3 && thenStatus !== null && thenStatus !== nowStatus && trigger.fired,
+    totalEntries: Number(total.rows[0]?.entries ?? 0),
+    fullestChain: Number(chain.rows[0]?.entries ?? 0),
+    asOf: { thenStatus, nowStatus, differs: thenStatus !== null && thenStatus !== nowStatus },
+    triggerFiredAsAppUser: trigger.fired,
+  };
+}
+
+async function collectConcurrency() {
+  const begin = () =>
+    data
+      .send(new BeginTransactionCommand({ resourceArn: CLUSTER_ARN, secretArn: APP_SECRET_ARN, database: DATABASE }))
+      .then((r) => r.transactionId);
+  const rollback = (tx) =>
+    data
+      .send(new RollbackTransactionCommand({ resourceArn: CLUSTER_ARN, secretArn: APP_SECRET_ARN, transactionId: tx }))
+      .catch(() => {});
+
+  const a1 = await begin();
+  const b1 = await begin();
+  let lockTimeout;
+  try {
+    await exec(`UPDATE sandbox.ledger SET balance = balance + 1 WHERE account = 'permit-escrow'`, { transactionId: a1 });
+    await exec(`SET LOCAL lock_timeout = '2s'`, { transactionId: b1 });
+    lockTimeout = await expectError(`UPDATE sandbox.ledger SET balance = balance + 1 WHERE account = 'permit-escrow'`, {
+      transactionId: b1,
+    });
+  } finally {
+    await rollback(a1);
+    await rollback(b1);
+  }
+
+  const a2 = await begin();
+  const b2 = await begin();
+  let deadlock;
+  try {
+    await exec(`UPDATE sandbox.ledger SET balance = balance + 1 WHERE account = 'general-fund'`, { transactionId: a2 });
+    await exec(`UPDATE sandbox.ledger SET balance = balance + 1 WHERE account = 'permit-escrow'`, { transactionId: b2 });
+    const [ra, rb] = await Promise.all([
+      expectError(`UPDATE sandbox.ledger SET balance = balance + 1 WHERE account = 'permit-escrow'`, { transactionId: a2 }),
+      expectError(`UPDATE sandbox.ledger SET balance = balance + 1 WHERE account = 'general-fund'`, { transactionId: b2 }),
+    ]);
+    const victim = ra.failed ? ra : rb;
+    deadlock = { exactlyOneVictim: ra.failed !== rb.failed, error: victim.error };
+  } finally {
+    await rollback(a2);
+    await rollback(b2);
+  }
+
+  return {
+    lockTimeout: { ok: lockTimeout.failed && /lock timeout/i.test(lockTimeout.error ?? ""), error: lockTimeout.error },
+    deadlock: { ok: deadlock.exactlyOneVictim && /deadlock/i.test(deadlock.error ?? ""), error: deadlock.error },
+  };
+}
+
+async function collectRls() {
+  const begin = () =>
+    data
+      .send(new BeginTransactionCommand({ resourceArn: CLUSTER_ARN, secretArn: APP_SECRET_ARN, database: DATABASE }))
+      .then((r) => r.transactionId);
+  const rollback = (tx) =>
+    data
+      .send(new RollbackTransactionCommand({ resourceArn: CLUSTER_ARN, secretArn: APP_SECRET_ARN, transactionId: tx }))
+      .catch(() => {});
+  const countAs = async (district) => {
+    const tx = await begin();
+    try {
+      if (district) await exec(`SET LOCAL app.clerk_district = '${district}'`, { transactionId: tx });
+      const r = await exec(`SELECT count(*) AS n FROM sandbox.case_files`, { transactionId: tx });
+      return Number(r.rows[0]?.n ?? -1);
+    } finally {
+      await rollback(tx);
+    }
+  };
+  const north = await countAs("north");
+  const south = await countAs("south");
+  const unassigned = await countAs(null);
+  const tx = await begin();
+  let cross;
+  try {
+    await exec(`SET LOCAL app.clerk_district = 'north'`, { transactionId: tx });
+    cross = await expectError(`UPDATE sandbox.case_files SET district = 'south' WHERE case_number = 'CF-2026-0104'`, {
+      transactionId: tx,
+    });
+  } finally {
+    await rollback(tx);
+  }
+  return {
+    ok: north > 0 && south > 0 && unassigned === 0 && cross.failed && /row-level security/i.test(cross.error ?? ""),
+    north,
+    south,
+    unassigned,
+    crossDistrictError: cross.error,
+  };
+}
+
+async function collectSearch() {
+  // Same shape as the live search endpoint, ORDER BY included: without the
+  // sort, LIMIT 12 lets the planner early-abort a seq scan and the index
+  // never shows up in the plan (observed live 2026-07-31).
+  const sql = `SELECT parcel_number, owner_name FROM registry.parcels
+ WHERE owner_name ILIKE '%' || :q || '%'
+ ORDER BY owner_name, parcel_number
+ LIMIT 12`;
+  const bound = async (q) => {
+    const started = Date.now();
+    const res = await data.send(
+      new ExecuteStatementCommand({
+        resourceArn: CLUSTER_ARN,
+        secretArn: APP_SECRET_ARN,
+        database: DATABASE,
+        sql,
+        formatRecordsAs: "JSON",
+        parameters: [{ name: "q", value: { stringValue: q } }],
+      })
+    );
+    return { ms: Date.now() - started, rows: res.formattedRecords ? JSON.parse(res.formattedRecords) : [] };
+  };
+  const name = await bound("Rivera");
+  const injection = await bound(`' OR '1'='1`);
+  // Full-name fragment for the plan probe: selective enough (~1/430 of rows)
+  // that the trigram index genuinely beats a seq scan; a bare surname is ~3%
+  // of the registry and the planner rightly reads the whole book for it.
+  let plan = "";
+  try {
+    const res = await data.send(
+      new ExecuteStatementCommand({
+        resourceArn: CLUSTER_ARN,
+        secretArn: APP_SECRET_ARN,
+        database: DATABASE,
+        sql: `EXPLAIN ANALYZE ${sql}`,
+        formatRecordsAs: "JSON",
+        parameters: [{ name: "q", value: { stringValue: "Alex Rivera" } }],
+      })
+    );
+    plan = (res.formattedRecords ? JSON.parse(res.formattedRecords) : []).map((row) => Object.values(row)[0]).join("\n");
+  } catch {
+    plan = "";
+  }
+  return {
+    ok: name.rows.length > 0 && injection.rows.length === 0,
+    nameMatches: name.rows.length,
+    injectionPayload: `' OR '1'='1`,
+    injectionMatches: injection.rows.length,
+    trgmIndexUsed: /ix_parcels_owner_trgm/.test(plan),
   };
 }
 
@@ -259,10 +459,22 @@ ${esc(i.leastPrivilege.attempts.map((a) => a.error).join("\n"))}</pre>
 <h2>Book 05 · Query plans</h2>
 <ul>
 ${yes(ev.plans.indexed.usesIndexScan, `Lookup by unique parcel_number uses an Index Scan (${ev.plans.indexed.executionMs} ms)`)}
-${yes(ev.plans.seqScan.usesSeqScan, `Lookup by unindexed owner_name falls back to a Seq Scan (${ev.plans.seqScan.executionMs} ms)`)}
+${yes(ev.plans.seqScan.usesSeqScan, `Lookup by unindexed address falls back to a Seq Scan (${ev.plans.seqScan.executionMs} ms)`)}
 </ul>
 <pre>${esc(ev.plans.indexed.plan)}</pre>
 <pre>${esc(ev.plans.seqScan.plan)}</pre>
+
+<h2>Book 06 · Chain of title, concurrency, and district desks</h2>
+<ul>
+${yes(ev.history?.ok, `Chain of title: ${ev.history?.totalEntries ?? 0} amendment records on file; fullest chain holds ${ev.history?.fullestChain ?? 0} superseded versions; as-of reconstruction reads '${esc(ev.history?.asOf?.thenStatus)}' then vs '${esc(ev.history?.asOf?.nowStatus)}' today; live trigger fired as app_user and was voided by rollback`)}
+${yes(ev.concurrency?.lockTimeout?.ok, "Lock timeout: a second writer waiting on a held row lock was refused by the engine after its 2s allowance")}
+${yes(ev.concurrency?.deadlock?.ok, "Deadlock: a genuine lock cycle was detected and exactly one transaction cancelled")}
+${yes(ev.rls?.ok, `Row-level security: north desk sees ${ev.rls?.north ?? "?"} cases, south desk ${ev.rls?.south ?? "?"}, an unassigned session sees ${ev.rls?.unassigned ?? "?"}; a cross-district write died on the policy`)}
+${yes(ev.search?.ok, `Parameterized title search: '${esc(ev.search?.injectionPayload)}' bound as data matched ${ev.search?.injectionMatches ?? "?"} rows while a real name matched ${ev.search?.nameMatches ?? "?"}${ev.search?.trgmIndexUsed ? "; trigram index carried the fuzzy match" : ""}`)}
+</ul>
+<pre>${esc(ev.concurrency?.lockTimeout?.error ?? "")}
+${esc(ev.concurrency?.deadlock?.error ?? "")}
+${esc(ev.rls?.crossDistrictError ?? "")}</pre>
 
 <p class="muted">Fictional demo built by Planetek, not affiliated with any real government agency. Between demo windows the cluster is destroyed entirely; this certified copy persists on the always-on site.</p>
 </div></body></html>`;
@@ -274,6 +486,12 @@ export const handler = async () => {
   const cluster = await collectCluster();
   const dataFacts = await collectData(); // wakes a paused cluster; must run before the timed exhibits
   const [migrations, integrity, plans] = [await collectMigrations(), await collectIntegrity(), await collectPlans()];
+  const [history, concurrency, rls, search] = [
+    await collectHistory(),
+    await collectConcurrency(),
+    await collectRls(),
+    await collectSearch(),
+  ];
 
   const evidence = {
     generatedAt: new Date().toISOString(),
@@ -283,6 +501,10 @@ export const handler = async () => {
     migrations,
     integrity,
     plans,
+    history,
+    concurrency,
+    rls,
+    search,
   };
 
   const put = (key, body, type) =>

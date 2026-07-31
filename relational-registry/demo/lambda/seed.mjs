@@ -6,7 +6,7 @@
 // checksum already matches; the app-role migration is repeatable (it syncs
 // the app_user password from Secrets Manager on every run); the seed
 // migration regenerates all data in-engine with generate_series — no data
-// files to ship, ~20k rows in a few seconds.
+// files to ship, ~38k rows in a few seconds.
 import {
   RDSDataClient,
   ExecuteStatementCommand,
@@ -52,7 +52,11 @@ const rows = (res) => (res.formattedRecords ? JSON.parse(res.formattedRecords) :
 // ---- migrations ------------------------------------------------------------
 
 const NAME_FIRST = `ARRAY['Alex','Jordan','Riley','Casey','Morgan','Avery','Quinn','Rowan','Sage','Emerson','Dakota','Reese']`;
-const NAME_LAST = `ARRAY['Rivera','Nakamura','Okafor','Svensson','Delgado','Whitfield','Amari','Castellanos','Byrd','Lindqvist','Okoye','Marsh']`;
+// 36 surnames x 12 first names: enough name diversity that a full-name search
+// fragment is selective and the trigram index genuinely beats a seq scan.
+const NAME_LAST = `ARRAY['Rivera','Nakamura','Okafor','Svensson','Delgado','Whitfield','Amari','Castellanos','Byrd','Lindqvist','Okoye','Marsh',
+  'Halvorsen','Petrov','Ibarra','Kowalski','Adeyemi','Tran','Moreau','Santiago','Vance','Oyelaran','Bergstrom','Kaur',
+  'Mendoza','Achebe','Dvorak','Lucero','Haugen','Sato','Cortez','Ellingson','Mbeki','Rasmussen','Villanueva','Ochoa']`;
 
 const migrations = (appPassword) => [
   {
@@ -113,8 +117,9 @@ const migrations = (appPassword) => [
       `CREATE INDEX IF NOT EXISTS ix_permits_parcel ON registry.permits (parcel_id)`,
       `CREATE INDEX IF NOT EXISTS ix_permits_status ON registry.permits (status)`,
       `CREATE INDEX IF NOT EXISTS ix_inspections_permit ON registry.inspections (permit_id)`,
-      // owner_name stays deliberately unindexed — the EXPLAIN exhibit compares
-      // the unique parcel_number index scan against this sequential scan.
+      // address stays deliberately unindexed — the EXPLAIN exhibit compares the
+      // unique parcel_number index scan against its sequential scan. owner_name
+      // gains a trigram index in 005 for the title-search exhibit.
       `CREATE OR REPLACE VIEW registry.permit_throughput AS
          SELECT date_trunc('month', submitted_at)::date AS month,
                 permit_type,
@@ -168,10 +173,10 @@ const migrations = (appPassword) => [
        SELECT 'AP-' || lpad(g::text, 5, '0'),
               (50 + (g * 7) % 9900)::text || ' ' ||
                 (ARRAY['Alpenglow Ave','Larkspur Ln','Timberline Rd','Juniper Ct','Ridgeway Dr','Moraine St','Cirque Loop','Basin View Way'])[1 + floor(random()*8)::int],
-              (${NAME_FIRST})[1 + floor(random()*12)::int] || ' ' || (${NAME_LAST})[1 + floor(random()*12)::int],
+              (${NAME_FIRST})[1 + floor(random()*12)::int] || ' ' || (${NAME_LAST})[1 + floor(random()*36)::int],
               (ARRAY['residential','commercial','mixed-use','agricultural','industrial'])[1 + floor(random()*5)::int],
               round((0.05 + random() * 2.2)::numeric, 3)
-         FROM generate_series(1, 2000) g`,
+         FROM generate_series(1, 20000) g`,
       `INSERT INTO registry.contractors (license_no, name, trade, active)
        SELECT 'CO-' || lpad(g::text, 4, '0'),
               (${NAME_LAST})[1 + floor(random()*12)::int] || ' ' ||
@@ -187,7 +192,7 @@ const migrations = (appPassword) => [
               CASE WHEN st IN ('issued','closed','expired') THEN sub + (3 + floor(r4 * 55))::int END
          FROM (
            SELECT g,
-                  1 + floor(random()*2000)::bigint AS pid,
+                  1 + floor(random()*20000)::bigint AS pid,
                   CASE WHEN random() < 0.82 THEN 1 + floor(random()*150)::bigint END AS cid,
                   (ARRAY['building','electrical','plumbing','mechanical','demolition','solar'])[1 + floor(random()*6)::int] AS ptype,
                   CASE WHEN random() < 0.12 THEN 'submitted'
@@ -208,6 +213,136 @@ const migrations = (appPassword) => [
               date '2023-02-01' + floor(random() * 1250)::int
          FROM generate_series(1, 12000) g`,
       `INSERT INTO sandbox.ledger (account, balance) VALUES ('permit-escrow', 2500.00), ('general-fund', 10000.00)`,
+    ],
+  },
+  {
+    // Chain of title: every UPDATE on a permit files the superseded version
+    // into permit_history via a SECURITY DEFINER trigger, so app_user can
+    // amend (column-level UPDATE only) without any grant on the history book.
+    id: "005-chain-of-title",
+    statements: [
+      `CREATE TABLE IF NOT EXISTS registry.permit_history (
+         id            bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+         permit_id     bigint NOT NULL REFERENCES registry.permits(id) ON DELETE CASCADE,
+         status        text NOT NULL,
+         valuation     numeric(12,2) NOT NULL,
+         contractor_id bigint,
+         amended_by    text NOT NULL,
+         note          text,
+         valid_from    timestamptz NOT NULL,
+         valid_to      timestamptz NOT NULL,
+         CONSTRAINT history_window CHECK (valid_to >= valid_from)
+       )`,
+      `CREATE INDEX IF NOT EXISTS ix_history_permit ON registry.permit_history (permit_id, valid_from)`,
+      `ALTER TABLE registry.permits ADD COLUMN IF NOT EXISTS last_amended_at timestamptz NOT NULL DEFAULT now()`,
+      `CREATE OR REPLACE FUNCTION registry.record_amendment() RETURNS trigger
+       LANGUAGE plpgsql SECURITY DEFINER SET search_path = registry, pg_temp AS $$
+       BEGIN
+         INSERT INTO registry.permit_history
+                (permit_id, status, valuation, contractor_id, amended_by, note, valid_from, valid_to)
+         VALUES (OLD.id, OLD.status, OLD.valuation, OLD.contractor_id, session_user,
+                 nullif(current_setting('registry.amendment_note', true), ''),
+                 OLD.last_amended_at, clock_timestamp());
+         -- session_user, not current_user: inside a SECURITY DEFINER function
+         -- current_user is the definer (the master role), which would hide the
+         -- actual clerk. session_user stays the login role that amended.
+         NEW.last_amended_at := clock_timestamp();
+         RETURN NEW;
+       END $$`,
+      `GRANT SELECT ON registry.permit_history TO app_user`,
+      // Column-level grant: app_user may amend a permit's status/valuation but
+      // can never touch its number, parcel, or dates. The live exhibit rolls
+      // its amendment back anyway.
+      `GRANT UPDATE (status, valuation) ON registry.permits TO app_user`,
+      // Title search rides a trigram index on owner_name. The seq-scan lesson
+      // in the EXPLAIN exhibit moves to address, which stays unindexed.
+      `CREATE EXTENSION IF NOT EXISTS pg_trgm`,
+      `CREATE INDEX IF NOT EXISTS ix_parcels_owner_trgm ON registry.parcels USING gin (owner_name gin_trgm_ops)`,
+    ],
+  },
+  {
+    // Backfill amendment history for a slice of decided permits, then attach
+    // the trigger LAST so the backfill's own UPDATEs never self-record. Only
+    // permits older than 100 days get history, so no valid_to lands in the
+    // future and "as of today" always resolves to the current row.
+    id: "006-history-backfill",
+    statements: [
+      `DROP TRIGGER IF EXISTS trg_record_amendment ON registry.permits`,
+      `TRUNCATE registry.permit_history RESTART IDENTITY`,
+      `UPDATE registry.permits SET last_amended_at = submitted_at::timestamptz`,
+      `INSERT INTO registry.permit_history (permit_id, status, valuation, contractor_id, amended_by, note, valid_from, valid_to)
+       SELECT id, 'submitted', round(valuation * 0.82, 2), contractor_id, 'records_desk',
+              'As first presented at the counter',
+              submitted_at::timestamptz, submitted_at::timestamptz + interval '21 days'
+         FROM registry.permits
+        WHERE id % 7 = 3 AND status <> 'submitted' AND submitted_at < current_date - 100`,
+      `INSERT INTO registry.permit_history (permit_id, status, valuation, contractor_id, amended_by, note, valid_from, valid_to)
+       SELECT id, 'in_review', round(valuation * 0.82, 2), contractor_id, 'review_desk',
+              'Under review by the plans examiner',
+              submitted_at::timestamptz + interval '21 days', submitted_at::timestamptz + interval '52 days'
+         FROM registry.permits
+        WHERE id % 7 = 3 AND status IN ('issued','closed','denied','expired') AND submitted_at < current_date - 100`,
+      `INSERT INTO registry.permit_history (permit_id, status, valuation, contractor_id, amended_by, note, valid_from, valid_to)
+       SELECT id, 'issued', round(valuation * 0.82, 2), contractor_id, 'audit_desk',
+              'Valuation corrected on audit',
+              submitted_at::timestamptz + interval '52 days', submitted_at::timestamptz + interval '80 days'
+         FROM registry.permits
+        WHERE id % 7 = 3 AND id % 13 = 5 AND status IN ('closed','expired') AND submitted_at < current_date - 100`,
+      `UPDATE registry.permits p
+          SET last_amended_at = h.latest
+         FROM (SELECT permit_id, max(valid_to) AS latest FROM registry.permit_history GROUP BY permit_id) h
+        WHERE h.permit_id = p.id`,
+      `CREATE TRIGGER trg_record_amendment BEFORE UPDATE ON registry.permits
+       FOR EACH ROW EXECUTE FUNCTION registry.record_amendment()`,
+    ],
+  },
+  {
+    // Row-level security: two district desks over one table. app_user only
+    // sees (and can only write) rows matching its per-transaction desk
+    // assignment; with no assignment it sees nothing at all.
+    id: "007-district-desks",
+    statements: [
+      `CREATE TABLE IF NOT EXISTS sandbox.case_files (
+         id            bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+         district      text NOT NULL CHECK (district IN ('north','south')),
+         case_number   text NOT NULL UNIQUE,
+         parcel_number text NOT NULL,
+         subject       text NOT NULL,
+         status        text NOT NULL DEFAULT 'open' CHECK (status IN ('open','closed'))
+       )`,
+      `TRUNCATE sandbox.case_files RESTART IDENTITY`,
+      `INSERT INTO sandbox.case_files (district, case_number, parcel_number, subject, status) VALUES
+         ('north', 'CF-2026-0104', 'AP-00311', 'Fence built over the setback line', 'open'),
+         ('north', 'CF-2026-0117', 'AP-00892', 'Unpermitted deck addition', 'open'),
+         ('north', 'CF-2026-0121', 'AP-01458', 'Short-term rental without a license', 'closed'),
+         ('north', 'CF-2026-0135', 'AP-00077', 'Drainage altered onto a neighboring lot', 'open'),
+         ('north', 'CF-2026-0142', 'AP-01633', 'Sign exceeds the permitted square footage', 'open'),
+         ('south', 'CF-2026-0203', 'AP-01120', 'Retaining wall without an engineering stamp', 'open'),
+         ('south', 'CF-2026-0219', 'AP-00540', 'Work continuing past permit expiration', 'open'),
+         ('south', 'CF-2026-0228', 'AP-01986', 'Occupancy before the final inspection', 'closed')`,
+      `ALTER TABLE sandbox.case_files ENABLE ROW LEVEL SECURITY`,
+      `DROP POLICY IF EXISTS district_desk ON sandbox.case_files`,
+      `CREATE POLICY district_desk ON sandbox.case_files
+         FOR ALL TO app_user
+         USING (district = current_setting('app.clerk_district', true))
+         WITH CHECK (district = current_setting('app.clerk_district', true))`,
+      `GRANT SELECT, UPDATE ON sandbox.case_files TO app_user`,
+    ],
+  },
+  {
+    // Repeatable, always last: fresh planner statistics immediately after a
+    // bulk reseed. Without this the evidence report can run before autovacuum
+    // ANALYZEs the new rows, and the planner seq-scans queries the trigram
+    // index should carry (observed live 2026-07-31).
+    id: "R-analyze",
+    repeatable: true,
+    statements: [
+      `ANALYZE registry.parcels`,
+      `ANALYZE registry.contractors`,
+      `ANALYZE registry.permits`,
+      `ANALYZE registry.inspections`,
+      `ANALYZE registry.permit_history`,
+      `ANALYZE sandbox.case_files`,
     ],
   },
 ];

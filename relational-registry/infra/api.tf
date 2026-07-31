@@ -25,7 +25,9 @@ locals {
   routes = [
     "GET /api/status",
     "GET /api/exhibits",
+    "GET /api/wakes",
     "POST /api/run/{id}",
+    "POST /api/search",
   ]
 }
 

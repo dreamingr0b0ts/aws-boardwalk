@@ -47,10 +47,31 @@
       <span class="badge" id="status-badge">checking…</span>
       <p class="muted" id="status-text">Reading <code>/api/status</code>…</p>
     </div>
+
+    <div class="seal-watch" id="seal-watch" hidden>
+      <div class="sw-card">
+        <p class="sw-label">Capacity, last 3 hours</p>
+        <svg id="acu-chart" viewBox="0 0 320 84" role="img" aria-label="Aurora capacity in ACU over the last three hours"></svg>
+        <p class="sw-read" id="acu-read">–</p>
+      </div>
+      <div class="sw-card">
+        <p class="sw-label">The seal</p>
+        <p class="sw-big" id="seal-big">–</p>
+        <p class="sw-read" id="seal-note">–</p>
+      </div>
+      <div class="sw-card">
+        <p class="sw-label">Unsealings on record</p>
+        <svg id="wake-chart" viewBox="0 0 320 84" role="img" aria-label="Measured wake times of recent unsealings"></svg>
+        <p class="sw-read" id="wake-read">–</p>
+      </div>
+    </div>
+
     <p class="muted small">One command each way: <code>make demo</code> raises the vault, runs the
-    checksummed migrations, generates ~20,000 rows in-engine, and files fresh evidence.
+    checksummed migrations, generates about 38,000 rows in-engine, and files fresh evidence.
     <code>make teardown</code> destroys every billing resource. While deployed, five idle minutes
-    seal the vault at 0 ACU; the first exhibit you run unseals it, and the page times the wake.</p>
+    seal the vault at 0 ACU; the capacity trace, the countdown, and the wake log above are read
+    from CloudWatch and the wake ledger, so watching the seal close costs nothing and never resets
+    the clock. The first exhibit you run unseals it, and the measured wake is filed on the record.</p>
   </section>
 
   <!-- Architecture -->
@@ -98,6 +119,42 @@
     <p class="usage-line" id="usage-line"></p>
   </section>
 
+  <!-- Title search -->
+  <section class="panel" id="search-panel">
+    <p class="plate">Book 04 · Title search</p>
+    <h2>Search the grantor index</h2>
+    <p class="muted">The one place on this plank where your own text reaches the database, and it
+    never becomes SQL. The value is bound server-side as an RDS Data API <strong>parameter</strong>,
+    compared as a literal against the trigram-indexed owner column. Try a name fragment, then try
+    the classic injection payload and watch it arrive as harmless data.</p>
+    <form id="search-form" class="search-row">
+      <input id="search-q" name="q" type="text" maxlength="40" autocomplete="off" spellcheck="false"
+             placeholder="Owner name, e.g. Rivera" aria-label="Owner name to search">
+      <button class="ex-btn" type="submit" id="search-btn">Search the index</button>
+    </form>
+    <div class="search-presets">
+      <span class="muted small">Request slips:</span>
+      <button type="button" class="chip" data-q="Rivera">Rivera</button>
+      <button type="button" class="chip" data-q="alex riv">alex riv (fuzzy, any case)</button>
+      <button type="button" class="chip" data-q="' OR '1'='1">' OR '1'='1</button>
+    </div>
+    <div id="search-wake" class="wake-note" hidden>
+      <span class="spin"></span>
+      <span id="search-wake-text">Unsealing the vault: Aurora is resuming from 0 ACU…</span>
+    </div>
+    <div id="search-result" hidden>
+      <pre class="sql" id="search-sql"></pre>
+      <div class="bound-box" id="search-bound"></div>
+      <div id="search-body"></div>
+      <details class="plan-details" id="search-plan-wrap" hidden>
+        <summary>EXPLAIN ANALYZE: the trigram index carrying the match</summary>
+        <pre class="plan" id="search-plan"></pre>
+      </details>
+    </div>
+    <p class="usage-line" id="search-usage">Each address gets 30 searches a day; the canned
+    exhibits are not metered per address.</p>
+  </section>
+
   <!-- Interlude: the bound volumes -->
   <figure class="interlude">
     <img src="/img/books-spines.webp" alt="Bound archive volumes with hand-lettered paper spine labels" width="1400" height="560" loading="lazy">
@@ -109,7 +166,7 @@
 
   <!-- Evidence report -->
   <section class="panel">
-    <p class="plate">Book 04 · Certified copy</p>
+    <p class="plate">Book 05 · Certified copy</p>
     <div class="map-head">
       <h2>Latest evidence report</h2>
       <p class="muted" id="evidence-when">–</p>
@@ -136,6 +193,10 @@
           <h3>Query planner</h3>
           <ul class="fact" id="ev-plans"></ul>
         </div>
+        <div class="ev-card wide" id="ev-additions-card" hidden>
+          <h3>Chain of title, concurrency &amp; district desks <span class="tag">engine responses</span></h3>
+          <ul class="fact" id="ev-additions"></ul>
+        </div>
         <div class="ev-card wide">
           <h3>Migration ledger</h3>
           <table class="sim" id="ev-migrations"><thead><tr><th>Migration</th><th>Checksum</th><th>Applied</th></tr></thead><tbody></tbody></table>
@@ -151,21 +212,29 @@
 
   <!-- Proof -->
   <section class="panel">
-    <p class="plate">Book 05 · Terms of record</p>
+    <p class="plate">Book 06 · Terms of record</p>
     <h2>What this plank proves</h2>
     <ul class="proof">
       <li><strong>The relational fundamentals, live:</strong> foreign keys, CHECK constraints, and
       atomic transactions demonstrated by the engine's own refusals, not slideware claims. Every
       integrity exhibit runs inside a transaction that is always rolled back.</li>
-      <li><strong>Scale-to-zero is real:</strong> min capacity 0 ACU with auto-pause. A sealed
-      vault bills no compute; the visible ~15-second unsealing when you run the first exhibit is
-      the trade-off, measured honestly on this page.</li>
+      <li><strong>Scale-to-zero is real, and instrumented:</strong> min capacity 0 ACU with
+      auto-pause. The seal watch shows the capacity trace, counts down to the seal, and files every
+      measured unsealing in a wake ledger that survives teardown.</li>
+      <li><strong>Auditability in the engine:</strong> a SECURITY DEFINER trigger keeps a chain of
+      title for every permit, so the registry can answer what it said on any date. Amendments carry
+      who, when, and why.</li>
+      <li><strong>Concurrency and tenancy, refereed by the engine:</strong> row locks, a genuine
+      deadlock with one victim, and row-level security that gives two district desks two different
+      books over one table.</li>
+      <li><strong>Injection-proof by construction:</strong> the title search binds visitor text as
+      a Data API parameter over a trigram index; no user SQL surface exists anywhere.</li>
       <li><strong>No-socket access pattern:</strong> the RDS Data API means HTTPS + IAM +
       Secrets Manager instead of connection strings: a security group with zero ingress rules,
       no VPC-attached Lambdas, no NAT to pay for.</li>
       <li><strong>Least privilege below the IAM layer too:</strong> the public API's Postgres role
-      may read the books and write only the practice ledger; the exhibit shows its DELETE and DROP
-      dying in the engine.</li>
+      may read the books, amend only two columns, and write only the practice ledger; the exhibit
+      shows its DELETE and DROP dying in the engine.</li>
       <li><strong>Schema as code:</strong> ordered, checksummed migrations recorded in the database
       they shaped, rerunnable idempotently. And cost-honest architecture: RDS is banned always-on
       in this portfolio, so the whole cluster is deploy-demo-teardown with the evidence report

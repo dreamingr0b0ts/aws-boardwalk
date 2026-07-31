@@ -72,9 +72,15 @@ resource "aws_iam_role_policy" "query" {
         Resource = "*" # GetMetricData supports no resource-level scoping
       },
       {
-        Sid      = "DailyCounter"
-        Effect   = "Allow"
-        Action   = ["dynamodb:GetItem", "dynamodb:UpdateItem"]
+        Sid    = "CountersAndWakeLog"
+        Effect = "Allow"
+        Action = [
+          "dynamodb:GetItem",
+          "dynamodb:UpdateItem",
+          "dynamodb:PutItem",
+          "dynamodb:DeleteItem",
+          "dynamodb:Query",
+        ]
         Resource = aws_dynamodb_table.registry.arn
       },
     ]

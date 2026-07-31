@@ -19,19 +19,40 @@ The always-on query Lambda discovers the cluster through SSM parameters the demo
 writes; between windows the parameters are gone and the API answers 503 honestly while
 the page serves the persisted evidence report.
 
-## Exhibits (all canned SQL; no user SQL surface exists)
+## Exhibits (canned SQL or bound parameters; no user SQL surface exists)
 
+- **The seal watch:** a live instrument over scale-to-zero. Capacity trace from CloudWatch
+  (last 3 hours), a ticking countdown from the last Data API touch to the auto-pause, and a
+  wake ledger in DynamoDB: every measured unsealing goes on record and survives teardown.
+  Status reads are control-plane only, so watching the seal close never winds the clock.
 - **Scale to zero:** any exhibit wakes a paused cluster; the API returns 202 while Aurora
-  resumes and the page times the wake (~15s), then shows it cost $0 while paused.
+  resumes, the page times the wake (~15s), and the measurement is filed in the wake ledger.
 - **Reads:** three-table join, `permit_throughput` + `contractor_scorecard` views over a
-  ~20k-row registry generated in-engine (`generate_series`) by the migration Lambda.
+  ~38k-row registry generated in-engine (`generate_series`) by the migration Lambda.
+- **Chain of title:** a SECURITY DEFINER trigger files every superseded permit version into
+  `permit_history` (who, when, why, validity window). Exhibits pull the fullest chain,
+  reconstruct the record as of four different dates, and record a live amendment (column-level
+  UPDATE grant + `SET LOCAL` note) that is always voided by rollback.
+- **Title search:** the plank's only visitor-typed input, bound server-side as an RDS Data
+  API parameter over a `pg_trgm` index on owner_name. `' OR '1'='1` passes the allowlist on
+  purpose and matches nothing; EXPLAIN shows the trigram index carrying the fuzzy match.
+  30/day per hashed IP on top of the global counter.
+- **Concurrency:** a real lock-timeout refusal (clerk B waits 2 genuine seconds in line) and
+  a real deadlock: two transactions locking each other's rows via concurrent Data API calls,
+  PostgreSQL detecting the cycle and cancelling exactly one. Engine messages verbatim.
+- **Row-level security:** two district desks over one `case_files` table; `SET LOCAL` desk
+  assignment decides what `app_user` sees and writes, an unassigned session sees nothing, and
+  a cross-district write dies on the policy's WITH CHECK.
 - **Integrity:** FK violation, CHECK violation, and an atomic two-step transfer that
   rolls back, engine error messages shown verbatim; every write exhibit runs inside a
   transaction that is always rolled back.
-- **Least privilege:** the API connects as `app_user` (SELECT on registry, writes only in
-  the rollback sandbox); its own DELETE and DROP attempts dying is an exhibit.
-- **Plans:** `EXPLAIN ANALYZE` index scan vs seq scan, live planner output.
-- **Schema as code:** ordered, checksummed migrations recorded in `schema_migrations`.
+- **Least privilege:** the API connects as `app_user` (SELECT on registry, a column-level
+  UPDATE on two permit columns, writes only in the rollback sandbox); its own DELETE and
+  DROP attempts dying is an exhibit.
+- **Plans:** `EXPLAIN ANALYZE` index scan vs seq scan (address stays unindexed on purpose),
+  live planner output.
+- **Schema as code:** ordered, checksummed migrations recorded in `schema_migrations`,
+  now seven books deep.
 
 ## Cost guardrails
 
