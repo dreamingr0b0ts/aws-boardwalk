@@ -52,7 +52,42 @@ B_IAM=$(echo "$EV" | jq -r '.boundary.simulations[] | select(.action=="iam:Creat
 [ "$B_PUT" = "implicitDeny" ]; check $? "boundary sim: s3:PutObject denied (granted by policy, outside boundary)"
 [ "$B_IAM" = "implicitDeny" ]; check $? "boundary sim: iam:CreateUser denied (granted by nothing)"
 
-# ---- 3. mode split ----
+# ---- 3. always-on exhibit API (works in both modes) ----
+# A freshly deployed /api/* behavior + Lambda permission can 500/404 for a
+# minute or two (CloudFront propagation + resource-policy race, plank 2/9). Warm
+# up before asserting.
+ST='{}'
+for i in $(seq 1 18); do
+  ST=$(curl -sS "$SITE/api/status")
+  echo "$ST" | jq -e 'has("deployed")' > /dev/null 2>&1 && break
+  sleep 5
+done
+echo "$ST" | jq -e 'has("deployed") and has("drill") and has("policy")' > /dev/null
+check $? "exhibit API /api/status responds (deployed=$(echo "$ST" | jq -r '.deployed'))"
+
+# policy desk — IAM is free, so this answers whether or not the season stack is up
+SIM=$(curl -sS -X POST "$SITE/api/policy/simulate")
+echo "$SIM" | jq -e 'any(.rows[]; .action=="s3:PutObject" and .decision=="implicitDeny")' > /dev/null
+check $? "policy desk: boundary blocks s3:PutObject live"
+echo "$SIM" | jq -e 'any(.rows[]; .action=="s3:GetObject" and .decision=="allowed")' > /dev/null
+check $? "policy desk: s3:GetObject allowed live"
+
+VAL=$(curl -sS -X POST "$SITE/api/policy/validate" -H 'content-type: application/json' -d '{"exhibitId":"star-passrole"}')
+echo "$VAL" | jq -e 'any(.findings[]; .findingType=="SECURITY_WARNING")' > /dev/null
+check $? "policy validator: flags PassRole on Resource *"
+VALT=$(curl -sS -X POST "$SITE/api/policy/validate" -H 'content-type: application/json' -d '{"exhibitId":"typo-action"}')
+echo "$VALT" | jq -e 'any(.findings[]; .findingType=="ERROR")' > /dev/null
+check $? "policy validator: flags an invalid action name"
+VALC=$(curl -sS -X POST "$SITE/api/policy/validate" -H 'content-type: application/json' -d '{"exhibitId":"clean"}')
+echo "$VALC" | jq -e '[.findings[] | select(.findingType=="ERROR")] | length == 0' > /dev/null
+check $? "policy validator: clean grant raises no errors"
+
+# perimeter fence log — reads the shared edge ACL's sampled requests ($0)
+FEN=$(curl -sS "$SITE/api/fence")
+echo "$FEN" | jq -e '.rules | length == 3' > /dev/null
+check $? "fence log returns all 3 edge rules"
+
+# ---- 4. mode split ----
 # (wc consumes all input — `grep -q` here would SIGPIPE terraform under pipefail)
 DEMO_RESOURCES=$($TFD state list 2>/dev/null | wc -l | tr -d ' ')
 if [ "$DEMO_RESOURCES" -gt 0 ]; then
@@ -61,7 +96,7 @@ if [ "$DEMO_RESOURCES" -gt 0 ]; then
   TRAIL=$($TFD output -raw trail_name)
   DETECTOR=$($TFD output -raw detector_id)
   PACK=$($TFD output -raw conformance_pack)
-  ROLE=$($TFD output -raw boundary_role)
+  ROLE=$($TF output -raw boundary_role)   # boundary role is always-on now (infra root)
 
   aws cloudtrail get-trail-status --name "$TRAIL" --query 'IsLogging' --output text | grep -qi true || [ $? -eq 141 ]
   check $? "CloudTrail is logging right now"
@@ -78,8 +113,17 @@ if [ "$DEMO_RESOURCES" -gt 0 ]; then
   N=$(aws guardduty list-findings --detector-id "$DETECTOR" --max-results 50 --query 'length(FindingIds)' --output text)
   [ "$N" -gt 0 ]; check $? "GuardDuty has findings to aggregate ($N+ listed)"
 
-  aws securityhub get-enabled-standards --query 'StandardsSubscriptions[0].StandardsStatus' --output text | grep -q READY || [ $? -eq 141 ]
-  check $? "Security Hub FSBP standard READY"
+  # Security Hub's subscription status can sit at PENDING for 20+ min while
+  # controls provision even though control findings are already flowing, so
+  # assert the meaningful outcome (subscribed + producing findings), not the
+  # transient status string.
+  SH_STATUS=$(aws securityhub get-enabled-standards --query 'StandardsSubscriptions[0].StandardsStatus' --output text)
+  echo "$SH_STATUS" | grep -qE 'READY|PENDING|INCOMPLETE' || [ $? -eq 141 ]
+  check $? "Security Hub FSBP standard subscribed (status=$SH_STATUS)"
+  SH_N=$(aws securityhub get-findings \
+    --filters '{"ProductName":[{"Value":"Security Hub","Comparison":"EQUALS"}]}' \
+    --max-results 1 --query 'length(Findings)' --output text 2>/dev/null || echo 0)
+  [ "$SH_N" -gt 0 ]; check $? "Security Hub is producing control findings"
 
   aws configservice describe-configuration-recorder-status --query 'ConfigurationRecordersStatus[0].recording' --output text | grep -qi true || [ $? -eq 141 ]
   check $? "Config recorder is recording"
@@ -102,6 +146,42 @@ if [ "$DEMO_RESOURCES" -gt 0 ]; then
   [ "$AGE_H" -lt 24 ]; check $? "evidence.json fresh (${AGE_H}h old)"
 
   echo "$STATUS" | jq -e '.deployed == true' > /dev/null; check $? "status.json says deployed"
+
+  # the smoke field guide is built from live GuardDuty findings
+  echo "$EV" | jq -e '.guardduty.fieldGuide | length > 0' > /dev/null
+  check $? "evidence carries the smoke field guide ($(echo "$EV" | jq -r '.guardduty.distinctTypes') types)"
+
+  # the season ledger accumulated at least this window
+  LG=$(curl -sS "$SITE/evidence/seasons/index.json")
+  echo "$LG" | jq -e '.seasons | length > 0' > /dev/null
+  check $? "season ledger index has $(echo "$LG" | jq -r '.seasons | length') window(s)"
+
+  # ---- the live practice-smoke drill ----
+  echo "$ST" | jq -e '.deployed == true' > /dev/null; check $? "exhibit API sees the season stack deployed"
+  SANDBOX=$($TFD output -raw sandbox_sg_id)
+  RESP=$(curl -sS -X POST "$SITE/api/drills")
+  RUNID=$(echo "$RESP" | jq -r '.runId // empty')
+  [ -n "$RUNID" ]; check $? "drill accepted ($RUNID · $(echo "$RESP" | jq -r '.round')/$(echo "$RESP" | jq -r '.limit'))"
+
+  if [ -n "$RUNID" ]; then
+    echo "  … watching the drill (tripwire delivery + Config lag; up to ~7 min)"
+    DSTATE=""
+    for i in $(seq 1 84); do
+      sleep 5
+      R=$(curl -sS "$SITE/api/drills/$RUNID")
+      echo "$R" | jq empty 2>/dev/null || continue   # skip a transient WAF HTML block page
+      DSTATE=$(echo "$R" | jq -r '.run.status // empty')
+      [ "$DSTATE" = "passed" ] || [ "$DSTATE" = "failed" ] && break
+    done
+    [ "$DSTATE" = "passed" ]; check $? "drill completed (status=$DSTATE)"
+    CLOSED_BY=$(curl -sS "$SITE/api/drills/$RUNID" | jq -r '.run.summary.closedBy // "unknown"')
+    ok "drill closed the hole by: $CLOSED_BY"
+  fi
+
+  # whatever closed it, the sandbox must end with no world-open SSH
+  OPEN=$(aws ec2 describe-security-groups --group-ids "$SANDBOX" \
+    --query "length(SecurityGroups[0].IpPermissions[?FromPort==\`22\`])" --output text 2>/dev/null || echo "err")
+  [ "$OPEN" = "0" ]; check $? "sandbox group left closed after the drill (open ingress rules: $OPEN)"
 else
   echo "— demo stack TORN DOWN: proving the idle state —"
 
@@ -113,6 +193,11 @@ else
   [ "$(aws cloudtrail describe-trails --query 'length(trailList)' --output text)" = "0" ]
   check $? "no CloudTrail trail left behind"
   echo "$STATUS" | jq -e '.deployed == false' > /dev/null; check $? "status.json says torn down"
+
+  # the exhibit API stays up (always-on root); the drill honestly refuses
+  echo "$ST" | jq -e '.deployed == false' > /dev/null; check $? "exhibit API reports the season stack torn down"
+  DR=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$SITE/api/drills")
+  [ "$DR" = "503" ]; check $? "drill POST returns 503 between windows (got $DR)"
 fi
 
 echo

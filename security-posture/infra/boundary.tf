@@ -1,9 +1,16 @@
-# Exhibit 6 — an IAM permissions boundary in action. The demo role's identity
-# policy grants read AND write on the site bucket, but its boundary only
-# ceilings read: effective permissions are the INTERSECTION, so the write is
-# implicitly denied even though a policy grants it. The evidence report proves
-# it with iam:SimulatePrincipalPolicy rather than asking anyone to take
-# CloudTrail's word for it.
+# The permissions-boundary exhibit. The role's identity policy grants read AND
+# write on the site bucket, but its boundary only ceilings read: effective
+# permissions are the INTERSECTION, so the write is implicitly denied even
+# though a policy grants it. The evidence report and the live policy desk both
+# prove it with iam:SimulatePrincipalPolicy rather than assertion.
+#
+# This lived in the demo root until 2026-07: IAM bills nothing, and moving it
+# always-on is what lets the policy desk answer between demo windows. The four
+# curated simulations cover the whole intersection matrix:
+#   s3:GetObject   in policy, in boundary   → allowed
+#   s3:PutObject   in policy, NOT boundary  → implicitDeny
+#   s3:ListBucket  in boundary, NOT policy  → implicitDeny
+#   iam:CreateUser in neither               → implicitDeny
 
 resource "aws_iam_policy" "boundary" {
   name        = "${local.prefix}-permission-boundary"
@@ -17,8 +24,8 @@ resource "aws_iam_policy" "boundary" {
         Effect = "Allow"
         Action = ["s3:GetObject", "s3:ListBucket"]
         Resource = [
-          data.terraform_remote_state.infra.outputs.site_bucket_arn,
-          "${data.terraform_remote_state.infra.outputs.site_bucket_arn}/*",
+          aws_s3_bucket.site.arn,
+          "${aws_s3_bucket.site.arn}/*",
         ]
       },
       {
@@ -57,7 +64,7 @@ resource "aws_iam_role_policy" "boundary_demo" {
       Sid      = "AppS3ReadWrite"
       Effect   = "Allow"
       Action   = ["s3:GetObject", "s3:PutObject"]
-      Resource = "${data.terraform_remote_state.infra.outputs.site_bucket_arn}/*"
+      Resource = "${aws_s3_bucket.site.arn}/*"
     }]
   })
 }

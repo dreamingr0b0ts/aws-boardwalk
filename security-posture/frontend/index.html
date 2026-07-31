@@ -83,9 +83,97 @@
 
   <div class="brace" aria-hidden="true"></div>
 
+  <!-- The practice-smoke drill -->
+  <section class="panel" id="drill-panel">
+    <p class="plate">Log 03 · The practice smoke</p>
+    <h2>Light a practice smoke, watch the account catch it</h2>
+    <p class="muted">A drill opens port 22 to the whole internet on a <strong>sandbox security group</strong>
+    that is attached to nothing, in a VPC with no subnets and no way out. Nothing is ever exposed. What
+    the drill exercises is the part that matters: two independent detectors racing to catch the change.
+    An <strong>event-driven tripwire</strong> (EventBridge on the CloudTrail authorize event) fires a
+    Lambda that revokes the rule automatically, and AWS Config's <strong>restricted-ssh inspector</strong>
+    rules on the same group on its own slower cadence. Both are shown live; every call lands in the
+    KMS-encrypted trail.</p>
+
+    <div class="drill-bar">
+      <button class="btn-link" id="drill-btn" type="button" disabled>Light a practice smoke</button>
+      <span class="muted small" id="drill-usage">checking the tower…</span>
+    </div>
+    <p class="muted small" id="drill-msg" hidden></p>
+
+    <div id="drill-board" hidden>
+      <p class="run-head"><span id="drill-run-id" class="mono-id"></span><span id="drill-elapsed" class="mono-id"></span></p>
+      <ol class="stages" id="drill-stages"></ol>
+      <div class="fieldlog" id="drill-log" aria-live="polite"></div>
+      <p class="summary-line" id="drill-summary" hidden></p>
+    </div>
+
+    <div id="drill-recent" class="recent" hidden>
+      <h3>Recent drills</h3>
+      <ul id="drill-recent-list"></ul>
+    </div>
+  </section>
+
+  <div class="brace" aria-hidden="true"></div>
+
+  <!-- The policy desk -->
+  <section class="panel" id="policy-panel">
+    <p class="plate">Log 04 · The policy desk</p>
+    <h2>The policy desk</h2>
+    <p class="muted">IAM bills nothing, so this desk is open year-round, even while the season stack is
+    struck. Two read-only evaluations, straight from AWS: the permissions boundary proven by the policy
+    simulator, and any policy run through Access Analyzer's own validator.</p>
+
+    <div class="desk-grid">
+      <div class="desk-tool">
+        <h3>Boundary simulator</h3>
+        <p class="muted small">The <code>sec-boundary-demo</code> role's policy grants read <em>and</em>
+        write on the site bucket, but its boundary ceilings read. Effective permission is the
+        intersection. <code>iam:SimulatePrincipalPolicy</code> proves each case, live.</p>
+        <button class="btn-link secondary" id="sim-btn" type="button">Run the simulation</button>
+        <div id="sim-out"></div>
+      </div>
+
+      <div class="desk-tool">
+        <h3>Policy validator</h3>
+        <p class="muted small">Access Analyzer's <code>ValidatePolicy</code> lints a policy document and
+        returns its own findings verbatim. Pick a specimen, or paste your own. The linter only reads a
+        document, it changes nothing.</p>
+        <div class="chips" id="validate-chips"></div>
+        <details class="own-policy">
+          <summary>or paste your own policy JSON</summary>
+          <textarea id="validate-text" spellcheck="false" placeholder='{"Version":"2012-10-17","Statement":[…]}'></textarea>
+          <button class="btn-link secondary" id="validate-btn" type="button">Lint it</button>
+        </details>
+        <div id="validate-out"></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="brace" aria-hidden="true"></div>
+
+  <!-- The perimeter fence log -->
+  <section class="panel" id="fence-panel">
+    <p class="plate">Log 05 · The perimeter fence</p>
+    <h2>The perimeter fence log</h2>
+    <p class="muted">The whole boardwalk sits behind one shared AWS WAF edge ACL: a per-IP rate limit,
+    Amazon's IP reputation list, and the known-bad-inputs set (Log4j probes and the like). This is its
+    last few hours of real sampled traffic across all thirteen sites, straight from
+    <code>GetSampledRequests</code> at $0. Client addresses are masked on purpose: the exhibit is the
+    hostile traffic, not the senders.</p>
+
+    <div class="drill-bar">
+      <button class="btn-link secondary" id="fence-btn" type="button">Read the fence log</button>
+      <span class="muted small" id="fence-totals"></span>
+    </div>
+    <div id="fence-out"></div>
+  </section>
+
+  <div class="brace" aria-hidden="true"></div>
+
   <!-- Evidence report -->
   <section class="panel">
-    <p class="plate">Log 03 · The evidence</p>
+    <p class="plate">Log 06 · The evidence</p>
     <div class="map-head">
       <h2>Latest evidence report</h2>
       <p class="muted" id="evidence-when">–</p>
@@ -106,6 +194,11 @@
         <div class="ev-card">
           <h3>Threat detection · GuardDuty <span class="tag">sample findings</span></h3>
           <div class="scan-counts" id="ev-gd"></div>
+        </div>
+        <div class="ev-card wide">
+          <h3>Smoke field guide · what the watch is trained to see</h3>
+          <p class="muted small" id="ev-fg-note"></p>
+          <div class="guide" id="ev-fieldguide"></div>
         </div>
         <div class="ev-card">
           <h3>Security Hub · FSBP</h3>
@@ -130,6 +223,18 @@
     </div>
   </section>
 
+  <div class="brace" aria-hidden="true"></div>
+
+  <!-- The season ledger -->
+  <section class="panel" id="ledger-panel" hidden>
+    <p class="plate">Log 07 · The season ledger</p>
+    <h2>Posture across the season</h2>
+    <p class="muted">Each demo window files one row. Security Hub and Config coverage deepens for a couple
+    of hours after every deploy, so a longer-staffed window posts higher passes. That trend is the point:
+    a security posture is a thing you watch over a season, not a single snapshot.</p>
+    <div class="ledger" id="ledger-body"></div>
+  </section>
+
   <figure class="interlude">
     <img src="/img/smoke-1600.webp" width="1600" height="640" loading="lazy"
          alt="Smoke-hazed mountain ridgelines receding into a dim sky">
@@ -140,7 +245,7 @@
 
   <!-- Proof -->
   <section class="panel">
-    <p class="plate">Log 04 · Why it matters</p>
+    <p class="plate">Log 08 · Why it matters</p>
     <h2>What this plank proves</h2>
     <ul class="proof">
       <li><strong>Compliance automation, not compliance paperwork:</strong> the NIST 800-53 rev 5
@@ -150,9 +255,15 @@
       <li><strong>The full native security stack, wired together:</strong> CloudTrail writing
       KMS-encrypted, integrity-validated audit logs; GuardDuty detections and Config evaluations
       aggregating into Security Hub as the single pane.</li>
+      <li><strong>Detection that responds, watched live:</strong> a visitor can stage a safe
+      misconfiguration and watch an event-driven tripwire remediate it automatically while AWS Config
+      rules on the same change independently. The honest contrast between the two, timed on the page,
+      is the exhibit: cloud-native detection is fast, but it is not instant, and knowing the difference
+      is the job.</li>
       <li><strong>Least privilege beyond policies:</strong> a permissions boundary exhibit proves the
-      ceiling holds even when an attached policy over-grants, verified by IAM's own policy
-      simulator, not by assertion.</li>
+      ceiling holds even when an attached policy over-grants, verified live by IAM's own policy
+      simulator, not by assertion. The policy desk and the shared WAF's fence log stay open year-round,
+      because IAM and the edge ACL cost nothing to keep on.</li>
       <li><strong>Cost-honest architecture:</strong> these services bill daily, so the plank is
       deploy-demo-teardown by design. One command up, one command down, evidence persisted between
       windows. Knowing <em>when not to leave something running</em> is part of the skillset.</li>

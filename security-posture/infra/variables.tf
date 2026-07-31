@@ -15,3 +15,15 @@ variable "site_hostname" {
   type        = string
   default     = "security.demos.planetek.org"
 }
+
+variable "drill_daily_limit" {
+  description = "Global practice-smoke drills per UTC day across all visitors"
+  type        = number
+  default     = 10
+}
+
+variable "policy_daily_limit" {
+  description = "Global policy-desk calls (simulate + validate) per UTC day"
+  type        = number
+  default     = 500
+}

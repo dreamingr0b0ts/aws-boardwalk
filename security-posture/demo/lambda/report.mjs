@@ -5,7 +5,10 @@
 // and the HTML artifact is fit to attach to a proposal.
 import { CloudTrailClient, DescribeTrailsCommand, GetTrailStatusCommand } from "@aws-sdk/client-cloudtrail";
 import { KMSClient, DescribeKeyCommand, GetKeyRotationStatusCommand } from "@aws-sdk/client-kms";
-import { GuardDutyClient, GetFindingsStatisticsCommand } from "@aws-sdk/client-guardduty";
+import {
+  GuardDutyClient, GetFindingsStatisticsCommand,
+  ListFindingsCommand, GetFindingsCommand as GdGetFindingsCommand,
+} from "@aws-sdk/client-guardduty";
 import { SecurityHubClient, GetEnabledStandardsCommand, GetFindingsCommand } from "@aws-sdk/client-securityhub";
 import {
   ConfigServiceClient,
@@ -13,7 +16,7 @@ import {
   DescribeConformancePackComplianceCommand,
 } from "@aws-sdk/client-config-service";
 import { IAMClient, GetRoleCommand, SimulatePrincipalPolicyCommand } from "@aws-sdk/client-iam";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 
 const {
   SITE_BUCKET, DETECTOR_ID, TRAIL_NAME, KMS_KEY_ID,
@@ -72,7 +75,89 @@ async function collectGuardDuty() {
     bySeverity[bucket] += count;
     total += count;
   }
-  return { detectorId: DETECTOR_ID, total, bySeverity, sampleFindings: true };
+  const fieldGuide = await collectFieldGuide();
+  return { detectorId: DETECTOR_ID, total, bySeverity, sampleFindings: true, ...fieldGuide };
+}
+
+// The smoke field guide: GuardDuty finding types encode their own taxonomy —
+// ThreatPurpose:ResourceType/ThreatFamily.Mechanism — so grouping a sample of
+// findings by type turns the flat severity histogram into a legible catalogue
+// of what the watch actually detects. Plain-language "what the lookout does"
+// lines come from the threat purpose.
+const THREAT_PURPOSE = {
+  Backdoor: "A resource is phoning home to a command-and-control server.",
+  Behavior: "A resource is doing something it has never done before.",
+  CryptoCurrency: "A resource is talking to a cryptocurrency network, a common sign of mining malware.",
+  DefenseEvasion: "Someone is trying to disable or dodge the account's own defenses.",
+  Discovery: "Someone is mapping the account to see what is worth taking.",
+  Exfiltration: "Data is being moved toward somewhere it should not go.",
+  Impact: "A resource is being used to cause harm, such as a denial-of-service.",
+  InitialAccess: "An outside party is attempting a first foothold.",
+  PenTest: "Traffic matches a known penetration-testing toolkit.",
+  Persistence: "Someone is trying to keep access they should not have.",
+  Policy: "An account-hygiene guardrail was crossed, such as root credential use.",
+  PrivilegeEscalation: "Someone is trying to gain more permission than they were given.",
+  Recon: "The perimeter is being scanned and probed for a way in.",
+  ResourceConsumption: "Resources are being spun up in a way that suggests abuse.",
+  Stealth: "Someone is covering their tracks.",
+  Trojan: "A resource is behaving as though it carries malware.",
+  UnauthorizedAccess: "Access is coming from somewhere suspicious, such as a Tor exit node.",
+};
+
+function parseFindingType(type) {
+  // ThreatPurpose:ResourceTypeAffected/ThreatFamilyName.DetectionMechanism!Artifact
+  const [purposePart, rest = ""] = type.split(":");
+  const [resource = "", familyPart = ""] = rest.split("/");
+  const family = familyPart.split(/[.!]/)[0];
+  return { threatPurpose: purposePart, resource, family };
+}
+
+async function collectFieldGuide() {
+  // Sample findings (not all 400+): enough to catalogue the variety of types.
+  const ids = [];
+  let nextToken;
+  do {
+    const res = await guardduty.send(new ListFindingsCommand({
+      DetectorId: DETECTOR_ID,
+      FindingCriteria: { Criterion: { "service.archived": { Eq: ["false"] } } },
+      MaxResults: 50,
+      NextToken: nextToken,
+    }));
+    ids.push(...(res.FindingIds ?? []));
+    nextToken = res.NextToken;
+  } while (nextToken && ids.length < 200);
+
+  const counts = new Map();
+  for (let i = 0; i < ids.length; i += 50) {
+    const { Findings } = await guardduty.send(new GdGetFindingsCommand({
+      DetectorId: DETECTOR_ID,
+      FindingIds: ids.slice(i, i + 50),
+    }));
+    for (const f of Findings ?? []) {
+      const entry = counts.get(f.Type) ?? { type: f.Type, count: 0, maxSeverity: 0 };
+      entry.count += 1;
+      entry.maxSeverity = Math.max(entry.maxSeverity, f.Severity ?? 0);
+      counts.set(f.Type, entry);
+    }
+  }
+
+  const fieldGuide = [...counts.values()]
+    .map((e) => {
+      const p = parseFindingType(e.type);
+      return {
+        type: e.type,
+        count: e.count,
+        threatPurpose: p.threatPurpose,
+        resource: p.resource,
+        family: p.family,
+        severity: e.maxSeverity >= 7 ? "HIGH" : e.maxSeverity >= 4 ? "MEDIUM" : "LOW",
+        plain: THREAT_PURPOSE[p.threatPurpose] ?? "A behavior the watch is trained to flag.",
+      };
+    })
+    .sort((a, b) => b.count - a.count || b.type.localeCompare(a.type))
+    .slice(0, 12);
+
+  return { fieldGuide, fieldGuideSampled: ids.length, distinctTypes: counts.size };
 }
 
 async function collectSecurityHub() {
@@ -253,7 +338,11 @@ demo environments.</div>
     ["High severity", `<span class="pill bad">${gd.bySeverity.HIGH}</span>`],
     ["Medium severity", `<span class="pill warn">${gd.bySeverity.MEDIUM}</span>`],
     ["Low severity", `<span class="pill ok">${gd.bySeverity.LOW}</span>`],
+    ["Distinct finding types", `${gd.distinctTypes ?? 0} (in a ${gd.fieldGuideSampled ?? 0}-finding sample)`],
   ])}</table>
+${(gd.fieldGuide?.length) ? `<p class="meta">Smoke field guide · what the watch is trained to see:</p>
+<table><tr><th style="width:34%">Finding type</th><td><strong>What it means</strong></td></tr>${gd.fieldGuide.map((c) =>
+    `<tr><th><code>${esc(c.type)}</code> <span class="pill ${c.severity === "HIGH" ? "bad" : c.severity === "MEDIUM" ? "warn" : "ok"}">${esc(c.severity.toLowerCase())} ·${c.count}</span></th><td>${esc(c.plain)}</td></tr>`).join("")}</table>` : ""}
 
 <h2>4 · Posture management: Security Hub (AWS Foundational Security Best Practices)</h2>
 <table>${rows([
@@ -318,9 +407,13 @@ export const handler = async () => {
     CacheControl: "no-cache",
   }));
 
+  const ledger = await updateSeasonLedger(evidence);
+
   await Promise.all([
     put("evidence/evidence.json", JSON.stringify(evidence, null, 2), "application/json"),
     put("evidence/evidence.html", renderHtml(evidence), "text/html; charset=utf-8"),
+    put(`evidence/seasons/${evidence.generatedAt.slice(0, 10)}.json`, JSON.stringify(evidence, null, 2), "application/json"),
+    put("evidence/seasons/index.json", JSON.stringify(ledger, null, 2), "application/json"),
   ]);
 
   return {
@@ -329,5 +422,50 @@ export const handler = async () => {
     securityHub: sh.compliance,
     nistRules: cf.rules,
     boundary: bd.simulations.map((s) => `${s.action}=${s.decision}`),
+    seasonsRecorded: ledger.seasons.length,
   };
 };
+
+// The season ledger: a running index of one summary row per demo window, so
+// the page can show posture maturing over time instead of only the latest
+// snapshot. Config and Security Hub coverage deepens for a couple of hours
+// after each deploy, so a longer-staffed window posts higher passes — that
+// trend IS the story, and overwriting evidence.json every cycle threw it away.
+async function updateSeasonLedger(ev) {
+  let existing = { seasons: [] };
+  try {
+    const res = await s3.send(new GetObjectCommand({ Bucket: SITE_BUCKET, Key: "evidence/seasons/index.json" }));
+    existing = JSON.parse(await res.Body.transformToString());
+    if (!Array.isArray(existing.seasons)) existing.seasons = [];
+  } catch (err) {
+    // The role has GetObject on evidence/* but not ListBucket, so a MISSING
+    // index returns 403 AccessDenied, not 404 NoSuchKey (S3's existence-hiding
+    // behavior). For this role a 403 here can only mean "no index yet", so
+    // treat absent, 404, and 403 alike: start a fresh ledger.
+    const code = err.$metadata?.httpStatusCode;
+    const absent = err.name === "NoSuchKey" || err.name === "AccessDenied" || code === 404 || code === 403;
+    if (!absent) throw err;
+  }
+
+  const shTotal = Object.values(ev.securityHub.compliance).reduce((a, b) => a + b, 0);
+  const row = {
+    date: ev.generatedAt.slice(0, 10),
+    generatedAt: ev.generatedAt,
+    guardduty: ev.guardduty.total,
+    gdBySeverity: ev.guardduty.bySeverity,
+    fsbpPassed: ev.securityHub.compliance.PASSED ?? 0,
+    fsbpFailed: ev.securityHub.compliance.FAILED ?? 0,
+    fsbpEvaluated: shTotal,
+    nistCompliant: ev.config.rules.COMPLIANT ?? 0,
+    nistNonCompliant: ev.config.rules.NON_COMPLIANT ?? 0,
+    nistEvaluated: (ev.config.rules.COMPLIANT ?? 0) + (ev.config.rules.NON_COMPLIANT ?? 0),
+  };
+
+  // One row per UTC date: re-running make report the same day updates in place
+  // (a later read in a window carries fuller coverage), it never duplicates.
+  const seasons = existing.seasons.filter((s) => s.date !== row.date);
+  seasons.push(row);
+  seasons.sort((a, b) => a.date.localeCompare(b.date));
+
+  return { updatedAt: ev.generatedAt, seasons: seasons.slice(-60) };
+}

@@ -42,6 +42,9 @@ api-platform/frontend/openapi.json
 
 # Plank 8 report Lambda archive (built by terraform archive provider)
 security-posture/demo/lambda/report.zip
+security-posture/demo/lambda/response.zip
+security-posture/infra/lambda/api.zip
+security-posture/infra/lambda/runner.zip
 
 # Plank 9 report Lambda archive (built by terraform archive provider)
 network-blueprint/demo/lambda/report.zip

@@ -1,9 +1,12 @@
 locals {
-  s3_origin_id = "site-s3"
+  s3_origin_id  = "site-s3"
+  api_origin_id = "http-api"
+  api_domain    = replace(aws_apigatewayv2_api.http.api_endpoint, "https://", "")
 
   # AWS managed policy IDs (stable, documented constants)
-  cache_optimized_id = "658327ea-f89d-4fab-a63d-7e88639e58f6" # CachingOptimized
-  cache_disabled_id  = "4135ea2d-6df8-44a3-9df3-4b5a84be39ad" # CachingDisabled
+  cache_optimized_id    = "658327ea-f89d-4fab-a63d-7e88639e58f6" # CachingOptimized
+  cache_disabled_id     = "4135ea2d-6df8-44a3-9df3-4b5a84be39ad" # CachingDisabled
+  origin_all_viewer_ehh = "b689b0a8-53d0-40ab-baf2-68738e2966ac" # AllViewerExceptHostHeader
 }
 
 resource "aws_cloudfront_origin_access_control" "site" {
@@ -70,6 +73,18 @@ resource "aws_cloudfront_distribution" "site" {
     origin_access_control_id = aws_cloudfront_origin_access_control.site.id
   }
 
+  origin {
+    origin_id   = local.api_origin_id
+    domain_name = local.api_domain
+
+    custom_origin_config {
+      http_port              = 80
+      https_port             = 443
+      origin_protocol_policy = "https-only"
+      origin_ssl_protocols   = ["TLSv1.2"]
+    }
+  }
+
   default_cache_behavior {
     target_origin_id           = local.s3_origin_id
     viewer_protocol_policy     = "redirect-to-https"
@@ -77,6 +92,20 @@ resource "aws_cloudfront_distribution" "site" {
     cached_methods             = ["GET", "HEAD"]
     compress                   = true
     cache_policy_id            = local.cache_optimized_id
+    response_headers_policy_id = aws_cloudfront_response_headers_policy.security.id
+  }
+
+  # Same-origin exhibit API: the page calls /api/* on its own hostname — no
+  # CORS anywhere. Host header must NOT be forwarded or API Gateway can't route.
+  ordered_cache_behavior {
+    path_pattern               = "/api/*"
+    target_origin_id           = local.api_origin_id
+    viewer_protocol_policy     = "https-only"
+    allowed_methods            = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
+    cached_methods             = ["GET", "HEAD"]
+    compress                   = true
+    cache_policy_id            = local.cache_disabled_id
+    origin_request_policy_id   = local.origin_all_viewer_ehh
     response_headers_policy_id = aws_cloudfront_response_headers_policy.security.id
   }
 

@@ -6,6 +6,10 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 6.0"
     }
+    archive = {
+      source  = "hashicorp/archive"
+      version = "~> 2.7"
+    }
   }
 
   backend "s3" {
@@ -36,4 +40,9 @@ locals {
   prefix     = "sec"
   account_id = data.aws_caller_identity.current.account_id
   region     = data.aws_region.current.region
+
+  # Demo-stack discovery handshake: the demo root writes parameters under this
+  # prefix while deployed and destroys them with the stack, so the always-on
+  # API can answer 503 honestly between windows (plank 9/11 pattern).
+  ssm_prefix = "/boardwalk/security-posture"
 }

@@ -45,7 +45,7 @@ resource "aws_iam_role_policy" "report" {
       {
         Sid      = "ReadGuardDuty"
         Effect   = "Allow"
-        Action   = ["guardduty:ListDetectors", "guardduty:ListFindings", "guardduty:GetFindingsStatistics"]
+        Action   = ["guardduty:ListDetectors", "guardduty:ListFindings", "guardduty:GetFindings", "guardduty:GetFindingsStatistics"]
         Resource = "*" # read-only; detector id isn't known until apply and ListDetectors takes no ARN
       },
       {
@@ -65,15 +65,20 @@ resource "aws_iam_role_policy" "report" {
         Resource = "*" # read-only compliance summaries
       },
       {
+        # The boundary role moved to the always-on root (IAM bills nothing, so
+        # keeping it always-on lets the live policy desk answer between demo
+        # windows). The report still simulates it here for the season report.
         Sid      = "SimulateBoundaryRole"
         Effect   = "Allow"
         Action   = ["iam:SimulatePrincipalPolicy", "iam:GetRole"]
-        Resource = aws_iam_role.boundary_demo.arn
+        Resource = data.terraform_remote_state.infra.outputs.boundary_role_arn
       },
       {
-        Sid      = "WriteEvidence"
+        # Write evidence + dated season snapshots; read the season index back
+        # to append to it (the ledger accumulates across windows).
+        Sid      = "ReadWriteEvidence"
         Effect   = "Allow"
-        Action   = "s3:PutObject"
+        Action   = ["s3:PutObject", "s3:GetObject"]
         Resource = "${data.terraform_remote_state.infra.outputs.site_bucket_arn}/evidence/*"
       },
       {
@@ -110,7 +115,7 @@ resource "aws_lambda_function" "report" {
       TRAIL_NAME        = aws_cloudtrail.main.name
       KMS_KEY_ID        = aws_kms_key.trail.key_id
       CONFORMANCE_PACK  = aws_config_conformance_pack.nist.name
-      BOUNDARY_ROLE_ARN = aws_iam_role.boundary_demo.arn
+      BOUNDARY_ROLE_ARN = data.terraform_remote_state.infra.outputs.boundary_role_arn
       SITE_BUCKET_ARN   = data.terraform_remote_state.infra.outputs.site_bucket_arn
     }
   }
@@ -134,8 +139,4 @@ output "trail_name" {
 
 output "conformance_pack" {
   value = aws_config_conformance_pack.nist.name
-}
-
-output "boundary_role" {
-  value = aws_iam_role.boundary_demo.name
 }

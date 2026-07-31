@@ -75,6 +75,7 @@ teardown:
 	$(TFD) destroy -auto-approve $(DEMO_VARS)
 	$(MAKE) write-status DEPLOYED=false
 	@aws logs delete-log-group --log-group-name /aws/lambda/sec-evidence-report 2>/dev/null || true
+	@aws logs delete-log-group --log-group-name /aws/lambda/sec-drill-responder 2>/dev/null || true
 	@echo "security stack torn down. The evidence report remains on the site."
 
 ## Internal: status.json drives the page's LIVE / torn-down banner.
