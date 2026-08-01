@@ -62,8 +62,8 @@
   --ok-bg: #e3eee3; --ok-ink: #22633f;
   --bad-bg: #f6e2df; --bad-ink: #b3392e;   /* red pencil */
   --warn-bg: #f3ead2; --warn-ink: #8a611c;
-  --hero-scrim-top: rgba(10, 26, 43, .38);
-  --hero-scrim-bot: rgba(10, 26, 43, .78);
+  --hero-scrim-top: rgba(10, 26, 43, .6);
+  --hero-scrim-bot: rgba(10, 26, 43, .84);
   --font-display: "Big Shoulders", "Arial Narrow", ui-sans-serif, sans-serif;
   --font-body: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Sometype Mono", ui-monospace, "SF Mono", Menlo, monospace;
@@ -86,8 +86,8 @@
     --ok-bg: rgba(46, 125, 79, .24); --ok-ink: #7fd8a4;
     --bad-bg: rgba(179, 57, 46, .24); --bad-ink: #f2887c;
     --warn-bg: rgba(154, 107, 31, .22); --warn-ink: #eec37a;
-    --hero-scrim-top: rgba(7, 17, 28, .45);
-    --hero-scrim-bot: rgba(7, 17, 28, .84);
+    --hero-scrim-top: rgba(7, 17, 28, .64);
+    --hero-scrim-bot: rgba(7, 17, 28, .88);
   }
 }
 
@@ -369,7 +369,7 @@ footer::before {               /* full-width scale bar closing the sheet */
 /* ---- mobile ---- */
 @media (max-width: 640px) {
   .route .arr { display: none; }
-  .hero-scrim { background: linear-gradient(180deg, rgba(7, 17, 28, .62), rgba(7, 17, 28, .9) 72%); }
+  .hero-scrim { background: linear-gradient(180deg, rgba(7, 17, 28, .74), rgba(7, 17, 28, .92) 72%); }
   .hero-photo { object-position: 24% 40%; }
   .hero-inner { padding-top: 48px; padding-bottom: 36px; }
   header.hero::after { inset: 8px; outline: none; }
