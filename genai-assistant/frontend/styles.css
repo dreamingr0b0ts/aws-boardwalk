@@ -123,7 +123,7 @@ h1 {
   font-size: clamp(32px, 5.5vw, 50px); line-height: 1.06; letter-spacing: -0.01em;
   margin-top: 14px;
 }
-.hero .lede { margin-top: 16px; max-width: 620px; font-size: 17px; color: #c9cde8; }
+.hero .lede { margin-top: 16px; max-width: 620px; font-size: 17px; color: #dcdef0; }
 .hero .lede em {
   font-family: 'Spectral', Georgia, serif; font-style: italic;
   color: #f3d9a4; font-size: 1.06em;
