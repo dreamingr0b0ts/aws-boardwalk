@@ -101,7 +101,7 @@ header.hero {
 .hero-veil {
   position: absolute; inset: 0; z-index: -1;
   background:
-    linear-gradient(100deg, rgba(10, 14, 36, 0.92) 12%, rgba(10, 14, 36, 0.55) 55%, rgba(10, 14, 36, 0.22)),
+    linear-gradient(100deg, rgba(10, 14, 36, 0.94) 12%, rgba(10, 14, 36, 0.68) 55%, rgba(10, 14, 36, 0.32)),
     linear-gradient(0deg, rgba(10, 14, 36, 0.9), rgba(10, 14, 36, 0) 45%);
 }
 .constellation {

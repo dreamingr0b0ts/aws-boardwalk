@@ -71,7 +71,7 @@ export default function Landing() {
           decoding="async"
           className="absolute inset-0 -z-10 size-full object-cover object-[center_72%]"
         />
-        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-pine-950/90 via-pine-950/55 to-pine-950/20" aria-hidden />
+        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-pine-950/90 via-pine-950/70 to-pine-950/30" aria-hidden />
         <div className="absolute inset-0 -z-10 bg-gradient-to-t from-pine-950/70 via-transparent to-pine-950/45" aria-hidden />
 
         <div className="mx-auto max-w-6xl px-4 pb-32 pt-20 sm:pb-40 sm:pt-28">

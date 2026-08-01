@@ -97,7 +97,7 @@ header.hero { position: relative; isolation: isolate; overflow: hidden; color: #
 }
 header.hero::before {
   content: ''; position: absolute; inset: 0; z-index: -1;
-  background: linear-gradient(101deg, rgba(24, 12, 4, .94) 30%, rgba(24, 12, 4, .72) 58%, rgba(30, 13, 4, .38));
+  background: linear-gradient(101deg, rgba(24, 12, 4, .95) 30%, rgba(24, 12, 4, .8) 58%, rgba(30, 13, 4, .48));
 }
 .eyebrow { font: 700 11px var(--mono); letter-spacing: .18em; text-transform: uppercase; color: #ffb163; }
 h1 { font: 800 clamp(32px, 5.5vw, 48px)/1.06 var(--display); margin-top: 14px; letter-spacing: -.01em; }

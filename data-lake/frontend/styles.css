@@ -73,7 +73,7 @@ header.hero {
   background:
     /* depth contours over the water */
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='420' viewBox='0 0 900 420'%3E%3Cg fill='none' stroke='%23bfe0ee' stroke-opacity='.14'%3E%3Cpath d='M-20 90 C160 60 300 130 470 100 S780 60 920 95'/%3E%3Cpath d='M-20 170 C180 135 330 210 500 175 S790 140 920 180'/%3E%3Cpath d='M-20 260 C170 220 340 300 520 258 S800 225 920 265'/%3E%3Cpath d='M-20 350 C190 310 350 390 530 350 S800 320 920 355'/%3E%3C/g%3E%3C/svg%3E") center / 900px 420px repeat,
-    linear-gradient(180deg, rgba(7, 17, 27, 0.82) 0%, rgba(7, 17, 27, 0.55) 50%, rgba(7, 17, 27, 0.86) 100%),
+    linear-gradient(180deg, rgba(7, 17, 27, 0.85) 0%, rgba(7, 17, 27, 0.68) 50%, rgba(7, 17, 27, 0.88) 100%),
     url("/images/hero-water-800.webp") center 60% / cover no-repeat #07111b;
   /* depth-tint scale closes the hero: shallow to deep */
   border-bottom: 9px solid transparent;
@@ -82,13 +82,13 @@ header.hero {
 @media (min-width: 800px) {
   header.hero { background-image:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='420' viewBox='0 0 900 420'%3E%3Cg fill='none' stroke='%23bfe0ee' stroke-opacity='.14'%3E%3Cpath d='M-20 90 C160 60 300 130 470 100 S780 60 920 95'/%3E%3Cpath d='M-20 170 C180 135 330 210 500 175 S790 140 920 180'/%3E%3Cpath d='M-20 260 C170 220 340 300 520 258 S800 225 920 265'/%3E%3Cpath d='M-20 350 C190 310 350 390 530 350 S800 320 920 355'/%3E%3C/g%3E%3C/svg%3E"),
-    linear-gradient(180deg, rgba(7, 17, 27, 0.82) 0%, rgba(7, 17, 27, 0.5) 50%, rgba(7, 17, 27, 0.86) 100%),
+    linear-gradient(180deg, rgba(7, 17, 27, 0.85) 0%, rgba(7, 17, 27, 0.68) 50%, rgba(7, 17, 27, 0.88) 100%),
     url("/images/hero-water-1200.webp"); }
 }
 @media (min-width: 1400px) {
   header.hero { background-image:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='420' viewBox='0 0 900 420'%3E%3Cg fill='none' stroke='%23bfe0ee' stroke-opacity='.14'%3E%3Cpath d='M-20 90 C160 60 300 130 470 100 S780 60 920 95'/%3E%3Cpath d='M-20 170 C180 135 330 210 500 175 S790 140 920 180'/%3E%3Cpath d='M-20 260 C170 220 340 300 520 258 S800 225 920 265'/%3E%3Cpath d='M-20 350 C190 310 350 390 530 350 S800 320 920 355'/%3E%3C/g%3E%3C/svg%3E"),
-    linear-gradient(180deg, rgba(7, 17, 27, 0.82) 0%, rgba(7, 17, 27, 0.5) 50%, rgba(7, 17, 27, 0.86) 100%),
+    linear-gradient(180deg, rgba(7, 17, 27, 0.85) 0%, rgba(7, 17, 27, 0.68) 50%, rgba(7, 17, 27, 0.88) 100%),
     url("/images/hero-water-2000.webp"); }
 }
 .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: #7fcbe3; }

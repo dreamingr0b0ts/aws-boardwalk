@@ -111,8 +111,8 @@ header.hero::before {
 header.hero::after {
   content: ""; position: absolute; inset: 0;
   background: linear-gradient(100deg,
-    rgba(13, 15, 18, .93) 0%, rgba(13, 15, 18, .82) 44%,
-    rgba(13, 15, 18, .42) 74%, rgba(13, 15, 18, .55) 100%);
+    rgba(13, 15, 18, .94) 0%, rgba(13, 15, 18, .86) 44%,
+    rgba(13, 15, 18, .52) 74%, rgba(13, 15, 18, .62) 100%);
 }
 .hero .wrap { position: relative; z-index: 1; }
 .eyebrow {
@@ -426,7 +426,7 @@ footer .tooling { opacity: .5; }
   }
   header.hero::after {
     background: linear-gradient(180deg,
-      rgba(13, 15, 18, .9) 0%, rgba(13, 15, 18, .82) 55%, rgba(13, 15, 18, .6) 100%);
+      rgba(13, 15, 18, .92) 0%, rgba(13, 15, 18, .86) 55%, rgba(13, 15, 18, .68) 100%);
   }
   .panel { padding: 20px 18px; }
   .hero-meta div { flex: 1 1 40%; }
