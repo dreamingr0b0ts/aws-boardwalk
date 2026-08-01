@@ -130,7 +130,7 @@ h1 {
   text-transform: uppercase; letter-spacing: .025em; margin-top: 12px;
   text-shadow: 0 1px 12px rgba(7, 17, 28, .5);
 }
-.hero .lede { margin-top: 16px; max-width: 730px; font-size: 16.5px; color: #e1ebf4; }
+.hero .lede { margin-top: 16px; max-width: 730px; font-size: 16.5px; color: #eaf1f7; }
 .hero .lede strong, .hero .lede em { color: #f2f8fc; }
 .hero-meta {
   margin-top: 28px; display: flex; gap: 28px; flex-wrap: wrap;

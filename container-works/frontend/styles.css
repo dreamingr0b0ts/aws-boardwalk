@@ -102,7 +102,7 @@ header.hero::before {
 .eyebrow { font: 700 11px var(--mono); letter-spacing: .18em; text-transform: uppercase; color: #ffb163; }
 h1 { font: 800 clamp(32px, 5.5vw, 48px)/1.06 var(--display); margin-top: 14px; letter-spacing: -.01em; }
 .hero-tag { margin-top: 10px; font: italic 400 17px var(--body); color: #ffc890; }
-.hero .lede { margin-top: 14px; max-width: 660px; font-size: 16.5px; color: #f3e9d8; }
+.hero .lede { margin-top: 14px; max-width: 660px; font-size: 16.5px; color: #f7f0e4; }
 .hero .lede em { color: #ffc890; }
 .hero-meta { margin-top: 28px; display: flex; gap: 12px 14px; flex-wrap: wrap; font-size: 12px; }
 .hero-meta div {
