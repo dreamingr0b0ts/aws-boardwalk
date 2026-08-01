@@ -116,7 +116,7 @@ h1 {
   text-transform: uppercase; letter-spacing: .015em;
   text-shadow: 0 2px 18px rgba(0, 0, 0, .45);
 }
-.hero .lede { margin-top: 16px; max-width: 680px; font-size: 17px; color: #f1f0e9; text-shadow: 0 1px 12px rgba(0, 0, 0, .5); }
+.hero .lede { margin-top: 16px; max-width: 680px; font-size: 17px; color: #f3f2ec; text-shadow: 0 1px 12px rgba(0, 0, 0, .5); }
 .hero-meta {
   margin-top: 30px; display: flex; gap: 12px 30px; flex-wrap: wrap;
   font-family: 'Spline Sans Mono', ui-monospace, monospace;
