@@ -92,18 +92,18 @@ header.hero {
   color: var(--hero-ink);
   padding: 64px 0 48px;
   background:
-    linear-gradient(180deg, rgba(16, 11, 5, 0.82) 0%, rgba(16, 11, 5, 0.66) 50%, rgba(16, 11, 5, 0.86) 100%),
+    linear-gradient(180deg, rgba(16, 11, 5, 0.86) 0%, rgba(16, 11, 5, 0.74) 50%, rgba(16, 11, 5, 0.88) 100%),
     url("/images/hero-catalog-800.webp") center 45% / cover no-repeat #150f08;
   border-bottom: 3px solid var(--brass);
 }
 @media (min-width: 800px) {
   header.hero { background-image:
-    linear-gradient(180deg, rgba(16, 11, 5, 0.82) 0%, rgba(16, 11, 5, 0.66) 50%, rgba(16, 11, 5, 0.86) 100%),
+    linear-gradient(180deg, rgba(16, 11, 5, 0.86) 0%, rgba(16, 11, 5, 0.74) 50%, rgba(16, 11, 5, 0.88) 100%),
     url("/images/hero-catalog-1200.webp"); }
 }
 @media (min-width: 1400px) {
   header.hero { background-image:
-    linear-gradient(180deg, rgba(16, 11, 5, 0.82) 0%, rgba(16, 11, 5, 0.66) 50%, rgba(16, 11, 5, 0.86) 100%),
+    linear-gradient(180deg, rgba(16, 11, 5, 0.86) 0%, rgba(16, 11, 5, 0.74) 50%, rgba(16, 11, 5, 0.88) 100%),
     url("/images/hero-catalog-2000.webp"); }
 }
 .eyebrow {
