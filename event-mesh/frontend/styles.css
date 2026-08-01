@@ -98,12 +98,12 @@ body {
 header.hero {
   position: relative; color: #f0ede1; padding: 64px 0 46px;
   background:
-    linear-gradient(180deg, rgba(7, 12, 9, .76) 0%, rgba(7, 12, 9, .7) 45%, rgba(8, 13, 10, .9) 100%),
+    linear-gradient(180deg, rgba(7, 12, 9, .81) 0%, rgba(7, 12, 9, .75) 45%, rgba(8, 13, 10, .9) 100%),
     url('/img/hero-1600.webp') center 38% / cover no-repeat #0a0f0c;
 }
 @media (max-width: 720px) {
   header.hero { background-image:
-    linear-gradient(180deg, rgba(7, 12, 9, .8) 0%, rgba(7, 12, 9, .72) 45%, rgba(8, 13, 10, .92) 100%),
+    linear-gradient(180deg, rgba(7, 12, 9, .85) 0%, rgba(7, 12, 9, .77) 45%, rgba(8, 13, 10, .92) 100%),
     url('/img/hero-800.webp'); }
 }
 .eyebrow {
