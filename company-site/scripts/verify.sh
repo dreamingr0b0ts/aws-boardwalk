@@ -58,6 +58,27 @@ TOS=$(curl -sS $CURL "$URL/terms")
 echo "$TOS" | grep -q "Terms of Service" || [ $? -eq 141 ] ; check "clean URL /terms" $?
 [ "$(curl -sS $CURL -o /dev/null -w '%{http_code}' "$URL/no-such-page")" = "404" ] ; check "unknown path returns 404" $?
 
+# --- service pages + insights ---------------------------------------------------
+AWSPAGE=$(curl -sS $CURL "$URL/managed-aws")
+echo "$AWSPAGE" | grep -q "Managed AWS services from Colorado" || [ $? -eq 141 ] ; check "service page /managed-aws" $?
+echo "$AWSPAGE" | grep -q 'rel="canonical" href="https://planetek.org/managed-aws"' || [ $? -eq 141 ] ; check "canonical on /managed-aws" $?
+FED=$(curl -sS $CURL "$URL/federal")
+echo "$FED" | grep -q "Federal IT contracting" || [ $? -eq 141 ] ; check "service page /federal" $?
+FRAC=$(curl -sS $CURL "$URL/fractional-cto")
+echo "$FRAC" | grep -q "Fractional CTO, CIO" || [ $? -eq 141 ] ; check "service page /fractional-cto" $?
+TRAIN=$(curl -sS $CURL "$URL/ai-training")
+echo "$TRAIN" | grep -q "AI training for working teams" || [ $? -eq 141 ] ; check "service page /ai-training" $?
+WEBDEV=$(curl -sS $CURL "$URL/web-development")
+echo "$WEBDEV" | grep -q "Web design" || [ $? -eq 141 ] ; check "service page /web-development" $?
+INS=$(curl -sS $CURL "$URL/insights")
+echo "$INS" | grep -q "Insights from the field" || [ $? -eq 141 ] ; check "insights index /insights" $?
+POST=$(curl -sS $CURL "$URL/insights/what-twelve-aws-environments-cost")
+echo "$POST" | grep -q "What twelve live AWS environments cost" || [ $? -eq 141 ] ; check "insights post (nested clean URL)" $?
+PCSS=$(curl -sS $CURL -o /dev/null -w '%{http_code}' "$URL/assets/pages.css")
+[ "$PCSS" = "200" ] ; check "shared pages.css serves" $?
+POSTS_LISTED=$(echo "$INS" | grep -c "class=\"post-card\"")
+[ "$POSTS_LISTED" -ge 3 ] ; check "insights index lists 3+ posts" $?
+
 # --- contact API --------------------------------------------------------------
 HP=$(curl -sS $CURL -X POST "$URL/api/contact" -H 'content-type: application/json' \
   -d '{"name":"Bot","email":"bot@example.com","message":"spam spam spam","website":"http://spam"}')

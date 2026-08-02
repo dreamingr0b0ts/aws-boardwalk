@@ -64,11 +64,11 @@
       "areaServed": "US",
       "description": "Managed AWS services, federal IT contracting, fractional technology leadership, AI training, and web development.",
       "makesOffer": [
-        { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Managed AWS Services", "description": "Cloud architecture, migration, security, DevOps, and ongoing AWS operations for small and mid-size businesses." } },
-        { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Federal IT Contracting", "description": "SAM.gov registered contractor: cloud architecture, Zero Trust, DevSecOps, and vulnerability management for federal agencies and primes." } },
-        { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Fractional CTO / CIO / VP Engineering", "description": "Executive technology leadership on a flexible, part-time basis." } },
-        { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "AI Training", "description": "In-person and online AI, generative AI, and Python training from a college CIS professor and Fortune 100 certified trainer." } },
-        { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Web Design & Development", "description": "Custom websites, redesigns, and maintenance from a Cornell-certified web developer." } }
+        { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Managed AWS Services", "url": "https://planetek.org/managed-aws", "description": "Cloud architecture, migration, security, DevOps, and ongoing AWS operations for small and mid-size businesses." } },
+        { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Federal IT Contracting", "url": "https://planetek.org/federal", "description": "SAM.gov registered contractor: cloud architecture, Zero Trust, DevSecOps, and vulnerability management for federal agencies and primes." } },
+        { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Fractional CTO / CIO / VP Engineering", "url": "https://planetek.org/fractional-cto", "description": "Executive technology leadership on a flexible, part-time basis." } },
+        { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "AI Training", "url": "https://planetek.org/ai-training", "description": "In-person and online AI, generative AI, and Python training from a college CIS professor and Fortune 100 certified trainer." } },
+        { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Web Design & Development", "url": "https://planetek.org/web-development", "description": "Custom websites, redesigns, and maintenance from a Cornell-certified web developer." } }
       ]
     }
   ]
@@ -232,6 +232,9 @@
   h2 { font-family: var(--display); font-weight: 700; text-transform: uppercase; letter-spacing: .045em;
     font-size: clamp(22px, 3.2vw, 30px); margin-top: 10px; }
   .section-lede { margin-top: 12px; max-width: 760px; color: var(--ink-2); }
+  .more { display: inline-block; margin-top: 26px; font-weight: 700; font-size: 15px;
+    color: var(--link); text-decoration: none; }
+  .more:hover { text-decoration: underline; text-underline-offset: 3px; }
 
   .grid { margin-top: 28px; display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(min(310px, 100%), 1fr)); }
   .card { position: relative; overflow: hidden; background: var(--surface); border: 1px solid var(--border);
@@ -506,6 +509,7 @@
         a named senior engineer and no long-term lock-in.</p>
       </div>
     </div>
+    <a class="more" href="/managed-aws">More on managed AWS services →</a>
   </div>
 </section>
 
@@ -578,6 +582,8 @@
       <div class="fact"><strong>541611</strong> Mgmt Consulting</div>
     </div>
 
+    <a class="more" href="/federal">More on federal contracting →</a>
+
     <!-- Photo: Tim Arterbury via Unsplash (unsplash.com/photos/n-zEC_AypI8),
          Unsplash License: free commercial use, no attribution required. -->
     <figure class="interlude">
@@ -630,6 +636,7 @@
         </ul>
       </div>
     </div>
+    <a class="more" href="/fractional-cto">More on fractional leadership →</a>
   </div>
 </section>
 
@@ -702,6 +709,7 @@
         </ul>
       </div>
     </div>
+    <a class="more" href="/ai-training">More on AI training →</a>
   </div>
 </section>
 
@@ -768,6 +776,7 @@
         </ul>
       </div>
     </div>
+    <a class="more" href="/web-development">More on web development →</a>
   </div>
 </section>
 
@@ -872,11 +881,11 @@
     <div>
       <p class="foot-head">Services</p>
       <ul class="foot-list">
-        <li><a href="#aws">Managed AWS Services</a></li>
-        <li><a href="#federal">Federal Contracting</a></li>
-        <li><a href="#fractional">Fractional CTO / CIO / VP</a></li>
-        <li><a href="#training">AI Training</a></li>
-        <li><a href="#web">Web Development</a></li>
+        <li><a href="/managed-aws">Managed AWS Services</a></li>
+        <li><a href="/federal">Federal Contracting</a></li>
+        <li><a href="/fractional-cto">Fractional CTO / CIO / VP</a></li>
+        <li><a href="/ai-training">AI Training</a></li>
+        <li><a href="/web-development">Web Development</a></li>
       </ul>
     </div>
     <div>
@@ -884,6 +893,7 @@
       <ul class="foot-list">
         <li><a href="https://demos.planetek.org">Live AWS demos</a></li>
         <li><a href="https://github.com/dreamingr0b0ts/aws-boardwalk">Open-source code</a></li>
+        <li><a href="/insights">Insights</a></li>
       </ul>
     </div>
     <div>
