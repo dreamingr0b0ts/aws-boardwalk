@@ -62,5 +62,5 @@ locals {
 variable "visitor_email_enabled" {
   description = "Send booking confirmations to the visitor's address. Requires SES production access (the sandbox can only mail verified identities). Default MUST match live state - flip to true in the same commit as the local apply, only after AWS grants production access."
   type        = bool
-  default     = false # SES production access requested 2026-08-02, not yet granted
+  default     = true # SES production access granted 2026-08-02; applied same day
 }
