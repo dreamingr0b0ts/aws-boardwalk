@@ -50,8 +50,12 @@ curl -sS $CURL "$URL/sitemap.xml" | grep -q "<urlset" || [ $? -eq 141 ] ; check 
 curl -sS $CURL "$URL/assets/og.jpg" -o /dev/null -w "%{http_code}" | grep -q 200 || [ $? -eq 141 ] ; check "og image serves" $?
 
 # --- routing ------------------------------------------------------------------
-curl -sS $CURL "$URL/privacy" | grep -q "Privacy Policy" || [ $? -eq 141 ] ; check "clean URL /privacy" $?
-curl -sS $CURL "$URL/terms" | grep -q "Terms of Service" || [ $? -eq 141 ] ; check "clean URL /terms" $?
+# Capture then grep: piping curl straight into grep -q races once the page is
+# bigger than one read chunk (grep exits early, curl exits 23, not 141).
+PRIV=$(curl -sS $CURL "$URL/privacy")
+echo "$PRIV" | grep -q "Privacy Policy" || [ $? -eq 141 ] ; check "clean URL /privacy" $?
+TOS=$(curl -sS $CURL "$URL/terms")
+echo "$TOS" | grep -q "Terms of Service" || [ $? -eq 141 ] ; check "clean URL /terms" $?
 [ "$(curl -sS $CURL -o /dev/null -w '%{http_code}' "$URL/no-such-page")" = "404" ] ; check "unknown path returns 404" $?
 
 # --- contact API --------------------------------------------------------------
