@@ -434,7 +434,6 @@
     <h2>How the boardwalk is built</h2>
     <ul>
       <li>Every environment is Terraform end-to-end: one command up, one command down.</li>
-      <li>Free-tier-first: the always-on set idles at roughly a dollar a month, with hard budget tripwires.</li>
       <li>Security by default: private buckets behind CloudFront, a shared WAF edge ACL (rate limiting + AWS managed rules), least-privilege IAM per function, strict headers.</li>
       <li>Live demos self-heal: seeded data resets nightly, so the door is always open.</li>
     </ul>
