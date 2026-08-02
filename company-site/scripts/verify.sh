@@ -35,6 +35,8 @@ HDRS=$(curl -sSI $CURL "$URL/")
 echo "$BODY" | grep -q "Managed AWS Services" || [ $? -eq 141 ] ; check "homepage serves and leads with Managed AWS" $?
 echo "$BODY" | grep -q "Federal IT Contracting &amp; Consulting" || [ $? -eq 141 ] ; check "federal section present" $?
 echo "$BODY" | grep -q "demos.planetek.org" || [ $? -eq 141 ] ; check "links to the demo hub" $?
+echo "$BODY" | grep -q 'href="/managed-aws"' || [ $? -eq 141 ] ; check "homepage routes to the service pages" $?
+echo "$BODY" | grep -q 'href="/insights/what-twelve-aws-environments-cost"' || [ $? -eq 141 ] ; check "homepage field-notes strip present" $?
 echo "$HDRS" | grep -qi "strict-transport-security" || [ $? -eq 141 ] ; check "HSTS header" $?
 echo "$HDRS" | grep -qi "content-security-policy" || [ $? -eq 141 ] ; check "CSP header" $?
 echo "$HDRS" | grep -qi "x-content-type-options" || [ $? -eq 141 ] ; check "nosniff header" $?

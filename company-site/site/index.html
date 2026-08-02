@@ -237,6 +237,19 @@
   .more:hover { text-decoration: underline; text-underline-offset: 3px; }
 
   .grid { margin-top: 28px; display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(min(310px, 100%), 1fr)); }
+  /* five service cards: three across the top, two wider below */
+  .svc-grid { margin-top: 28px; display: grid; gap: 16px; grid-template-columns: repeat(6, 1fr); }
+  .svc-grid .card { grid-column: span 2; }
+  .svc-grid .card:nth-child(4), .svc-grid .card:nth-child(5) { grid-column: span 3; }
+  @media (max-width: 980px) {
+    .svc-grid { grid-template-columns: 1fr 1fr; }
+    .svc-grid .card, .svc-grid .card:nth-child(4) { grid-column: span 1; }
+    .svc-grid .card:nth-child(5) { grid-column: span 2; }
+  }
+  @media (max-width: 640px) {
+    .svc-grid { grid-template-columns: 1fr; }
+    .svc-grid .card, .svc-grid .card:nth-child(4), .svc-grid .card:nth-child(5) { grid-column: span 1; }
+  }
   .card { position: relative; overflow: hidden; background: var(--surface); border: 1px solid var(--border);
     border-radius: 14px; padding: 24px 22px 20px; display: flex; flex-direction: column; gap: 10px;
     transition: border-color .15s ease, transform .15s ease, box-shadow .15s ease; }
@@ -263,11 +276,15 @@
   .door-ops       { --door: #c9302a; }  /* mountain patrol: patrol red */
   .door-security  { --door: #d2691f; }  /* fire lookout: ember */
   .door-registry  { --door: #a83a49; }  /* county vault: sealing wax */
+  .door-fed       { --door: #2f615c; }  /* trailhead pine: the federal page's trim */
+  .door-notes     { --door: #e8a13d; }  /* field notes: signal amber, the insights rail */
 
-  /* --- engagement steps --- */
-  .steps { margin-top: 28px; display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); }
-  .card p.step-plate { font: 600 10.5px/1.4 var(--mono); letter-spacing: .18em; text-transform: uppercase;
-    color: var(--lamp); flex: 0 0 auto; }
+  /* --- field-note cards (whole-card links) --- */
+  a.card { text-decoration: none; color: inherit; }
+  .card p.post-date { font: 600 10.5px/1.5 var(--mono); letter-spacing: .14em; text-transform: uppercase;
+    color: var(--ink-3); flex: 0 0 auto; }
+  .card .read { font-size: 14px; font-weight: 700; color: var(--link);
+    padding-top: 10px; border-top: 1px solid var(--border); }
 
   /* --- the boardwalk band: twelve doors on the night pier --- */
   .boardwalk { background: linear-gradient(180deg, var(--pine-deep), var(--pine)); color: var(--night-ink);
@@ -310,43 +327,13 @@
     background: var(--surface); border: 1px solid var(--border); border-radius: 999px;
     padding: 7px 14px; color: var(--ink-2); }
   .fact strong { color: var(--ink); font-weight: 600; margin-right: 6px; }
-  .checklist { margin: 26px 0 0; padding: 0; list-style: none; display: grid; gap: 14px;
-    grid-template-columns: repeat(auto-fill, minmax(min(310px, 100%), 1fr)); }
-  .checklist li { background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
-    padding: 16px 16px 16px 42px; position: relative; font-size: 14px; color: var(--ink-2); }
-  .checklist li::before { content: ""; position: absolute; left: 17px; top: 21px; width: 8px; height: 8px;
-    border-radius: 50%; background: var(--dot); box-shadow: var(--dot-glow); }
-  .checklist strong { display: block; color: var(--ink); font-size: 15px; margin-bottom: 3px; }
-  .stats { margin-top: 26px; display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr)); }
-  .stat { text-align: center; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 10px 16px; }
-  .stat strong { display: block; font: 700 24px/1.2 var(--display); color: var(--glow); }
-  .stat span { font-size: 12.5px; color: var(--ink-3); }
-
   /* --- interlude photo --- */
   .interlude { margin: 64px auto 0; }
   .interlude img { width: 100%; height: clamp(210px, 30vw, 330px); object-fit: cover; object-position: 50% 42%;
     border-radius: 14px; border: 1px solid var(--border); display: block; }
   .interlude figcaption { margin-top: 10px; font: 400 12px/1.6 var(--mono); color: var(--ink-3); }
 
-  /* --- tiers (formats and scopes; no price tags) --- */
-  .tiers { margin-top: 28px; display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); }
-  .tier { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 24px; position: relative; }
-  .tier.hot { border-color: var(--glow); box-shadow: 0 6px 24px rgba(228,83,47,.12); }
-  .tier .flag { position: absolute; top: -11px; left: 50%; transform: translateX(-50%); background: var(--ember);
-    color: #fff; font: 600 10px/1.6 var(--mono); text-transform: uppercase; letter-spacing: .08em;
-    padding: 3px 12px; border-radius: 999px; white-space: nowrap; }
-  .tier .tier-name { font-family: var(--display); font-weight: 700; font-size: 22px; letter-spacing: .02em; }
-  .tier h3 { font: 600 11px/1.6 var(--mono); letter-spacing: .16em; text-transform: uppercase;
-    margin-top: 4px; color: var(--lamp); }
-  .tier ul { margin: 14px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; font-size: 14px; color: var(--ink-2); }
-  .tier li { padding-left: 20px; position: relative; }
-  .tier li::before { content: "✓"; position: absolute; left: 0; color: var(--ok-ink); font-weight: 700; }
-
   .cols { margin-top: 28px; display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); }
-  .card ul.plain { margin: 0; padding: 14px 0 0; list-style: none; display: grid; gap: 8px; font-size: 14px; color: var(--ink-2); }
-  .card ul.plain li { padding-left: 18px; position: relative; }
-  .card ul.plain li::before { content: ""; position: absolute; left: 2px; top: .5em; width: 7px; height: 7px;
-    border-radius: 50%; background: var(--dot); box-shadow: var(--dot-glow); }
 
   /* --- contact --- */
   #contact { padding-bottom: 72px; }
@@ -397,11 +384,12 @@
       Planetek
     </a>
     <div class="nav-links">
-      <a href="#aws">Managed AWS</a>
-      <a href="#federal">Federal</a>
-      <a href="#fractional">Fractional Leadership</a>
-      <a href="#training">AI Training</a>
-      <a href="#web">Web Development</a>
+      <a href="/managed-aws">Managed AWS</a>
+      <a href="/federal">Federal</a>
+      <a href="/fractional-cto">Fractional Leadership</a>
+      <a href="/ai-training">AI Training</a>
+      <a href="/web-development">Web Development</a>
+      <a href="/insights">Insights</a>
       <a class="cta" href="#contact">Get Started</a>
     </div>
   </div>
@@ -433,83 +421,55 @@
 
 <main>
 
-<!-- ================= Managed AWS ================= -->
-<section id="aws">
+<!-- ================= What we do ================= -->
+<!-- Legacy anchor targets: the old one-page sections lived at these ids, and
+     inbound links still expect them. They all land on the services overview. -->
+<section id="services">
+  <div id="aws"></div><div id="fractional"></div><div id="training"></div><div id="web"></div>
   <div class="wrap">
-    <p class="kicker">Managed AWS Services</p>
-    <h2>We run AWS so you can run your business</h2>
-    <p class="section-lede">Most companies don't need a six-figure cloud department. They need an experienced
-    partner who architects it right, locks it down, and keeps the bill honest. Planetek delivers exactly that:
-    senior AWS engineering on a flexible monthly engagement, with every environment defined in Terraform,
-    gated by automated security scanning, and deployed through keyless CI/CD.</p>
+    <p class="kicker">What we do</p>
+    <h2>Five services, one standard of proof</h2>
+    <p class="section-lede">Planetek is a senior practice with five fronts, and every claim on this site
+    traces back to something you can open: a live environment, a public codebase, or a published bill.
+    Each service has its own page with scopes, common questions, and the proof behind it.</p>
 
-    <div class="grid">
-      <div class="card door-network">
-        <h3>Architecture, Migration &amp; IaC</h3>
-        <p>Well-Architected reviews, landing zones, and lift-and-modernize migrations. Every resource is
-        Terraform: reproducible, reviewable, and never trapped in a console click-path.</p>
-        <p class="stack">Terraform · VPC design · multi-account IAM · GitHub Actions OIDC</p>
-        <a class="demo" href="https://containers.demos.planetek.org">Launch a real container on Fargate →</a>
-      </div>
+    <div class="svc-grid">
       <div class="card door-web">
-        <h3>Serverless Applications &amp; APIs</h3>
-        <p>Scale-to-zero web applications and API platforms that idle at pennies: S3 + CloudFront frontends,
-        Lambda backends, Cognito auth, DynamoDB data, plus versioned, key-metered public APIs.</p>
-        <p class="stack">Lambda · API Gateway · Cognito · DynamoDB · ECS Fargate</p>
-        <a class="demo" href="https://permits.demos.planetek.org">Try a live serverless app →</a>
+        <h3>Managed AWS Services</h3>
+        <p>We architect, migrate, secure, and operate AWS for growing businesses: senior engineering on a
+        flexible monthly engagement, everything in Terraform, and a bill someone actually watches.</p>
+        <p class="stack">Architecture · Serverless · AI on AWS · Data · Security · Operations</p>
+        <a class="demo" href="/managed-aws">Managed AWS services →</a>
+      </div>
+      <div class="card door-fed">
+        <h3>Federal IT Contracting</h3>
+        <p>An active SAM.gov registered contractor delivering cloud architecture, Zero Trust, and DevSecOps
+        to federal agencies and prime contractors, from Colorado's Front Range.</p>
+        <p class="stack">CAGE 1ZZA0 · UEI PHN7PHMZBKS4 · 8(a) pending</p>
+        <a class="demo" href="/federal">Federal contracting →</a>
+      </div>
+      <div class="card door-documents">
+        <h3>Fractional CTO / CIO / VP</h3>
+        <p>Executive technology leadership a few days a month instead of a full-time salary: roadmap,
+        architecture, hiring, and vendor calls, from a leader who still ships.</p>
+        <p class="stack">Strategy · Architecture · Team building · Governance</p>
+        <a class="demo" href="/fractional-cto">Fractional leadership →</a>
       </div>
       <div class="card door-assistant">
-        <h3>AI on AWS</h3>
-        <p>Production GenAI without runaway bills: retrieval-augmented assistants on Amazon Bedrock and
-        document-intelligence pipelines that classify, extract, and index paperwork automatically,
-        all with hard per-day cost caps.</p>
-        <p class="stack">Bedrock (Claude) · Textract · Comprehend · Step Functions</p>
-        <a class="demo" href="https://models.demos.planetek.org">Compare four foundation models →</a>
+        <h3>AI Training</h3>
+        <p>Practical AI and generative AI instruction from a college CIS professor and Fortune 100
+        certified trainer. In person along the Front Range, or online for teams anywhere.</p>
+        <p class="stack">Fundamentals · GenAI &amp; LLMs · Security &amp; ethics</p>
+        <a class="demo" href="/ai-training">AI training →</a>
       </div>
       <div class="card door-data">
-        <h3>Data Lakes &amp; Analytics</h3>
-        <p>Turn raw data into queryable answers: S3 data lakes, Glue catalogs, and Athena SQL over
-        millions of records, engineered so a query scans megabytes, not gigabytes.</p>
-        <p class="stack">S3 · Glue · Athena · Parquet · EventBridge</p>
-        <a class="demo" href="https://data.demos.planetek.org">Query 3M records live →</a>
-      </div>
-      <div class="card door-security">
-        <h3>Security, Compliance &amp; Networking</h3>
-        <p>Zero Trust network design, continuous compliance against NIST 800-53, GuardDuty threat detection,
-        CloudTrail evidence trails, and vulnerability management, with auditable proof instead of promises.</p>
-        <p class="stack">GuardDuty · Security Hub · Config · CloudTrail · VPC design</p>
-        <a class="demo" href="https://security.demos.planetek.org">Review a live compliance report →</a>
-      </div>
-      <div class="card door-ops">
-        <h3>Managed Operations &amp; Cost Control</h3>
-        <p>Ongoing care for the cloud you already have: monitoring and alerting, backup/restore drills with
-        measured recovery times, patching cadence, budget tripwires, and a monthly cost-optimization pass.</p>
-        <p class="stack">CloudWatch · X-Ray · AWS Budgets · backup drills · FinOps</p>
-        <a class="demo" href="https://ops.demos.planetek.org">See live ops metrics →</a>
+        <h3>Web Design &amp; Development</h3>
+        <p>Modern, responsive websites from a Cornell-certified developer: React applications when you
+        need them, or dependency-free static sites on AWS, like the one you are reading.</p>
+        <p class="stack">Next.js · React · TypeScript · Static on AWS</p>
+        <a class="demo" href="/web-development">Web development →</a>
       </div>
     </div>
-
-    <div class="steps">
-      <div class="card">
-        <p class="step-plate">Step 01</p>
-        <h3>Assess</h3>
-        <p>Fixed-fee cloud assessment: architecture, security posture, and spend review of your current AWS
-        account, delivered as a prioritized roadmap you keep either way.</p>
-      </div>
-      <div class="card">
-        <p class="step-plate">Step 02</p>
-        <h3>Build &amp; Migrate</h3>
-        <p>Project-based delivery of new workloads or migrations: infrastructure-as-code from day one,
-        with CI/CD and security gates included, then handed over documented.</p>
-      </div>
-      <div class="card">
-        <p class="step-plate">Step 03</p>
-        <h3>Run</h3>
-        <p>Monthly managed services: we own uptime, security, backups, patching, and the AWS bill, with
-        a named senior engineer and no long-term lock-in.</p>
-      </div>
-    </div>
-    <a class="more" href="/managed-aws">More on managed AWS services →</a>
   </div>
 </section>
 
@@ -555,31 +515,14 @@
     cloud architecture, Zero Trust implementation, DevSecOps, and IT consulting to federal agencies and prime
     contractors. Colorado-based with geographic alignment to NORAD/USNORTHCOM, Space Force, VA Eastern
     Colorado, and Denver-area civilian agencies.</p>
+    <p class="section-lede">Capability areas, NAICS codes, and evidence you can open today live on the
+    federal page. A one-page capability statement is available on request.</p>
 
     <div class="facts">
       <div class="fact"><strong>CAGE</strong> 1ZZA0</div>
       <div class="fact"><strong>UEI</strong> PHN7PHMZBKS4</div>
       <div class="fact"><strong>SAM.gov</strong> Active</div>
       <div class="fact"><strong>8(a)</strong> Pending</div>
-    </div>
-
-    <ul class="checklist">
-      <li><strong>Cloud Architecture (AWS) · Lead</strong> Multi-account design, GovCloud-ready IaC (Terraform/CloudFormation), cost optimization; $1M+ in documented savings at Fortune 100 scale</li>
-      <li><strong>Zero Trust Implementation</strong> NIST SP 800-207 aligned; full lifecycle from assessment through enforcement across 10,000+ system environments</li>
-      <li><strong>CVE &amp; Vulnerability Management</strong> Enterprise-scale remediation across heterogeneous infrastructure; policy-aligned prioritization and SIEM integration</li>
-      <li><strong>DevSecOps &amp; CI/CD</strong> Kubernetes, Docker, automated pipeline design; security-embedded SDLC for DoD and civilian workloads</li>
-      <li><strong>AI &amp; Generative AI Engineering</strong> Amazon Bedrock RAG assistants and document-intelligence pipelines with guardrails, audit logging, and hard daily cost caps; running today in our public demo environments</li>
-      <li><strong>IT Infrastructure Engineering</strong> 15,000+ VM environments; capacity modeling, cost optimization, lifecycle management at enterprise scale</li>
-      <li><strong>Security Architecture Review</strong> End-to-end system assessment, ATO documentation support, risk posture analysis</li>
-      <li><strong>Fractional CTO / VP Engineering</strong> Interim engineering leadership for 8(a) prime partners and government-adjacent technology firms</li>
-      <li><strong>Workforce Development</strong> Part-time faculty, Community College of Aurora: CompTIA A+ and Operating Systems for underserved students</li>
-    </ul>
-
-    <div class="facts" aria-label="NAICS codes">
-      <div class="fact"><strong>541512</strong> Systems Design · Primary</div>
-      <div class="fact"><strong>541511</strong> Custom Programming</div>
-      <div class="fact"><strong>541519</strong> Other Computer Related</div>
-      <div class="fact"><strong>541611</strong> Mgmt Consulting</div>
     </div>
 
     <a class="more" href="/federal">More on federal contracting →</a>
@@ -593,190 +536,35 @@
   </div>
 </section>
 
-<!-- ================= Fractional ================= -->
-<section id="fractional">
+<!-- ================= Field notes ================= -->
+<section id="notes">
   <div class="wrap">
-    <p class="kicker">Executive Leadership</p>
-    <h2>Fractional Leadership Services</h2>
-    <p class="section-lede">Senior technology leadership that scales with your business: a seasoned executive
-    a few days a month instead of a full-time salary.</p>
+    <p class="kicker">Field Notes</p>
+    <h2>Written from the workbench</h2>
+    <p class="section-lede">Short, specific write-ups from work we have shipped: what it cost, what broke,
+    and what we would repeat.</p>
 
-    <div class="cols">
-      <div class="card">
-        <h3>Fractional VP</h3>
-        <p>Executive oversight for technology initiatives. We bridge business objectives and technical
-        execution so your technology investments produce measurable outcomes.</p>
-        <ul class="plain">
-          <li>Technology strategy &amp; roadmap</li>
-          <li>Team leadership &amp; mentoring</li>
-          <li>Vendor management</li>
-          <li>Budget planning &amp; optimization</li>
-        </ul>
-      </div>
-      <div class="card">
-        <h3>Fractional CTO</h3>
-        <p>Technical architecture and engineering leadership. We design and build scalable, secure systems
-        with the same practices you can inspect on the boardwalk.</p>
-        <ul class="plain">
-          <li>Technical architecture design</li>
-          <li>Engineering team building</li>
-          <li>Code review &amp; quality assurance</li>
-          <li>DevOps &amp; infrastructure</li>
-        </ul>
-      </div>
-      <div class="card">
-        <h3>Fractional CIO</h3>
-        <p>Information systems strategy and cybersecurity leadership. We protect critical assets while
-        enabling digital transformation, aligned with industry and regulatory standards.</p>
-        <ul class="plain">
-          <li>IT governance &amp; compliance</li>
-          <li>Security &amp; risk management</li>
-          <li>Digital transformation</li>
-          <li>Data strategy &amp; analytics</li>
-        </ul>
-      </div>
+    <div class="grid">
+      <a class="card door-notes" href="/insights/what-twelve-aws-environments-cost">
+        <p class="post-date">Aug 2, 2026 · Cost Engineering</p>
+        <h3>What twelve live AWS environments cost us last month</h3>
+        <p>The whole portfolio billed $8.84 in July. These are the rules that keep it there.</p>
+        <span class="read">Read the note →</span>
+      </a>
+      <a class="card door-notes" href="/insights/move-your-website-to-aws-without-breaking-email">
+        <p class="post-date">Aug 2, 2026 · Migration</p>
+        <h3>How to move a small-business website to AWS without breaking your email</h3>
+        <p>Replicate the zone first, verify it from outside, and change nameservers last.</p>
+        <span class="read">Read the note →</span>
+      </a>
+      <a class="card door-notes" href="/insights/genai-demos-with-hard-cost-caps">
+        <p class="post-date">Aug 2, 2026 · GenAI</p>
+        <h3>Public GenAI demos that cannot run up the bill</h3>
+        <p>The guardrail stack that turns worst-case spend into a number we chose in advance.</p>
+        <span class="read">Read the note →</span>
+      </a>
     </div>
-    <a class="more" href="/fractional-cto">More on fractional leadership →</a>
-  </div>
-</section>
-
-<!-- ================= AI Training ================= -->
-<section id="training">
-  <div class="wrap">
-    <p class="kicker">Professional Development</p>
-    <h2>AI Training Services: In-Person &amp; Online</h2>
-    <p class="section-lede">Expert AI and technology training from a college CIS professor and certified
-    Fortune 100 trainer. Upskill your team with practical, hands-on instruction in artificial intelligence,
-    machine learning, and modern development practices.</p>
-
-    <div class="cols">
-      <div class="card">
-        <h3>Academic Excellence</h3>
-        <p>Instruction from an experienced college CIS professor with proven teaching methodologies and
-        curriculum design expertise.</p>
-      </div>
-      <div class="card">
-        <h3>Fortune 100 Certified</h3>
-        <p>Certified corporate trainer with experience delivering enterprise-level training programs for
-        Fortune 100 companies.</p>
-      </div>
-      <div class="card">
-        <h3>Flexible Delivery</h3>
-        <p>Choose in-person workshops for hands-on collaboration or online sessions for distributed teams.
-        Custom curriculum tailored to your needs.</p>
-      </div>
-    </div>
-
-    <ul class="checklist">
-      <li><strong>AI &amp; Machine Learning Fundamentals</strong> Python, neural networks, and hands-on model building with TensorFlow, PyTorch, and scikit-learn</li>
-      <li><strong>Generative AI &amp; LLMs</strong> ChatGPT, Claude, Amazon Q, prompt engineering</li>
-      <li><strong>AI Security &amp; Ethics</strong> Responsible AI, bias detection, compliance</li>
-    </ul>
-
-    <div class="tiers">
-      <div class="tier">
-        <p class="tier-name">Workshop</p>
-        <h3>Half-Day</h3>
-        <ul>
-          <li>4-hour session</li>
-          <li>Up to 20 participants</li>
-          <li>Custom curriculum</li>
-          <li>Materials included</li>
-          <li>In-person or online</li>
-        </ul>
-      </div>
-      <div class="tier hot">
-        <span class="flag">Most Popular</span>
-        <p class="tier-name">Intensive</p>
-        <h3>Full-Day</h3>
-        <ul>
-          <li>8-hour deep dive</li>
-          <li>Up to 25 participants</li>
-          <li>Hands-on labs</li>
-          <li>Certificate of completion</li>
-          <li>Follow-up Q&amp;A session</li>
-        </ul>
-      </div>
-      <div class="tier">
-        <p class="tier-name">Program</p>
-        <h3>Multi-Day</h3>
-        <ul>
-          <li>2–5 day program</li>
-          <li>Enterprise teams</li>
-          <li>Comprehensive curriculum</li>
-          <li>Capstone project</li>
-          <li>Ongoing support</li>
-        </ul>
-      </div>
-    </div>
-    <a class="more" href="/ai-training">More on AI training →</a>
-  </div>
-</section>
-
-<!-- ================= Web Development ================= -->
-<section id="web">
-  <div class="wrap">
-    <p class="kicker">Professional Web Services</p>
-    <h2>Web Design &amp; Development</h2>
-    <p class="section-lede">Professional web design and development from a Cornell University certified web
-    developer. Modern, responsive websites built with the latest technologies, including zero-maintenance
-    static sites on AWS that cost almost nothing to run, like this one.</p>
-
-    <div class="cols">
-      <div class="card">
-        <h3>Cornell Certified</h3>
-        <p>Certificate in Web Development and Design from Cornell University. Professional training in modern
-        web technologies, UX/UI design, and responsive development.</p>
-      </div>
-      <div class="card">
-        <h3>Modern Tech Stack</h3>
-        <p>Next.js, React, TypeScript, and Tailwind CSS for applications, or lean, dependency-free sites on
-        AWS CloudFront that load instantly and score 100 on Lighthouse.</p>
-      </div>
-      <div class="card">
-        <h3>Full-Service Solutions</h3>
-        <p>From initial design to deployment and ongoing maintenance. New sites, redesigns, updates, and
-        continuous improvements.</p>
-      </div>
-    </div>
-
-    <div class="tiers">
-      <div class="tier">
-        <p class="tier-name">Landing Page</p>
-        <h3>Single Page</h3>
-        <ul>
-          <li>Single page design</li>
-          <li>Responsive layout</li>
-          <li>Contact form</li>
-          <li>SEO optimization</li>
-          <li>2-week delivery</li>
-        </ul>
-      </div>
-      <div class="tier hot">
-        <span class="flag">Most Popular</span>
-        <p class="tier-name">Business Website</p>
-        <h3>Up to 5 Pages</h3>
-        <ul>
-          <li>Custom design</li>
-          <li>CMS integration</li>
-          <li>Analytics setup</li>
-          <li>SEO optimization</li>
-          <li>4-week delivery</li>
-        </ul>
-      </div>
-      <div class="tier">
-        <p class="tier-name">Enterprise</p>
-        <h3>Custom Scope</h3>
-        <ul>
-          <li>Unlimited pages</li>
-          <li>Advanced features</li>
-          <li>API integrations</li>
-          <li>Ongoing support</li>
-          <li>Custom timeline</li>
-        </ul>
-      </div>
-    </div>
-    <a class="more" href="/web-development">More on web development →</a>
+    <a class="more" href="/insights">All field notes →</a>
   </div>
 </section>
 
