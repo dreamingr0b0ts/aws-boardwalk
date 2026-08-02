@@ -44,7 +44,7 @@ export default function Login() {
           <div className="relative flex items-center gap-3 overflow-hidden bg-pine-950 px-6 py-6">
             {/* Aspen grove — Royce Fonseca via Unsplash */}
             <img src={loginAspens} alt="" aria-hidden decoding="async" className="absolute inset-0 size-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-r from-pine-950/95 via-pine-950/90 to-pine-900/60" aria-hidden />
+            <div className="absolute inset-0 bg-gradient-to-r from-pine-950/95 via-pine-950/80 to-pine-900/50" aria-hidden />
             <Mountain className="relative size-10" />
             <div className="relative">
               <p className="font-display text-lg font-bold text-white">{t('login.title')}</p>
