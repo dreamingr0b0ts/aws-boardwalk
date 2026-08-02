@@ -150,6 +150,12 @@
             form.hidden = true;
             bookedWhen.textContent = "Booked for " + longFmt.format(new Date(selectedSlot)) +
               (sameTz ? "" : " (" + (body.when || "") + ")") + ".";
+            if (body.confirmationEmailed) {
+              document.getElementById("booked-note").textContent =
+                "A confirmation with the calendar invite is on its way to your inbox, and the " +
+                "booking just landed on our calendar. If anything changes, reply to that email " +
+                "and we will move it, no forms required.";
+            }
             if (body.ics) {
               icsLink.href = URL.createObjectURL(new Blob([body.ics], { type: "text/calendar" }));
             } else {

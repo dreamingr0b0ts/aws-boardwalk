@@ -82,6 +82,7 @@ export const handler = async (event) => {
   ].filter(Boolean);
 
   await ses.send(new SendEmailCommand({
+    ConfigurationSetName: process.env.CONFIG_SET,
     FromEmailAddress: `Planetek Website <${CONTACT}>`,
     Destination: { ToAddresses: [CONTACT] },
     ReplyToAddresses: EMAIL_RE.test(email) ? [email] : [],

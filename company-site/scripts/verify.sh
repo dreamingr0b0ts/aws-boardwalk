@@ -138,6 +138,22 @@ SES_STATUS=$(aws sesv2 get-email-identity --email-identity info@planetek.org --q
 echo "  ℹ️  SES info@planetek.org verified: $SES_STATUS"
 [ -n "$SES_STATUS" ] ; check "SES identity exists" $?
 
+# --- outbound-mail guardrails -------------------------------------------------
+ACCT=$(aws sesv2 get-account --output json)
+echo "  ℹ️  SES production access: $(echo "$ACCT" | python3 -c 'import json,sys; print(json.load(sys.stdin)["ProductionAccessEnabled"])')"
+SUPPRESSED=$(echo "$ACCT" | python3 -c 'import json,sys; r=json.load(sys.stdin)["SuppressionAttributes"]["SuppressedReasons"]; print(int("BOUNCE" in r and "COMPLAINT" in r))')
+[ "$SUPPRESSED" = "1" ] ; check "account suppression list covers bounces + complaints" $?
+CFGSET=$(aws sesv2 get-configuration-set --configuration-set-name www-mail --output json 2>/dev/null)
+echo "$CFGSET" | grep -q '"SendingEnabled": true' || [ $? -eq 141 ] ; check "www-mail configuration set exists, sending enabled" $?
+EVDEST=$(aws sesv2 get-configuration-set-event-destinations --configuration-set-name www-mail --output json 2>/dev/null)
+echo "$EVDEST" | grep -q '"BOUNCE"' || [ $? -eq 141 ] ; check "bounce/complaint events routed to SNS" $?
+# The visitor-confirmation flag must match what SES can actually do: never
+# enabled while the account is still sandboxed.
+VFLAG=$(aws lambda get-function-configuration --function-name www-schedule --query 'Environment.Variables.VISITOR_EMAIL' --output text)
+PROD=$(echo "$ACCT" | python3 -c 'import json,sys; print(str(json.load(sys.stdin)["ProductionAccessEnabled"]).lower())')
+echo "  ℹ️  visitor confirmations: $VFLAG"
+{ [ "$VFLAG" = "false" ] || [ "$PROD" = "true" ]; } ; check "visitor email flag consistent with SES access" $?
+
 # --- custom domain (only once enabled + cut over) -----------------------------
 ENABLED=$($TF output -raw site_url | grep -c "https://planetek.org")
 if [ "$ENABLED" = "1" ]; then

@@ -58,3 +58,9 @@ locals {
   account_id = data.aws_caller_identity.current.account_id
   www_domain = "www.${var.domain}"
 }
+
+variable "visitor_email_enabled" {
+  description = "Send booking confirmations to the visitor's address. Requires SES production access (the sandbox can only mail verified identities). Default MUST match live state - flip to true in the same commit as the local apply, only after AWS grants production access."
+  type        = bool
+  default     = false # SES production access requested 2026-08-02, not yet granted
+}

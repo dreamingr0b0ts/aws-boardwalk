@@ -15,6 +15,8 @@ const ses = new SESv2Client({});
 const RATE_TABLE = process.env.RATE_TABLE;
 const BOOK_TABLE = process.env.BOOK_TABLE;
 const CONTACT = process.env.CONTACT_EMAIL;
+const CONFIG_SET = process.env.CONFIG_SET;
+const VISITOR_EMAIL = process.env.VISITOR_EMAIL === "true";
 const IP_LIMIT = parseInt(process.env.DAILY_IP_LIMIT || "3", 10);
 const GLOBAL_LIMIT = parseInt(process.env.DAILY_LIMIT || "10", 10);
 
@@ -171,7 +173,61 @@ async function mailInvite(slotIso, name, email, company, topic, ip, now) {
     ``,
   ].join("\r\n");
 
-  await ses.send(new SendEmailCommand({ Content: { Raw: { Data: Buffer.from(raw) } } }));
+  await ses.send(new SendEmailCommand({
+    ConfigurationSetName: CONFIG_SET,
+    Content: { Raw: { Data: Buffer.from(raw) } },
+  }));
+}
+
+// Confirmation to the visitor's own address. Only possible once the SES
+// account has production access (the sandbox can only mail verified
+// identities), so it sits behind VISITOR_EMAIL and any failure is the
+// caller's to swallow: the booking and the owner invite must stand even
+// when the visitor's address is dead.
+async function mailVisitor(slotIso, name, email, now) {
+  const asciiName = name.replace(/[^\x20-\x7e]/g, "").trim() || "there";
+  const when = whenFmt.format(new Date(slotIso));
+  const body = [
+    `Hi ${name},`,
+    ``,
+    `Your free 30-minute consultation with Planetek is booked for ${when} Mountain time.`,
+    `The attached invite adds it to your calendar.`,
+    ``,
+    `We'll reply from this address before the call to confirm and share a meeting link.`,
+    `If the time stops working, or you didn't book this, just reply and we'll fix it.`,
+    ``,
+    `Planetek LLC`,
+    `https://planetek.org · info@planetek.org · 303-356-2782`,
+    ``,
+    `You're receiving this one-time confirmation because a consultation was booked`,
+    `at planetek.org/schedule with this address.`,
+  ].join("\r\n");
+
+  const raw = [
+    `From: Planetek <${CONTACT}>`,
+    `To: ${asciiName} <${email}>`,
+    `Reply-To: Planetek <${CONTACT}>`,
+    `Subject: Booked: your Planetek consultation, ${when} MT`,
+    `MIME-Version: 1.0`,
+    `Content-Type: multipart/mixed; boundary="pk-confirm"`,
+    ``,
+    `--pk-confirm`,
+    `Content-Type: text/plain; charset=UTF-8`,
+    ``,
+    body,
+    `--pk-confirm`,
+    `Content-Type: text/calendar; charset=UTF-8; method=PUBLISH; name="planetek-consultation.ics"`,
+    `Content-Disposition: attachment; filename="planetek-consultation.ics"`,
+    ``,
+    buildIcs(slotIso, name, email, "", "", now),
+    `--pk-confirm--`,
+    ``,
+  ].join("\r\n");
+
+  await ses.send(new SendEmailCommand({
+    ConfigurationSetName: CONFIG_SET,
+    Content: { Raw: { Data: Buffer.from(raw) } },
+  }));
 }
 
 export const handler = async (event) => {
@@ -240,9 +296,22 @@ export const handler = async (event) => {
 
   await mailInvite(slot, name, email, company, topic, ip, now);
 
+  let confirmationEmailed = false;
+  if (VISITOR_EMAIL) {
+    try {
+      await mailVisitor(slot, name, email, now);
+      confirmationEmailed = true;
+    } catch (err) {
+      // Suppressed, invalid, or sandbox-blocked address: the booking stands,
+      // the visitor still has the on-page confirmation and .ics download.
+      console.error("visitor confirmation failed", err.name, err.message);
+    }
+  }
+
   return json(200, {
     ok: true,
     when: `${whenFmt.format(new Date(slot))} Mountain`,
+    confirmationEmailed,
     ics: buildIcs(slot, name, email, company, topic, now),
   });
 };

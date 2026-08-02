@@ -48,6 +48,7 @@ resource "aws_iam_role_policy" "contact" {
         Resource = [
           aws_sesv2_email_identity.contact.arn,
           aws_sesv2_email_identity.domain.arn,
+          aws_sesv2_configuration_set.mail.arn,
         ]
       },
     ]
@@ -78,6 +79,7 @@ resource "aws_lambda_function" "contact" {
     variables = {
       TABLE_NAME     = aws_dynamodb_table.rate_limit.name
       CONTACT_EMAIL  = var.contact_email
+      CONFIG_SET     = aws_sesv2_configuration_set.mail.configuration_set_name
       DAILY_IP_LIMIT = "10"
       DAILY_LIMIT    = "100"
     }
@@ -146,6 +148,7 @@ resource "aws_iam_role_policy" "schedule" {
         Resource = [
           aws_sesv2_email_identity.contact.arn,
           aws_sesv2_email_identity.domain.arn,
+          aws_sesv2_configuration_set.mail.arn,
         ]
       },
     ]
@@ -176,6 +179,8 @@ resource "aws_lambda_function" "schedule" {
       RATE_TABLE     = aws_dynamodb_table.rate_limit.name
       BOOK_TABLE     = aws_dynamodb_table.bookings.name
       CONTACT_EMAIL  = var.contact_email
+      CONFIG_SET     = aws_sesv2_configuration_set.mail.configuration_set_name
+      VISITOR_EMAIL  = var.visitor_email_enabled ? "true" : "false"
       DAILY_IP_LIMIT = "3"
       DAILY_LIMIT    = "10"
     }
