@@ -61,3 +61,25 @@ transform params, self-hosted for the `img-src 'self'` CSP):
   Colorado by Tim Arterbury (https://unsplash.com/photos/n-zEC_AypI8),
   1600x640 ≈ 120 KB.
 - `site/assets/og.jpg` — 1200x630 crop of the hero photo.
+
+Interior-page heroes (added 2026-08-02, same license and pipeline, all
+1600x900 webp, credited in each page's footer):
+
+- `aws-village-dusk.webp` — snow-covered Swiss village at dusk by Livia
+  (https://unsplash.com/photos/mjE1VxiGc-Y), /managed-aws.
+- `federal-garden-gods.webp` — Garden of the Gods at first light by Mick Haupt
+  (https://unsplash.com/photos/33XL5SnvuT0), /federal.
+- `fractional-compass.webp` — brass compass on a vintage map by Denise Jans
+  (https://unsplash.com/photos/9OBwt_VgPa0), /fractional-cto.
+- `training-violet-sky.webp` — aurora and Milky Way over snowy spires by
+  Gantavya Bhatt (https://unsplash.com/photos/kS9uGzbI-9A), /ai-training.
+- `webdev-workbench.webp` — craftsman with hand planes by Minh Đức
+  (https://unsplash.com/photos/lQIUbkn6jj4), /web-development.
+- `insights-notebook.webp` — open notebook and pen by Clay Banks
+  (https://unsplash.com/photos/n9AaeihA9HI), /insights.
+- `note-ledger.webp` — old handwritten ledger by camera obscura
+  (https://unsplash.com/photos/rvVhr2LngP4), the cost field note.
+- `note-mailboxes.webp` — rural mailboxes by Tolga Ahmetler
+  (https://unsplash.com/photos/o_XfzXGPaiM), the migration field note.
+- `note-switchbacks.webp` — dusk switchbacks with taillights by Luke Miller
+  (https://unsplash.com/photos/PGCw9boMJQM), the GenAI guardrails field note.

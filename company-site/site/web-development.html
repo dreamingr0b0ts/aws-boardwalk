@@ -7,6 +7,7 @@
 <meta name="description" content="Custom websites from a Cornell-certified developer: modern React applications or dependency-free static sites on AWS that load instantly and cost almost nothing to run.">
 <link rel="canonical" href="https://planetek.org/web-development">
 <link rel="stylesheet" href="/assets/pages.css">
+<link rel="preload" as="image" href="/assets/webdev-workbench.webp" fetchpriority="high">
 <style>
   :root { --accent: #1d6592; --accent-rail: #2e8fc4; }
   @media (prefers-color-scheme: dark) { :root { --accent: #7abde2; } }
@@ -67,6 +68,11 @@
 </nav>
 
 <header class="hero">
+  <!-- Photo: Minh Đức via Unsplash (unsplash.com/photos/lQIUbkn6jj4),
+       Unsplash License: free commercial use, no attribution required.
+       A craftsman with hand planes at the bench: sites built by hand, no dependencies. -->
+  <img class="hero-photo" src="/assets/webdev-workbench.webp" alt="" aria-hidden="true" fetchpriority="high" decoding="async" style="object-position: 65% 45%">
+  <div class="hero-veil" aria-hidden="true"></div>
   <div class="wrap hero-inner">
     <p class="eyebrow">Professional Web Services · Planetek LLC</p>
     <h1>Web design &amp; development</h1>
@@ -255,6 +261,7 @@
         <li><a href="tel:+13033562782">303-356-2782</a></li>
         <li><a href="/privacy">Privacy Policy</a></li>
         <li><a href="/terms">Terms of Service</a></li>
+        <li class="foot-credit">Photo: Minh Đức (Unsplash)</li>
       </ul>
     </div>
   </div>

@@ -78,6 +78,8 @@ POST=$(curl -sS $CURL "$URL/insights/what-twelve-aws-environments-cost")
 echo "$POST" | grep -q "What twelve live AWS environments cost" || [ $? -eq 141 ] ; check "insights post (nested clean URL)" $?
 PCSS=$(curl -sS $CURL -o /dev/null -w '%{http_code}' "$URL/assets/pages.css")
 [ "$PCSS" = "200" ] ; check "shared pages.css serves" $?
+HERO=$(curl -sS $CURL -o /dev/null -w '%{http_code}' "$URL/assets/aws-village-dusk.webp")
+[ "$HERO" = "200" ] ; check "interior hero photo serves" $?
 POSTS_LISTED=$(echo "$INS" | grep -c "class=\"post-card\"")
 [ "$POSTS_LISTED" -ge 3 ] ; check "insights index lists 3+ posts" $?
 
