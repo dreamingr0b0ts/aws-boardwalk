@@ -80,7 +80,7 @@ export default function Landing() {
             <h1 className="mt-4 font-display text-5xl font-black leading-[1.05] tracking-tight text-balance sm:text-6xl">
               {t('landing.h1a')} <em className="italic text-glow-300">{t('landing.h1b')}</em>
             </h1>
-            <p className="mt-5 max-w-xl text-lg leading-relaxed text-pine-100">
+            <p className="mt-5 max-w-xl text-lg leading-relaxed text-pine-50">
               {t('landing.lede')}
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
@@ -181,7 +181,7 @@ export default function Landing() {
             <h2 className="mt-3 font-display text-3xl font-bold leading-tight text-balance sm:text-4xl">
               {t('landing.transpH2a')} <em className="italic text-glow-300">{t('landing.transpH2b')}</em>
             </h2>
-            <p className="mt-4 max-w-xl leading-relaxed text-pine-100">
+            <p className="mt-4 max-w-xl leading-relaxed text-pine-50">
               {t('landing.transpBody')}
             </p>
             <Link
