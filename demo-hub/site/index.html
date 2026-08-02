@@ -246,19 +246,18 @@
       </div>
     </article>
 
-    <article class="card door-network">
-      <!-- plank 9 -->
-      <div class="card-top"><span class="num">Network</span><span class="chip ondemand">on-demand</span></div>
-      <h3>Network Architecture</h3>
-      <p>A textbook multi-AZ VPC, proven live: tiered subnets, security-group layering, NACLs, gateway
-      endpoints (the no-NAT cost pattern), and flow logs, every reachable <em>and</em> unreachable path
-      verified by Reachability Analyzer and probes run on the instances. While a window is open, send
-      the inspector on a live round and watch the probes walk the site; the evidence report stays up
-      in between.</p>
-      <span class="stack">VPC · Reachability Analyzer · PrivateLink · SSM · Flow Logs</span>
+    <article class="card door-containers">
+      <!-- plank 4 -->
+      <div class="card-top"><span class="num">Containers</span><span class="chip live">always-on</span></div>
+      <h3>Containers (scale-to-zero)</h3>
+      <p>Press a button and a real Docker container launches on ECS Fargate just for you: live logs, a
+      cold-start anatomy waterfall, and an itemized cost ticket with the meter running. Race two ovens
+      (&frac14; vs 1 vCPU) or two images (slim vs heavy), tour a failure museum with a real OOM kill and both
+      SIGTERM endings, and pull a batch early with a genuine StopTask. No idle compute, ever.</p>
+      <span class="stack">ECS Fargate · ECR · CodeBuild · EventBridge Scheduler · Lambda · DynamoDB</span>
       <div class="card-links">
-        <a href="https://network.demos.planetek.org">See the evidence report</a>
-        <a class="quiet" href="https://github.com/dreamingr0b0ts/aws-boardwalk/tree/main/network-blueprint">Code &amp; architecture</a>
+        <a href="https://containers.demos.planetek.org">Launch a container</a>
+        <a class="quiet" href="https://github.com/dreamingr0b0ts/aws-boardwalk/tree/main/container-works">Code &amp; architecture</a>
       </div>
     </article>
 
@@ -278,6 +277,38 @@
       </div>
     </article>
 
+    <article class="card door-api">
+      <!-- plank 2 -->
+      <div class="card-top"><span class="num">API</span><span class="chip live">always-on</span></div>
+      <h3>API &amp; Microservices</h3>
+      <p>A documented public REST API with real governance: v1 endpoints that answer with honest
+      Deprecation/Sunset headers, API keys on throttled+quota'd usage plans, and request bodies
+      schema-validated by the gateway itself. Mint yourself a real personal API key, retry a POST
+      safely with an Idempotency-Key, and order an async catalog export (202 → SQS worker → presigned
+      download). Docs render live from the same OpenAPI spec that deploys the gateway.</p>
+      <span class="stack">API Gateway (REST) · Lambda · DynamoDB · SQS · S3 · CloudFront</span>
+      <div class="card-links">
+        <a href="https://api.demos.planetek.org">Read the docs, call the API</a>
+        <a class="quiet" href="https://github.com/dreamingr0b0ts/aws-boardwalk/tree/main/api-platform">Code &amp; architecture</a>
+      </div>
+    </article>
+
+    <article class="card door-network">
+      <!-- plank 9 -->
+      <div class="card-top"><span class="num">Network</span><span class="chip ondemand">on-demand</span></div>
+      <h3>Network Architecture</h3>
+      <p>A textbook multi-AZ VPC, proven live: tiered subnets, security-group layering, NACLs, gateway
+      endpoints (the no-NAT cost pattern), and flow logs, every reachable <em>and</em> unreachable path
+      verified by Reachability Analyzer and probes run on the instances. While a window is open, send
+      the inspector on a live round and watch the probes walk the site; the evidence report stays up
+      in between.</p>
+      <span class="stack">VPC · Reachability Analyzer · PrivateLink · SSM · Flow Logs</span>
+      <div class="card-links">
+        <a href="https://network.demos.planetek.org">See the evidence report</a>
+        <a class="quiet" href="https://github.com/dreamingr0b0ts/aws-boardwalk/tree/main/network-blueprint">Code &amp; architecture</a>
+      </div>
+    </article>
+
     <article class="card door-assistant">
       <!-- plank 6 -->
       <div class="card-top"><span class="num">Generative AI</span><span class="chip live">always-on</span></div>
@@ -293,19 +324,19 @@
       </div>
     </article>
 
-    <article class="card door-documents">
-      <!-- plank 7 -->
-      <div class="card-top"><span class="num">Documents</span><span class="chip live">always-on</span></div>
-      <h3>Intelligent Document Processing</h3>
-      <p>Drop any PDF or image: Textract OCR with the extraction geometry drawn on the rendered page,
-      Comprehend PII mapped into a live redaction exhibit, Textract Queries answering plain-language
-      questions, a search across every OCR'd word that highlights hits on the page, review triage,
-      and an itemized cost receipt per document. Try it anonymously: 5 private uploads a day, no
-      sign-in.</p>
-      <span class="stack">Textract · Comprehend · Bedrock · Step Functions · DynamoDB</span>
+    <article class="card door-events">
+      <!-- plank 3 -->
+      <div class="card-top"><span class="num">Events</span><span class="chip live">always-on</span></div>
+      <h3>Event-Driven &amp; Messaging</h3>
+      <p>A live event mesh you can poke: submit a 311-style request and watch it fan out through EventBridge
+      rules to department queues, SNS pub/sub, and a Step Functions escalation, traced hop by hop. Test your
+      own routing patterns against the real matcher, race a standard queue against a FIFO queue (with a
+      duplicate absorbed on camera), read the dead-letter evidence before you redrive it, and replay the
+      2-day event archive back through the mesh.</p>
+      <span class="stack">EventBridge · SQS · SNS · Step Functions · Lambda · DynamoDB</span>
       <div class="card-links">
-        <a href="https://documents.demos.planetek.org">Put a document through</a>
-        <a class="quiet" href="https://github.com/dreamingr0b0ts/aws-boardwalk/tree/main/doc-processing">Code &amp; architecture</a>
+        <a href="https://events.demos.planetek.org">Watch the mesh</a>
+        <a class="quiet" href="https://github.com/dreamingr0b0ts/aws-boardwalk/tree/main/event-mesh">Code &amp; architecture</a>
       </div>
     </article>
 
@@ -326,53 +357,6 @@
       </div>
     </article>
 
-    <article class="card door-api">
-      <!-- plank 2 -->
-      <div class="card-top"><span class="num">API</span><span class="chip live">always-on</span></div>
-      <h3>API &amp; Microservices</h3>
-      <p>A documented public REST API with real governance: v1 endpoints that answer with honest
-      Deprecation/Sunset headers, API keys on throttled+quota'd usage plans, and request bodies
-      schema-validated by the gateway itself. Mint yourself a real personal API key, retry a POST
-      safely with an Idempotency-Key, and order an async catalog export (202 → SQS worker → presigned
-      download). Docs render live from the same OpenAPI spec that deploys the gateway.</p>
-      <span class="stack">API Gateway (REST) · Lambda · DynamoDB · SQS · S3 · CloudFront</span>
-      <div class="card-links">
-        <a href="https://api.demos.planetek.org">Read the docs, call the API</a>
-        <a class="quiet" href="https://github.com/dreamingr0b0ts/aws-boardwalk/tree/main/api-platform">Code &amp; architecture</a>
-      </div>
-    </article>
-
-    <article class="card door-events">
-      <!-- plank 3 -->
-      <div class="card-top"><span class="num">Events</span><span class="chip live">always-on</span></div>
-      <h3>Event-Driven &amp; Messaging</h3>
-      <p>A live event mesh you can poke: submit a 311-style request and watch it fan out through EventBridge
-      rules to department queues, SNS pub/sub, and a Step Functions escalation, traced hop by hop. Test your
-      own routing patterns against the real matcher, race a standard queue against a FIFO queue (with a
-      duplicate absorbed on camera), read the dead-letter evidence before you redrive it, and replay the
-      2-day event archive back through the mesh.</p>
-      <span class="stack">EventBridge · SQS · SNS · Step Functions · Lambda · DynamoDB</span>
-      <div class="card-links">
-        <a href="https://events.demos.planetek.org">Watch the mesh</a>
-        <a class="quiet" href="https://github.com/dreamingr0b0ts/aws-boardwalk/tree/main/event-mesh">Code &amp; architecture</a>
-      </div>
-    </article>
-
-    <article class="card door-containers">
-      <!-- plank 4 -->
-      <div class="card-top"><span class="num">Containers</span><span class="chip live">always-on</span></div>
-      <h3>Containers (scale-to-zero)</h3>
-      <p>Press a button and a real Docker container launches on ECS Fargate just for you: live logs, a
-      cold-start anatomy waterfall, and an itemized cost ticket with the meter running. Race two ovens
-      (&frac14; vs 1 vCPU) or two images (slim vs heavy), tour a failure museum with a real OOM kill and both
-      SIGTERM endings, and pull a batch early with a genuine StopTask. No idle compute, ever.</p>
-      <span class="stack">ECS Fargate · ECR · CodeBuild · EventBridge Scheduler · Lambda · DynamoDB</span>
-      <div class="card-links">
-        <a href="https://containers.demos.planetek.org">Launch a container</a>
-        <a class="quiet" href="https://github.com/dreamingr0b0ts/aws-boardwalk/tree/main/container-works">Code &amp; architecture</a>
-      </div>
-    </article>
-
     <article class="card door-ops">
       <!-- plank 10 -->
       <div class="card-top"><span class="num">DevOps &amp; SRE</span><span class="chip live">always-on</span></div>
@@ -385,6 +369,22 @@
       <div class="card-links">
         <a href="https://ops.demos.planetek.org">Ops status page</a>
         <a class="quiet" href="https://github.com/dreamingr0b0ts/aws-boardwalk/tree/main/devops-sre">Code &amp; architecture</a>
+      </div>
+    </article>
+
+    <article class="card door-documents">
+      <!-- plank 7 -->
+      <div class="card-top"><span class="num">Documents</span><span class="chip live">always-on</span></div>
+      <h3>Intelligent Document Processing</h3>
+      <p>Drop any PDF or image: Textract OCR with the extraction geometry drawn on the rendered page,
+      Comprehend PII mapped into a live redaction exhibit, Textract Queries answering plain-language
+      questions, a search across every OCR'd word that highlights hits on the page, review triage,
+      and an itemized cost receipt per document. Try it anonymously: 5 private uploads a day, no
+      sign-in.</p>
+      <span class="stack">Textract · Comprehend · Bedrock · Step Functions · DynamoDB</span>
+      <div class="card-links">
+        <a href="https://documents.demos.planetek.org">Put a document through</a>
+        <a class="quiet" href="https://github.com/dreamingr0b0ts/aws-boardwalk/tree/main/doc-processing">Code &amp; architecture</a>
       </div>
     </article>
 
