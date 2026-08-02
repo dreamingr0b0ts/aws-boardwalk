@@ -38,3 +38,34 @@ resource "aws_lambda_permission" "apigw" {
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.http.execution_arn}/*/*"
 }
+
+# ---- the booking desk rides the same HTTP API ------------------------------
+
+resource "aws_apigatewayv2_integration" "schedule" {
+  api_id                 = aws_apigatewayv2_api.http.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.schedule.invoke_arn
+  payload_format_version = "2.0"
+}
+
+# Public by design, same abuse posture as the contact route: stage throttle,
+# honeypot, and daily DynamoDB caps (3/IP, 10 global).
+resource "aws_apigatewayv2_route" "schedule_slots" {
+  api_id    = aws_apigatewayv2_api.http.id
+  route_key = "GET /api/schedule/slots"
+  target    = "integrations/${aws_apigatewayv2_integration.schedule.id}"
+}
+
+resource "aws_apigatewayv2_route" "schedule_book" {
+  api_id    = aws_apigatewayv2_api.http.id
+  route_key = "POST /api/schedule/book"
+  target    = "integrations/${aws_apigatewayv2_integration.schedule.id}"
+}
+
+resource "aws_lambda_permission" "apigw_schedule" {
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.schedule.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.http.execution_arn}/*/*"
+}

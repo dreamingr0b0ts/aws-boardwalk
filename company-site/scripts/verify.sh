@@ -98,6 +98,26 @@ if [ "${SEND:-0}" = "1" ]; then
   echo "$OK" | grep -q '"ok":true' || [ $? -eq 141 ] ; check "real submission accepted (check the info@ inbox)" $?
 fi
 
+# --- booking desk -------------------------------------------------------------
+SCHED=$(curl -sS $CURL "$URL/schedule")
+echo "$SCHED" | grep -q "Book a time straight onto our calendar" || [ $? -eq 141 ] ; check "booking page /schedule serves" $?
+SJS=$(curl -sS $CURL -o /dev/null -w '%{http_code}' "$URL/assets/schedule.js")
+[ "$SJS" = "200" ] ; check "schedule.js serves" $?
+
+SLOTS=$(curl -sS $CURL "$URL/api/schedule/slots")
+echo "$SLOTS" | grep -q '"timezone":"America/Denver"' || [ $? -eq 141 ] ; check "slots endpoint answers in Mountain time" $?
+SLOT_COUNT=$(echo "$SLOTS" | python3 -c "import json,sys; print(len(json.load(sys.stdin)['slots']))")
+[ "$SLOT_COUNT" -ge 50 ] ; check "slots endpoint offers 50+ open slots ($SLOT_COUNT)" $?
+
+# The honeypot POST exercises the Lambda end to end without sending mail or
+# taking a slot; the invalid-slot POST proves server-side slot validation.
+SHP=$(curl -sS $CURL -X POST "$URL/api/schedule/book" -H 'content-type: application/json' \
+  -d '{"name":"Bot","email":"bot@example.com","slot":"2030-01-07T16:00:00Z","website":"http://spam"}')
+echo "$SHP" | grep -q '"ok":true' || [ $? -eq 141 ] ; check "booking honeypot swallowed silently" $?
+SBAD=$(curl -sS $CURL -o /dev/null -w '%{http_code}' -X POST "$URL/api/schedule/book" \
+  -H 'content-type: application/json' -d '{"name":"Verify","email":"info@planetek.org","slot":"2030-01-07T03:00:00Z"}')
+[ "$SBAD" = "400" ] ; check "unavailable slot rejected (400)" $?
+
 # --- DNS zone contents --------------------------------------------------------
 RRS=$(aws route53 list-resource-record-sets --hosted-zone-id "$ZONE_ID" --output json)
 echo "$RRS" | grep -q "mx01.mail.icloud.com" || [ $? -eq 141 ] ; check "iCloud MX records replicated" $?
