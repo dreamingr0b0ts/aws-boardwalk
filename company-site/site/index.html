@@ -337,9 +337,31 @@
 
   /* --- contact --- */
   #contact { padding-bottom: 72px; }
-  .contact-grid { margin-top: 28px; display: grid; gap: 28px; grid-template-columns: 1fr; }
+  .contact-grid { margin-top: 28px; display: grid; gap: 28px; grid-template-columns: 1fr; align-items: start; }
   @media (min-width: 860px) { .contact-grid { grid-template-columns: 1fr 1.4fr; } }
-  .contact-info .card + .card { margin-top: 14px; }
+  /* The route slip: the real path a submission travels, printed on night
+     pine like a waybill. The last hop keeps a lamp burning, same as the
+     doors on the boardwalk. */
+  .wire { background: linear-gradient(180deg, var(--pine-deep), var(--pine)); color: var(--night-ink);
+    border: 1px solid rgba(185,214,209,.16); border-radius: 16px; padding: 26px 24px; }
+  .wire-head { font: 600 11px/1.5 var(--mono); letter-spacing: .2em; text-transform: uppercase;
+    color: var(--lamp-bright); }
+  .wire-route { list-style: none; margin: 18px 0 0; padding: 0; }
+  .wire-route li { position: relative; padding: 0 0 18px 27px; }
+  .wire-route li::before { content: ""; position: absolute; left: 4px; top: 6px; width: 9px; height: 9px;
+    border-radius: 50%; background: var(--night-dim); }
+  .wire-route li::after { content: ""; position: absolute; left: 8px; top: 20px; bottom: 1px; width: 1px;
+    background: rgba(185,214,209,.28); }
+  .wire-route li:last-child { padding-bottom: 0; }
+  .wire-route li:last-child::after { display: none; }
+  .wire-route li:last-child::before { background: var(--lamp-bright);
+    box-shadow: 0 0 10px 2px rgba(245,176,76,.55); }
+  .hop { display: block; font: 600 12px/1.5 var(--mono); letter-spacing: .08em; text-transform: uppercase;
+    color: #fff; }
+  .hop-note { display: block; font-size: 13px; line-height: 1.55; color: var(--night-sub); margin-top: 2px; }
+  .wire-alt { margin-top: 20px; padding-top: 16px; border-top: 1px solid rgba(185,214,209,.16);
+    font-size: 13.5px; line-height: 1.6; color: var(--night-sub); }
+  .wire a { color: var(--lamp-bright); }
   form { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 26px; display: grid; gap: 14px; }
   .form-row { display: grid; gap: 14px; grid-template-columns: 1fr; }
   @media (min-width: 560px) { .form-row { grid-template-columns: 1fr 1fr; } }
@@ -584,28 +606,33 @@
 <!-- ================= Contact ================= -->
 <section id="contact">
   <div class="wrap">
-    <p class="kicker">Get In Touch</p>
-    <h2>Let's talk about your cloud</h2>
-    <p class="section-lede">Whether it's managed AWS services, a federal opportunity, fractional leadership,
-    training, or a new website, tell us what you need and we'll respond within 24 hours.</p>
+    <p class="kicker">The Thirteenth Door</p>
+    <h2>Even the contact form is a demo</h2>
+    <p class="section-lede">Everything else on this page points at something you can open, and the form below
+    is no exception. A submission rides the same stack we sell, and both the Terraform and the Lambda source
+    sit in the public repo next to the rest of the boardwalk. Tell us what you're trying to do and you'll
+    hear back from a person within 24 hours.</p>
 
     <div class="contact-grid">
-      <div class="contact-info">
-        <div class="card">
-          <h3>Email</h3>
-          <p><a href="mailto:info@planetek.org">info@planetek.org</a></p>
-        </div>
-        <div class="card">
-          <h3>Phone</h3>
-          <p><a href="tel:+13033562782">303-356-2782</a></p>
-        </div>
-        <div class="card">
-          <h3>What happens next?</h3>
-          <p>1. We review your inquiry within 24 hours<br>
-             2. Schedule a free 30-minute consultation<br>
-             3. Receive a customized proposal</p>
-        </div>
-      </div>
+      <aside class="wire" aria-label="Where your message goes">
+        <p class="wire-head">Route of this message</p>
+        <ol class="wire-route">
+          <li><span class="hop">This page</span>
+            <span class="hop-note">A static file on S3 behind CloudFront. No trackers, no cookies.</span></li>
+          <li><span class="hop">POST /api/contact</span>
+            <span class="hop-note">Same-origin through CloudFront, so nothing leaves for a third party.</span></li>
+          <li><span class="hop">Lambda: www-contact</span>
+            <span class="hop-note">97 lines of Node, zero npm dependencies, with a honeypot and a daily
+            rate limit. <a href="https://github.com/dreamingr0b0ts/aws-boardwalk/blob/main/company-site/backend/contact.mjs">Read
+            the source</a>.</span></li>
+          <li><span class="hop">SES</span>
+            <span class="hop-note">Delivered to info@planetek.org with your address on the Reply-To.</span></li>
+          <li><span class="hop">A person</span>
+            <span class="hop-note">Reads it and replies within 24 hours. Usually sooner.</span></li>
+        </ol>
+        <p class="wire-alt">Rather skip the demo? Email <a href="mailto:info@planetek.org">info@planetek.org</a>
+        or call <a href="tel:+13033562782">303-356-2782</a>. Same inbox, same person.</p>
+      </aside>
 
       <form id="contact-form" novalidate>
         <div class="form-row">
