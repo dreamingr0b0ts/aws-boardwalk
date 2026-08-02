@@ -362,6 +362,9 @@
   .wire-alt { margin-top: 20px; padding-top: 16px; border-top: 1px solid rgba(185,214,209,.16);
     font-size: 13.5px; line-height: 1.6; color: var(--night-sub); }
   .wire a { color: var(--lamp-bright); }
+  .form-actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  .btn-book { border: 1px solid var(--field-border); color: var(--link); text-decoration: none; }
+  .btn-book:hover { border-color: var(--link); }
   form { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 26px; display: grid; gap: 14px; }
   .form-row { display: grid; gap: 14px; grid-template-columns: 1fr; }
   @media (min-width: 560px) { .form-row { grid-template-columns: 1fr 1fr; } }
@@ -632,7 +635,7 @@
             <span class="hop-note">Reads it and replies within 24 hours. Usually sooner.</span></li>
         </ol>
         <p class="wire-alt">Rather skip the demo? Email <a href="mailto:info@planetek.org">info@planetek.org</a>
-        or call <a href="tel:+13033562782">303-356-2782</a>. Same inbox, same person.</p>
+        or call <a href="tel:+13033562782">303-356-2782</a>.</p>
       </aside>
 
       <form id="contact-form" novalidate>
@@ -673,7 +676,10 @@
           <textarea name="message" rows="5" required minlength="10" maxlength="5000"></textarea>
         </label>
         <p id="form-status" role="status"></p>
-        <button class="btn btn-glow" type="submit">Send Message</button>
+        <div class="form-actions">
+          <button class="btn btn-glow" type="submit">Send Message</button>
+          <a class="btn btn-book" href="/schedule">Book a consultation instead</a>
+        </div>
         <noscript><p style="font-size:13px;color:var(--ink-3)">This form needs JavaScript, or just email
         <a href="mailto:info@planetek.org">info@planetek.org</a>.</p></noscript>
       </form>
