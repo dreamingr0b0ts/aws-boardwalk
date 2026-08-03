@@ -66,6 +66,7 @@ echo "$AWSPAGE" | grep -q "Managed AWS services from Colorado" || [ $? -eq 141 ]
 echo "$AWSPAGE" | grep -q 'rel="canonical" href="https://planetek.org/managed-aws"' || [ $? -eq 141 ] ; check "canonical on /managed-aws" $?
 FED=$(curl -sS $CURL "$URL/federal")
 echo "$FED" | grep -q "Federal IT contracting" || [ $? -eq 141 ] ; check "service page /federal" $?
+echo "$FED" | grep -q 'href="/assets/Planetek_Capability_Statement_Federal.pdf"' || [ $? -eq 141 ] ; check "federal page links the capability statement download" $?
 FRAC=$(curl -sS $CURL "$URL/fractional-cto")
 echo "$FRAC" | grep -q "Fractional CTO, CIO" || [ $? -eq 141 ] ; check "service page /fractional-cto" $?
 TRAIN=$(curl -sS $CURL "$URL/ai-training")
@@ -81,6 +82,11 @@ echo "$ABOUT" | grep -q "The engineer behind every door" || [ $? -eq 141 ] ; che
 echo "$ABOUT" | grep -q 'rel="canonical" href="https://planetek.org/about"' || [ $? -eq 141 ] ; check "canonical on /about" $?
 PORTRAIT=$(curl -sS $CURL -o /dev/null -w '%{http_code}' "$URL/assets/trevor-lewis.webp")
 [ "$PORTRAIT" = "200" ] ; check "founder portrait serves" $?
+RESPDF=$(curl -sS $CURL -o /dev/null -w '%{http_code} %{content_type}' "$URL/assets/Trevor_Lewis_Resume.pdf")
+[ "$RESPDF" = "200 application/pdf" ] ; check "resume PDF serves as application/pdf" $?
+echo "$ABOUT" | grep -q 'href="/assets/Trevor_Lewis_Resume.pdf"' || [ $? -eq 141 ] ; check "about page links the resume download" $?
+CSPDF=$(curl -sS $CURL -o /dev/null -w '%{http_code} %{content_type}' "$URL/assets/Planetek_Capability_Statement_Federal.pdf")
+[ "$CSPDF" = "200 application/pdf" ] ; check "capability statement PDF serves as application/pdf" $?
 echo "$BODY" | grep -q 'href="/about"' || [ $? -eq 141 ] ; check "homepage links to /about" $?
 PCSS=$(curl -sS $CURL -o /dev/null -w '%{http_code}' "$URL/assets/pages.css")
 [ "$PCSS" = "200" ] ; check "shared pages.css serves" $?

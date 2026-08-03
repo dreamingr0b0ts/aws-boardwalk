@@ -86,3 +86,16 @@ Interior-page heroes (added 2026-08-02, same license and pipeline, all
 
 Not Unsplash: `trevor-lewis.webp` (640x651 ≈ 22 KB) on /about is the owner's
 own headshot, so it carries no photo credit in the footer.
+
+Two document downloads also live in `site/assets/`:
+
+- `Trevor_Lewis_Resume.pdf` — the PUBLIC resume variant, linked from /about.
+  Built by `Projects/Trevor Resume/web-resume/build_resume.py` (same
+  fonts/mark/pipeline as the capability statement build). It deliberately
+  differs from the private resumes in that folder: the current employer is
+  never named, the enterprise role carries no dates, and figures come from
+  the capability statement's FACTS base. Regenerate there, then re-copy.
+- `Planetek_Capability_Statement_Federal.pdf` — verbatim copy of the shipped
+  Federal variant from `Projects/Planetek Documents/CapabilityStatement/`,
+  linked from /federal and the homepage federal strip. When the statement is
+  rebuilt, re-copy it here.
