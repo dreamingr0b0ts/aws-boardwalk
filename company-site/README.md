@@ -9,7 +9,7 @@ GoDaddy so the nameserver cutover never touches email.
 
 | Piece | What |
 | --- | --- |
-| `site/` | Dependency-free static one-pager (SEO: canonical, OG, JSON-LD, sitemap) + privacy/terms/404 |
+| `site/` | Dependency-free static site: homepage, five service pages, /about, /schedule, insights + three field notes, privacy/terms/404 (SEO: canonical, OG, JSON-LD, sitemap) |
 | `backend/contact.mjs` | Contact form Lambda: honeypot, validation, per-IP + global daily caps (DynamoDB TTL counters), SESv2 send |
 | `infra/` | Zone (`prevent_destroy`), ACM cert (DNS-validated), CloudFront + router function (www→apex, clean URLs), HTTP API, SES identities |
 
@@ -83,3 +83,6 @@ Interior-page heroes (added 2026-08-02, same license and pipeline, all
   (https://unsplash.com/photos/o_XfzXGPaiM), the migration field note.
 - `note-switchbacks.webp` — dusk switchbacks with taillights by Luke Miller
   (https://unsplash.com/photos/PGCw9boMJQM), the GenAI guardrails field note.
+
+Not Unsplash: `trevor-lewis.webp` (640x651 ≈ 22 KB) on /about is the owner's
+own headshot, so it carries no photo credit in the footer.

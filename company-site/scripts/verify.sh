@@ -76,6 +76,12 @@ INS=$(curl -sS $CURL "$URL/insights")
 echo "$INS" | grep -q "Insights from the field" || [ $? -eq 141 ] ; check "insights index /insights" $?
 POST=$(curl -sS $CURL "$URL/insights/what-twelve-aws-environments-cost")
 echo "$POST" | grep -q "What twelve live AWS environments cost" || [ $? -eq 141 ] ; check "insights post (nested clean URL)" $?
+ABOUT=$(curl -sS $CURL "$URL/about")
+echo "$ABOUT" | grep -q "The engineer behind every door" || [ $? -eq 141 ] ; check "about page /about serves" $?
+echo "$ABOUT" | grep -q 'rel="canonical" href="https://planetek.org/about"' || [ $? -eq 141 ] ; check "canonical on /about" $?
+PORTRAIT=$(curl -sS $CURL -o /dev/null -w '%{http_code}' "$URL/assets/trevor-lewis.webp")
+[ "$PORTRAIT" = "200" ] ; check "founder portrait serves" $?
+echo "$BODY" | grep -q 'href="/about"' || [ $? -eq 141 ] ; check "homepage links to /about" $?
 PCSS=$(curl -sS $CURL -o /dev/null -w '%{http_code}' "$URL/assets/pages.css")
 [ "$PCSS" = "200" ] ; check "shared pages.css serves" $?
 HERO=$(curl -sS $CURL -o /dev/null -w '%{http_code}' "$URL/assets/aws-village-dusk.webp")
