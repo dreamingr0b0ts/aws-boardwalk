@@ -70,9 +70,9 @@ echo "$FED" | grep -q 'href="/assets/Planetek_Capability_Statement_Federal.pdf"'
 FRAC=$(curl -sS $CURL "$URL/fractional-cto")
 echo "$FRAC" | grep -q "Fractional CTO, CIO" || [ $? -eq 141 ] ; check "service page /fractional-cto" $?
 TRAIN=$(curl -sS $CURL "$URL/ai-training")
-echo "$TRAIN" | grep -q "AI training for working teams" || [ $? -eq 141 ] ; check "service page /ai-training" $?
+echo "$TRAIN" | grep -q "AI enablement for working teams" || [ $? -eq 141 ] ; check "service page /ai-training" $?
 WEBDEV=$(curl -sS $CURL "$URL/web-development")
-echo "$WEBDEV" | grep -q "Web design" || [ $? -eq 141 ] ; check "service page /web-development" $?
+echo "$WEBDEV" | grep -q "Application delivery on AWS" || [ $? -eq 141 ] ; check "service page /web-development" $?
 INS=$(curl -sS $CURL "$URL/insights")
 echo "$INS" | grep -q "Insights from the field" || [ $? -eq 141 ] ; check "insights index /insights" $?
 POST=$(curl -sS $CURL "$URL/insights/what-twelve-aws-environments-cost")

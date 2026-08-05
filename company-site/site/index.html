@@ -64,13 +64,13 @@
       "url": "https://planetek.org/",
       "parentOrganization": { "@id": "https://planetek.org/#org" },
       "areaServed": "US",
-      "description": "Managed AWS services, federal IT contracting, fractional technology leadership, AI training, and web development.",
+      "description": "Managed AWS services, federal IT contracting, fractional technology leadership, AI enablement and training, and application delivery on AWS.",
       "makesOffer": [
         { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Managed AWS Services", "url": "https://planetek.org/managed-aws", "description": "Cloud architecture, migration, security, DevOps, and ongoing AWS operations for small and mid-size businesses." } },
         { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Federal IT Contracting", "url": "https://planetek.org/federal", "description": "SAM.gov registered contractor: cloud architecture, Zero Trust, DevSecOps, and vulnerability management for federal agencies and primes." } },
         { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Fractional CTO / CIO / VP Engineering", "url": "https://planetek.org/fractional-cto", "description": "Executive technology leadership on a flexible, part-time basis." } },
-        { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "AI Training", "url": "https://planetek.org/ai-training", "description": "In-person and online AI, generative AI, and Python training from a college CIS professor and Fortune 100 certified trainer." } },
-        { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Web Design & Development", "url": "https://planetek.org/web-development", "description": "Custom websites, redesigns, and maintenance from a Cornell-certified web developer." } }
+        { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "AI Enablement & Training", "url": "https://planetek.org/ai-training", "description": "Part of the AWS practice: we build generative AI stacks on Amazon Bedrock and train the teams who run them, taught by a college CIS professor and Fortune 500 certified trainer." } },
+        { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Application Delivery on AWS", "url": "https://planetek.org/web-development", "description": "Custom web applications and static sites built and run on AWS serverless patterns: React, TypeScript, Cognito, and CloudFront." } }
       ]
     }
   ]
@@ -224,6 +224,8 @@
   .hero-meta { margin-top: 40px; display: flex; gap: 28px; flex-wrap: wrap;
     font: 400 12px/1.5 var(--mono); color: var(--night-dim); }
   .hero-meta strong { display: block; color: #fff; font-size: 17px; font-family: var(--body); font-weight: 700; }
+  .hero-footnote { margin-top: 14px; font: 400 11.5px/1.7 var(--mono); color: var(--night-dim); }
+  .hero-footnote a { color: var(--lamp-bright); }
 
   /* --- sections --- */
   section { padding: 64px 0 8px; }
@@ -239,19 +241,18 @@
   .more:hover { text-decoration: underline; text-underline-offset: 3px; }
 
   .grid { margin-top: 28px; display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(min(310px, 100%), 1fr)); }
-  /* five service cards: three across the top, two wider below */
-  .svc-grid { margin-top: 28px; display: grid; gap: 16px; grid-template-columns: repeat(6, 1fr); }
-  .svc-grid .card { grid-column: span 2; }
-  .svc-grid .card:nth-child(4), .svc-grid .card:nth-child(5) { grid-column: span 3; }
+  /* three core service cards in one row; the third spans the orphan slot on tablets */
+  .svc-grid { margin-top: 28px; display: grid; gap: 16px; grid-template-columns: repeat(3, 1fr); }
   @media (max-width: 980px) {
     .svc-grid { grid-template-columns: 1fr 1fr; }
-    .svc-grid .card, .svc-grid .card:nth-child(4) { grid-column: span 1; }
-    .svc-grid .card:nth-child(5) { grid-column: span 2; }
+    .svc-grid .card:nth-child(3) { grid-column: span 2; }
   }
   @media (max-width: 640px) {
     .svc-grid { grid-template-columns: 1fr; }
-    .svc-grid .card, .svc-grid .card:nth-child(4), .svc-grid .card:nth-child(5) { grid-column: span 1; }
+    .svc-grid .card:nth-child(3) { grid-column: span 1; }
   }
+  .svc-more-head { margin-top: 34px; font: 600 11px/1.5 var(--mono); letter-spacing: .2em;
+    text-transform: uppercase; color: var(--ink-3); }
   .card { position: relative; overflow: hidden; background: var(--surface); border: 1px solid var(--border);
     border-radius: 14px; padding: 24px 22px 20px; display: flex; flex-direction: column; gap: 10px;
     transition: border-color .15s ease, transform .15s ease, box-shadow .15s ease; }
@@ -414,8 +415,6 @@
       <a href="/managed-aws">Managed AWS</a>
       <a href="/federal">Federal</a>
       <a href="/fractional-cto">Fractional Leadership</a>
-      <a href="/ai-training">AI Training</a>
-      <a href="/web-development">Web Development</a>
       <a href="/insights">Insights</a>
       <a href="/about">About</a>
       <a class="cta" href="/schedule">Book a call</a>
@@ -439,10 +438,12 @@
     </div>
     <div class="hero-meta">
       <div><strong>12</strong> AWS environments</div>
-      <div><strong>15+ yrs</strong> startups to Fortune 100</div>
-      <div><strong>$1M+</strong> cloud savings delivered</div>
+      <div><strong>15+ yrs</strong> Fortune 500 scale</div>
+      <div><strong>$1M+</strong> cloud savings delivered&#185;</div>
       <div><strong>SAM.gov</strong> registered contractor</div>
     </div>
+    <p class="hero-footnote">&#185; Delivered by the founder as an engineer at Spectrum, not under a
+    Planetek contract: <a href="/about#attribution">attribution, stated plainly</a>.</p>
   </div>
 </header>
 <div class="deck" aria-hidden="true"></div>
@@ -456,9 +457,9 @@
   <div id="aws"></div><div id="fractional"></div><div id="training"></div><div id="web"></div>
   <div class="wrap">
     <p class="kicker">What we do</p>
-    <h2>Five services, one standard of proof</h2>
-    <p class="section-lede">Planetek is a senior practice with five fronts, and every claim on this site
-    traces back to something you can open: a live environment, a public codebase, or a published bill.
+    <h2>Three services, one standard of proof</h2>
+    <p class="section-lede">Planetek is a senior practice with three core fronts, and every claim on this
+    site traces back to something you can open: a live environment, a public codebase, or a published bill.
     Each service has its own page with scopes, common questions, and the proof behind it.</p>
 
     <div class="svc-grid">
@@ -473,7 +474,7 @@
         <h3>Federal IT Contracting</h3>
         <p>An active SAM.gov registered contractor delivering cloud architecture, Zero Trust, and DevSecOps
         to federal agencies and prime contractors, from Colorado's Front Range.</p>
-        <p class="stack">CAGE 1ZZA0 · UEI PHN7PHMZBKS4 · 8(a) pending</p>
+        <p class="stack">CAGE 1ZZA0 · UEI PHN7PHMZBKS4 · SDB self-certified</p>
         <a class="demo" href="/federal">Federal contracting →</a>
       </div>
       <div class="card door-documents">
@@ -483,19 +484,25 @@
         <p class="stack">Strategy · Architecture · Team building · Governance</p>
         <a class="demo" href="/fractional-cto">Fractional leadership →</a>
       </div>
+    </div>
+
+    <p class="svc-more-head">More from the practice</p>
+    <div class="cols">
       <div class="card door-assistant">
-        <h3>AI Training</h3>
-        <p>Practical AI and generative AI instruction from a college CIS professor and Fortune 100
-        certified trainer. In person along the Front Range, or online for teams anywhere.</p>
-        <p class="stack">Fundamentals · GenAI &amp; LLMs · Security &amp; ethics</p>
-        <a class="demo" href="/ai-training">AI training →</a>
+        <h3>AI Enablement &amp; Training</h3>
+        <p>An extension of the AWS practice: we build your Bedrock stack and train your team to use it.
+        Instruction comes from a college CIS professor and Fortune 500 certified trainer, in person along
+        the Front Range or online.</p>
+        <p class="stack">Bedrock · GenAI &amp; LLMs · Workshops · Security &amp; ethics</p>
+        <a class="demo" href="/ai-training">AI enablement &amp; training →</a>
       </div>
       <div class="card door-data">
-        <h3>Web Design &amp; Development</h3>
-        <p>Modern, responsive websites from a Cornell-certified developer: React applications when you
-        need them, or dependency-free static sites on AWS, like the one you are reading.</p>
-        <p class="stack">Next.js · React · TypeScript · Static on AWS</p>
-        <a class="demo" href="/web-development">Web development →</a>
+        <h3>Application Delivery on AWS</h3>
+        <p>Custom applications built and run on the same serverless patterns we manage: React and
+        TypeScript with sign-in, roles, and a bilingual interface, like the Alpenglow permit portal, or
+        dependency-free static sites like the one you are reading.</p>
+        <p class="stack">React · TypeScript · Cognito · Serverless on AWS</p>
+        <a class="demo" href="/web-development">Application delivery →</a>
       </div>
     </div>
   </div>
@@ -551,7 +558,7 @@
       <div class="fact"><strong>CAGE</strong> 1ZZA0</div>
       <div class="fact"><strong>UEI</strong> PHN7PHMZBKS4</div>
       <div class="fact"><strong>SAM.gov</strong> Active</div>
-      <div class="fact"><strong>8(a)</strong> Pending</div>
+      <div class="fact"><strong>SDB</strong> Self-certified</div>
     </div>
 
     <a class="more" href="/federal">More on federal contracting →</a>
@@ -669,8 +676,8 @@
             <option>Federal IT Contracting / Subcontracting</option>
             <option>Zero Trust / Security &amp; Compliance</option>
             <option>Fractional CTO / CIO / VP</option>
-            <option>AI Training</option>
-            <option>Web Design &amp; Development</option>
+            <option>AI Enablement &amp; Training</option>
+            <option>Application Delivery on AWS</option>
             <option>Other</option>
           </select>
         </label>
@@ -711,8 +718,8 @@
         <li><a href="/managed-aws">Managed AWS Services</a></li>
         <li><a href="/federal">Federal Contracting</a></li>
         <li><a href="/fractional-cto">Fractional CTO / CIO / VP</a></li>
-        <li><a href="/ai-training">AI Training</a></li>
-        <li><a href="/web-development">Web Development</a></li>
+        <li><a href="/ai-training">AI Enablement &amp; Training</a></li>
+        <li><a href="/web-development">Application Delivery on AWS</a></li>
       </ul>
     </div>
     <div>

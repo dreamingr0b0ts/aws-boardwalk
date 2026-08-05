@@ -121,6 +121,8 @@ h1 { font-family: var(--display); font-weight: 700; text-transform: uppercase; l
 .btn-ghost { border: 1px solid rgba(185,214,209,.5); color: var(--night-ink); }
 .btn-ghost:hover { border-color: #fff; color: #fff; }
 .hero p.stamp { margin-top: 20px; font: 400 12px/1.7 var(--mono); color: var(--night-dim); }
+.hero-footnote { margin-top: 14px; font: 400 11.5px/1.7 var(--mono); color: var(--night-dim); }
+.hero-footnote a { color: var(--lamp-bright); }
 
 /* --- sections --- */
 main { padding-bottom: 8px; }

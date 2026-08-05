@@ -9,7 +9,7 @@ GoDaddy so the nameserver cutover never touches email.
 
 | Piece | What |
 | --- | --- |
-| `site/` | Dependency-free static site: homepage, five service pages, /about, /schedule, insights + three field notes, privacy/terms/404 (SEO: canonical, OG, JSON-LD, sitemap) |
+| `site/` | Dependency-free static site: homepage, five service pages (three core in the nav; see the service hierarchy note below), /about, /schedule, insights + three field notes, privacy/terms/404 (SEO: canonical, OG, JSON-LD, sitemap) |
 | `backend/contact.mjs` | Contact form Lambda: honeypot, validation, per-IP + global daily caps (DynamoDB TTL counters), SESv2 send |
 | `infra/` | Zone (`prevent_destroy`), ACM cert (DNS-validated), CloudFront + router function (www→apex, clean URLs), HTTP API, SES identities |
 
@@ -36,6 +36,23 @@ the NS cutover, giving DMARC-aligned signatures.
 
 `make verify` runs the end-to-end suite; `SEND=1 make verify` also sends one
 real test email.
+
+## Service hierarchy (restructured 2026-08-05)
+
+Three core services carry the primary nav and the homepage grid: Managed AWS,
+Federal, and Fractional Leadership. The other two pages stay live at their
+original URLs (SEO intact, linked from the homepage "More from the practice"
+grouping and every footer) but were demoted and reframed:
+
+- `/ai-training` is now **AI Enablement & Training**, positioned inside the
+  AWS practice ("we build your Bedrock stack and train your team to use it");
+  the models and assistant planks double as its classroom.
+- `/web-development` is now **Application Delivery on AWS**, led by the
+  Alpenglow permit portal; marketing-site work is secondary and the Cornell
+  certificate is a credentials line, not a headline.
+
+`scripts/verify.sh` greps for the new H1s; the /about education list still
+carries the Cornell certificate.
 
 ## Design
 
