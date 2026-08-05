@@ -5,12 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Planetek · AWS Boardwalk · live demonstration environments</title>
 <meta name="description" content="A portfolio of walkable AWS environments built by Planetek, nine always-on and three deploy-on-demand: web, APIs, events, data, AI, document intelligence, security, networking, and DevOps. All infrastructure-as-code, all free-tier-first.">
+<link rel="canonical" href="https://demos.planetek.org/">
 <meta property="og:type" content="website">
+<meta property="og:site_name" content="Planetek LLC">
 <meta property="og:title" content="The AWS Boardwalk · Planetek">
 <meta property="og:description" content="Twelve walkable AWS environments, nine always-on and three deploy-on-demand: web, APIs, events, data, AI, documents, security, networking, and DevOps. All infrastructure as code, all free-tier-first.">
 <meta property="og:url" content="https://demos.planetek.org/">
 <meta property="og:image" content="https://demos.planetek.org/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="The AWS Boardwalk · Planetek">
+<meta name="twitter:description" content="Twelve walkable AWS environments, nine always-on and three deploy-on-demand: web, APIs, events, data, AI, documents, security, networking, and DevOps. All infrastructure as code, all free-tier-first.">
+<meta name="twitter:image" content="https://demos.planetek.org/og.jpg">
 <link rel="preload" as="image" href="/boardwalk-night.webp" fetchpriority="high">
 <link rel="preload" as="font" type="font/woff2" href="/fonts/josefin-sans-latin-700-normal.woff2" crossorigin>
 <link rel="preload" as="font" type="font/woff2" href="/fonts/mulish-latin-400-normal.woff2" crossorigin>
@@ -191,6 +198,24 @@
   .principles li::before { content: ""; position: absolute; left: 2px; top: .42em; width: 8px; height: 8px; border-radius: 50%;
     background: var(--lamp-bright); box-shadow: 0 0 8px 1px color-mix(in srgb, var(--lamp-bright) 65%, transparent); }
 
+  /* ---- pier gate: the persistent way back to town ---- */
+  .top { background: var(--pine-deep); border-bottom: 1px solid rgba(185,214,209,.14); }
+  .top-inner { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 20px; }
+  .top-brand { font-family: var(--display); font-weight: 700; text-transform: uppercase; letter-spacing: .08em;
+    color: #fff; text-decoration: none; font-size: 15px; }
+  .top-links { display: flex; align-items: center; gap: 18px; font-size: 13.5px; }
+  .top-links a { color: #b9d6d1; text-decoration: none; font-weight: 700; }
+  .top-links a:hover { color: #fff; }
+  .top-links a.top-cta { background: var(--glow); color: #fff; padding: 7px 14px 6px; border-radius: 8px; }
+  .top-links a.top-cta:hover { filter: brightness(1.1); }
+
+  /* ---- end of the pier: the closing pitch ---- */
+  .hire { background: linear-gradient(180deg, var(--pine), var(--pine-deep)); color: #f2f7f6; margin-top: 64px; }
+  .hire-inner { padding: 56px 20px 60px; }
+  .hire .plate { color: var(--lamp-bright); }
+  .hire h2 { font-size: clamp(24px, 4vw, 32px); }
+  .hire .pitch { margin-top: 14px; max-width: 620px; color: #cfe2de; font-size: 15.5px; }
+
   /* Boardwalk-standard footer (modeled on the permits site) */
   footer { background: var(--pine-deep); color: #b9d6d1; font-size: 13px; }
   .foot-grid { display: grid; gap: 28px; padding: 34px 20px 28px; }
@@ -205,6 +230,16 @@
 </style>
 </head>
 <body>
+
+<nav class="top" aria-label="Planetek">
+  <div class="wrap top-inner">
+    <a class="top-brand" href="https://planetek.org">Planetek</a>
+    <div class="top-links">
+      <a href="https://planetek.org">planetek.org</a>
+      <a class="top-cta" href="https://planetek.org/schedule">Book 30 minutes</a>
+    </div>
+  </div>
+</nav>
 
 <header class="hero">
   <img class="hero-photo" src="/boardwalk-night.webp" alt="" aria-hidden="true" fetchpriority="high" decoding="async">
@@ -440,7 +475,20 @@
   </section>
 </main>
 
-<div class="deck" style="margin-top:64px" aria-hidden="true"></div>
+<section class="hire">
+  <div class="wrap hire-inner">
+    <p class="plate">End of the pier</p>
+    <h2>Built to scale. Book 30 minutes.</h2>
+    <p class="pitch">Every door on this boardwalk was designed, built, and operated by the same engineer.
+    If you want these patterns running in your own AWS account, that engineer is for hire.</p>
+    <div class="hero-actions">
+      <a class="btn btn-glow" href="https://planetek.org/schedule">Book a free consultation</a>
+      <a class="btn btn-ghost" href="https://planetek.org">See services at planetek.org</a>
+    </div>
+  </div>
+</section>
+
+<div class="deck" aria-hidden="true"></div>
 <footer>
   <div class="wrap foot-grid">
     <div>
@@ -461,6 +509,8 @@
       <ul class="foot-list">
         <li><a href="https://github.com/dreamingr0b0ts/aws-boardwalk">Github</a></li>
         <li><a href="https://planetek.org">planetek.org</a></li>
+        <li><a href="https://planetek.org/schedule">Book a consultation</a></li>
+        <li><a href="https://www.linkedin.com/company/planetek-llc">Planetek on LinkedIn</a></li>
         <li>Photos: Christian Lue, Ahmet Yüksek (Unsplash)</li>
       </ul>
     </div>

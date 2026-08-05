@@ -15,7 +15,12 @@ alpenglow, drafting-room Prussian, signal-bench phosphor, records-office
 nocturne, and so on). Status chips are lamps: always-on burns all night,
 on-demand is lit when you arrive. A CSS deck-board strip closes the hero
 and tops the footer, and the principles section is a routed "Pier notice"
-board with glowing lamp bullets.
+board with glowing lamp bullets. A slim "pier gate" bar sits above the
+hero (Planetek brand plus a Book 30 minutes button, both back to
+planetek.org) and an "End of the pier" band closes the page with the
+hiring pitch and a link to planetek.org/schedule, so the hub always has
+a path back to the firm behind it. Head carries the full share-card
+treatment: canonical, OG + Twitter tags, and the 1200x630 `site/og.jpg`.
 
 Type: Josefin Sans (display, uppercase, a vintage resort-pavilion voice) +
 Mulish (body) + Red Hat Mono (labels, chips, stack lines). Static woff2
