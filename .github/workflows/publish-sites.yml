@@ -53,8 +53,10 @@ jobs:
           DIST_ID=$(aws cloudfront list-distributions --query \
             "DistributionList.Items[?contains(Aliases.Items, '${{ matrix.alias }}')].Id | [0]" \
             --output text)
+          # Select the S3 origin explicitly: company-site's distribution also
+          # carries the /api/* HTTP API origin, and origin order is not stable.
           ORIGIN=$(aws cloudfront list-distributions --query \
-            "DistributionList.Items[?contains(Aliases.Items, '${{ matrix.alias }}')].Origins.Items[0].DomainName | [0]" \
+            "DistributionList.Items[?contains(Aliases.Items, '${{ matrix.alias }}')] | [0].Origins.Items[?contains(DomainName, '.s3')] | [0].DomainName" \
             --output text)
           BUCKET="${ORIGIN%%.s3*}"
           if [ -z "$DIST_ID" ] || [ "$DIST_ID" = "None" ] || [ -z "$BUCKET" ]; then

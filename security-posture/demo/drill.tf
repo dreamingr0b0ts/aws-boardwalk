@@ -19,14 +19,13 @@
 # ---- the inert sandbox ------------------------------------------------------
 
 resource "aws_vpc" "sandbox" {
+  # checkov:skip=CKV2_AWS_11:flow logs on an inert, routeless VPC with no ENI would log nothing
+  # checkov:skip=CKV2_AWS_12:default SG is left default; the drill uses a dedicated tagged group
   cidr_block = "10.99.0.0/16"
 
   # No IGW, no subnets, no routes: nothing in here can reach or be reached.
   tags = { Name = "${local.prefix}-drill-sandbox" }
 }
-
-# checkov:skip=CKV2_AWS_11 flow logs on an inert, routeless VPC with no ENI would log nothing
-# checkov:skip=CKV2_AWS_12 default SG is left default; the drill uses a dedicated tagged group
 
 # The group the drill opens and the detectors close. Bare on purpose: no
 # ingress is declared, so the runtime rule the drill adds (and the tripwire
