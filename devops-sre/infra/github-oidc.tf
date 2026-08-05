@@ -212,6 +212,86 @@ resource "aws_iam_role_policy" "gh_apply_iam" {
         Resource = [
           aws_iam_role.gh_plan.arn,
           aws_iam_role.gh_apply.arn,
+          aws_iam_role.gh_site.arn,
+        ]
+      },
+    ]
+  })
+}
+
+# --- site role (monthly cost refresh + site publish; main branch only) -------
+#
+# Used by update-costs.yml (Cost Explorer read) and publish-sites.yml
+# (s3 sync + CloudFront invalidation for the two site buckets). Deliberately
+# narrow, so trusting ref:refs/heads/main is fine here - the concern that
+# reverted the single-gate pattern was main-branch trust on PowerUserAccess,
+# not on a role that can only read a bill and publish two static sites.
+# Like the other CI roles it is in the NeverSelfModify fence above, so
+# changes to it must be applied locally before they are pushed.
+
+resource "aws_iam_role" "gh_site" {
+  name = "${local.prefix}-gh-site"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Federated = aws_iam_openid_connect_provider.github.arn }
+      Action    = "sts:AssumeRoleWithWebIdentity"
+      Condition = {
+        StringEquals = {
+          "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
+          "token.actions.githubusercontent.com:sub" = [
+            for p in local.github_sub_prefixes : "${p}:ref:refs/heads/main"
+          ]
+        }
+      }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "gh_site" {
+  name = "cost-read-and-site-publish"
+  role = aws_iam_role.gh_site.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        # Cost Explorer and ListDistributions are not resource-scopable.
+        Sid      = "CostRead"
+        Effect   = "Allow"
+        Action   = ["ce:GetCostAndUsage"]
+        Resource = "*"
+      },
+      {
+        Sid      = "FindDistributionsByAlias"
+        Effect   = "Allow"
+        Action   = ["cloudfront:ListDistributions"]
+        Resource = "*"
+      },
+      {
+        Sid      = "InvalidateSites"
+        Effect   = "Allow"
+        Action   = ["cloudfront:CreateInvalidation"]
+        Resource = "arn:aws:cloudfront::${local.account_id}:distribution/*"
+      },
+      {
+        Sid    = "ListSiteBuckets"
+        Effect = "Allow"
+        Action = ["s3:ListBucket"]
+        Resource = [
+          "arn:aws:s3:::www-site-${local.account_id}",
+          "arn:aws:s3:::hub-site-${local.account_id}",
+        ]
+      },
+      {
+        Sid    = "SyncSiteObjects"
+        Effect = "Allow"
+        Action = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
+        Resource = [
+          "arn:aws:s3:::www-site-${local.account_id}/*",
+          "arn:aws:s3:::hub-site-${local.account_id}/*",
         ]
       },
     ]

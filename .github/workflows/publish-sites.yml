@@ -1,0 +1,67 @@
+# Publish site HTML when it changes on main.
+#
+# CI's terraform apply manages infrastructure but never syncs site content;
+# that has always been the local `make publish` (s3 sync + invalidation).
+# This workflow is that same publish step, run automatically on merge, so
+# content-only changes (like the monthly cost-figure PR) go live unattended.
+# Bucket and distribution are resolved by CloudFront alias at run time, so
+# no account-specific names live in the repo.
+
+name: publish-sites
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "company-site/site/**"
+      - "demo-hub/site/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: publish-sites
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  publish:
+    name: publish (${{ matrix.dir }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - dir: company-site
+            alias: planetek.org
+          - dir: demo-hub
+            alias: demos.planetek.org
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/ops-gh-site
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Sync site and invalidate
+        run: |
+          DIST_ID=$(aws cloudfront list-distributions --query \
+            "DistributionList.Items[?contains(Aliases.Items, '${{ matrix.alias }}')].Id | [0]" \
+            --output text)
+          ORIGIN=$(aws cloudfront list-distributions --query \
+            "DistributionList.Items[?contains(Aliases.Items, '${{ matrix.alias }}')].Origins.Items[0].DomainName | [0]" \
+            --output text)
+          BUCKET="${ORIGIN%%.s3*}"
+          if [ -z "$DIST_ID" ] || [ "$DIST_ID" = "None" ] || [ -z "$BUCKET" ]; then
+            echo "Could not resolve distribution/bucket for ${{ matrix.alias }}" >&2
+            exit 1
+          fi
+          aws s3 sync "${{ matrix.dir }}/site" "s3://$BUCKET" --delete
+          aws cloudfront create-invalidation --distribution-id "$DIST_ID" \
+            --paths "/*" --no-cli-pager --output text > /dev/null
+          echo "published ${{ matrix.dir }}/site to $BUCKET (distribution $DIST_ID)"
