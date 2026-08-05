@@ -22,15 +22,22 @@
   main { text-align:center; max-width:460px; }
   h1 { font:700 56px/1.1 "Josefin Sans", ui-sans-serif, system-ui, sans-serif; letter-spacing:.05em; }
   p { color:var(--ink-2); margin-top:10px; }
-  a { display:inline-block; margin-top:22px; background:var(--ember); color:#fff; font-weight:700;
+  a.btn { display:inline-block; margin-top:22px; background:var(--ember); color:#fff; font-weight:700;
       padding:11px 20px; border-radius:10px; text-decoration:none; }
+  .paths { margin-top:26px; font-size:14px; }
+  .paths a { color:var(--ember); font-weight:700; text-decoration:none; }
+  .paths a:hover { text-decoration:underline; }
 </style>
 </head>
 <body>
 <main>
   <h1>404</h1>
   <p>That page doesn't exist. It may have moved when we rebuilt the site.</p>
-  <a href="/">Back to planetek.org</a>
+  <a class="btn" href="/">Back to the homepage</a>
+  <p class="paths">Or jump straight to
+  <a href="/managed-aws">Managed AWS</a> · <a href="/federal">Federal</a> ·
+  <a href="/fractional-cto">Fractional Leadership</a> · <a href="/insights">Field notes</a> ·
+  <a href="/schedule">Book a call</a></p>
 </main>
 </body>
 </html>

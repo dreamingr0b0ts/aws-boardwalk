@@ -9,7 +9,7 @@ GoDaddy so the nameserver cutover never touches email.
 
 | Piece | What |
 | --- | --- |
-| `site/` | Dependency-free static site: homepage, five service pages (three core in the nav; see the service hierarchy note below), /about, /schedule, insights + three field notes, privacy/terms/404 (SEO: canonical, OG, JSON-LD, sitemap) |
+| `site/` | Dependency-free static site: homepage, five service pages (three core in the nav; see the service hierarchy note below), /about, /schedule, insights + three field notes, privacy/terms/404 (SEO: canonical, OG, JSON-LD, sitemap, RSS at /feed.xml) |
 | `backend/contact.mjs` | Contact form Lambda: honeypot, validation, per-IP + global daily caps (DynamoDB TTL counters), SESv2 send |
 | `infra/` | Zone (`prevent_destroy`), ACM cert (DNS-validated), CloudFront + router function (www→apex, clean URLs), HTTP API, SES identities |
 
@@ -53,6 +53,46 @@ grouping and every footer) but were demoted and reframed:
 
 `scripts/verify.sh` greps for the new H1s; the /about education list still
 carries the Cornell certificate.
+
+## Structured data (expanded 2026-08-05)
+
+Every page carries JSON-LD; the sitewide review's checklist is fully covered:
+
+- `/` — `Organization` (founder, Commerce City address, phone, sameAs) +
+  `WebSite` + `ProfessionalService` (a LocalBusiness subtype: address, phone,
+  Denver-metro `areaServed`, offer catalog for all five services).
+- Five service pages — `Service` + `BreadcrumbList` + `FAQPage` built from the
+  visible "Common questions" section. The FAQ copy in the JSON-LD must mirror
+  the on-page text, with one deliberate exception: the managed-aws answer omits
+  the auto-updated monthly cost figure so `tools/update_monthly_costs.py`'s
+  single-marker invariant holds (the marker count check fails loudly if the
+  phrase is ever duplicated).
+- `/about` — `ProfilePage` + `Person` + `BreadcrumbList`.
+- `/insights` — `Blog` + `BreadcrumbList`; each field note is a `BlogPosting`
+  (Person author linked to `/about#person`, its own hero image, dates) +
+  `BreadcrumbList`.
+- `/schedule`, `/privacy`, `/terms` — `BreadcrumbList`.
+
+Field-note dates (review item 5.4): the three launch posts originally all said
+August 2, 2026, which read as a batch. They were re-dated 2026-08-05 to when
+the underlying work actually happened: migration note July 19 (cutover was
+July 17), GenAI guardrails note July 29 (visitor tiers shipped July 28-29),
+cost note August 2 (needed July's closed bill). A post's visible stamp, its
+JSON-LD `datePublished`, and the `/insights` card must stay in sync, and the
+card list stays newest-first. The cadence itself still needs feeding: aim for
+roughly one new field note a month, dated when it ships.
+
+Bylines and RSS (added 2026-08-05): every field note is signed by Trevor
+Lewis, not "Planetek LLC", because the site's whole pitch is one identifiable
+engineer. Each post has a "By Trevor Lewis" stamp in the hero and a
+`.post-author` card (headshot + /about link) above the closing CTA. The feed
+is hand-maintained at `site/feed.xml` (RSS 2.0, `dc:creator`, permalink
+guids); it is linked via `rel="alternate"` from the homepage, /insights, and
+every post, plus a visible link under the /insights post list. Shipping a new
+post means: the post page itself (copy an existing one: JSON-LD graph, stamp,
+author card), a card on /insights + its Blog JSON-LD entry, a feed.xml item
+and `lastBuildDate` bump, and a sitemap entry. `make verify` checks the feed
+serves.
 
 ## Design
 
@@ -115,4 +155,11 @@ Two document downloads also live in `site/assets/`:
 - `Planetek_Capability_Statement_Federal.pdf` — verbatim copy of the shipped
   Federal variant from `Projects/Planetek Documents/CapabilityStatement/`,
   linked from /federal and the homepage federal strip. When the statement is
-  rebuilt, re-copy it here.
+  rebuilt, re-copy it here, and check the "Try it right now" section on
+  /federal: it mirrors the statement's four numbered evaluator actions
+  word for word (added 2026-08-05), so a change to that list in the PDF
+  means the same change on the page.
+- `Planetek_Teaming_One-Pager.pdf` — the single-sheet teaming cut of the
+  capability statement (variant `teaming` in the same build), linked from
+  the /federal registrations section for prime and partner outreach. Same
+  re-copy rule when rebuilt.

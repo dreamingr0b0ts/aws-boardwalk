@@ -29,14 +29,67 @@
       "serviceType": "Managed AWS services and cloud consulting",
       "url": "https://planetek.org/managed-aws",
       "areaServed": "US",
-      "provider": { "@type": "Organization", "@id": "https://planetek.org/#org", "name": "Planetek LLC", "url": "https://planetek.org/" },
+      "provider": {
+        "@type": "Organization",
+        "@id": "https://planetek.org/#org",
+        "name": "Planetek LLC",
+        "url": "https://planetek.org/"
+      },
       "description": "Cloud architecture, migration, security, DevOps, and ongoing AWS operations for small and mid-size businesses, delivered as infrastructure as code."
     },
     {
       "@type": "BreadcrumbList",
       "itemListElement": [
-        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://planetek.org/" },
-        { "@type": "ListItem", "position": 2, "name": "Managed AWS Services", "item": "https://planetek.org/managed-aws" }
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://planetek.org/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Managed AWS Services",
+          "item": "https://planetek.org/managed-aws"
+        }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "@id": "https://planetek.org/managed-aws#faq",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Can you take over an AWS account someone else built?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes, and that is the most common starting point. The fixed-fee assessment maps what exists, flags risks, and gives you a prioritized roadmap. Nothing has to be rebuilt for us to start working, and the roadmap is yours to keep even if we never speak again."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Do we still own everything?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Always. The AWS account stays in your name, every resource is defined in Terraform in a repository you control, and offboarding is a documented handover. We do not build anything you cannot read."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What does managed service include month to month?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Monitoring and alerting, patching, backup and restore drills with measured recovery times, security posture review, and a cost-optimization pass, summarized in a monthly report from the engineer who did the work. There is no long-term lock-in."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How do you keep the AWS bill down?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Free-tier-first architecture, scale-to-zero services, budget tripwires, and a monthly cost review. The twelve demo environments behind this site run on those patterns. The ops demo publishes the current month's ledger live, and our field note on the bill breaks down how."
+          }
+        }
       ]
     }
   ]

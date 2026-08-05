@@ -2,37 +2,37 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://planetek.org/</loc>
-    <lastmod>2026-08-02</lastmod>
+    <lastmod>2026-08-05</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://planetek.org/managed-aws</loc>
-    <lastmod>2026-08-02</lastmod>
+    <lastmod>2026-08-05</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://planetek.org/federal</loc>
-    <lastmod>2026-08-02</lastmod>
+    <lastmod>2026-08-05</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://planetek.org/fractional-cto</loc>
-    <lastmod>2026-08-02</lastmod>
+    <lastmod>2026-08-05</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://planetek.org/ai-training</loc>
-    <lastmod>2026-08-02</lastmod>
+    <lastmod>2026-08-05</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://planetek.org/web-development</loc>
-    <lastmod>2026-08-02</lastmod>
+    <lastmod>2026-08-05</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -50,37 +50,37 @@
   </url>
   <url>
     <loc>https://planetek.org/insights</loc>
-    <lastmod>2026-08-02</lastmod>
+    <lastmod>2026-08-05</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://planetek.org/insights/what-twelve-aws-environments-cost</loc>
-    <lastmod>2026-08-02</lastmod>
+    <lastmod>2026-08-05</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://planetek.org/insights/move-your-website-to-aws-without-breaking-email</loc>
-    <lastmod>2026-08-02</lastmod>
+    <lastmod>2026-08-05</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://planetek.org/insights/genai-demos-with-hard-cost-caps</loc>
-    <lastmod>2026-08-02</lastmod>
+    <lastmod>2026-08-05</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://planetek.org/privacy</loc>
-    <lastmod>2026-08-02</lastmod>
+    <lastmod>2026-08-05</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.2</priority>
   </url>
   <url>
     <loc>https://planetek.org/terms</loc>
-    <lastmod>2026-08-02</lastmod>
+    <lastmod>2026-08-05</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.2</priority>
   </url>

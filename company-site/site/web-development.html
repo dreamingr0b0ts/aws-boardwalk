@@ -33,14 +33,59 @@
       "serviceType": "Web application development and delivery on AWS",
       "url": "https://planetek.org/web-development",
       "areaServed": "US",
-      "provider": { "@type": "Organization", "@id": "https://planetek.org/#org", "name": "Planetek LLC", "url": "https://planetek.org/" },
+      "provider": {
+        "@type": "Organization",
+        "@id": "https://planetek.org/#org",
+        "name": "Planetek LLC",
+        "url": "https://planetek.org/"
+      },
       "description": "Custom web applications and static sites built and run on AWS: React, TypeScript, Cognito, and serverless backends, with redesigns and ongoing maintenance."
     },
     {
       "@type": "BreadcrumbList",
       "itemListElement": [
-        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://planetek.org/" },
-        { "@type": "ListItem", "position": 2, "name": "Application Delivery on AWS", "item": "https://planetek.org/web-development" }
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://planetek.org/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Application Delivery on AWS",
+          "item": "https://planetek.org/web-development"
+        }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "@id": "https://planetek.org/web-development#faq",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Can we edit the site ourselves after launch?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "If you want that, we integrate a CMS so your team edits content without touching code. If the site rarely changes, a static build with a small maintenance plan is cheaper and faster, and we will tell you honestly which fits."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Where does the site live?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "In your own AWS account whenever possible, set up with the same cost guardrails we use ourselves. You own the domain, the account, and the code. If you ever leave, everything comes with you."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Do you take over existing websites?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Redesigns, performance and SEO cleanup, accessibility fixes, and ongoing maintenance of sites we did not build are all regular work for us."
+          }
+        }
       ]
     }
   ]

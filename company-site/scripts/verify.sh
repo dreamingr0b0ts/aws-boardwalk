@@ -49,6 +49,7 @@ echo "$BODY" | grep -q 'property="og:image"' || [ $? -eq 141 ] ; check "OpenGrap
 echo "$BODY" | grep -q 'application/ld+json' || [ $? -eq 141 ] ; check "JSON-LD structured data" $?
 curl -sS $CURL "$URL/robots.txt" | grep -q "Sitemap:" || [ $? -eq 141 ] ; check "robots.txt with sitemap" $?
 curl -sS $CURL "$URL/sitemap.xml" | grep -q "<urlset" || [ $? -eq 141 ] ; check "sitemap.xml" $?
+curl -sS $CURL "$URL/feed.xml" | grep -q "<rss" || [ $? -eq 141 ] ; check "RSS feed" $?
 curl -sS $CURL "$URL/assets/og.jpg" -o /dev/null -w "%{http_code}" | grep -q 200 || [ $? -eq 141 ] ; check "og image serves" $?
 
 # --- routing ------------------------------------------------------------------
@@ -58,6 +59,7 @@ PRIV=$(curl -sS $CURL "$URL/privacy")
 echo "$PRIV" | grep -q "Privacy Policy" || [ $? -eq 141 ] ; check "clean URL /privacy" $?
 TOS=$(curl -sS $CURL "$URL/terms")
 echo "$TOS" | grep -q "Terms of Service" || [ $? -eq 141 ] ; check "clean URL /terms" $?
+curl -sS $CURL -o /dev/null -w "%{http_code}" "$URL/definitely-not-a-page" | grep -q 404 || [ $? -eq 141 ] ; check "missing pages return 404" $?
 [ "$(curl -sS $CURL -o /dev/null -w '%{http_code}' "$URL/no-such-page")" = "404" ] ; check "unknown path returns 404" $?
 
 # --- service pages + insights ---------------------------------------------------

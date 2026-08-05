@@ -21,19 +21,61 @@
 <meta property="og:url" content="https://planetek.org/insights">
 <meta property="og:image" content="https://planetek.org/assets/og.jpg">
 <meta name="twitter:card" content="summary_large_image">
+<link rel="alternate" type="application/rss+xml" title="Planetek Insights" href="https://planetek.org/feed.xml">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
-  "@type": "Blog",
-  "@id": "https://planetek.org/insights#blog",
-  "name": "Planetek Insights",
-  "url": "https://planetek.org/insights",
-  "description": "Field notes from Planetek LLC on AWS cost engineering, migrations, and GenAI guardrails.",
-  "publisher": { "@type": "Organization", "@id": "https://planetek.org/#org", "name": "Planetek LLC", "url": "https://planetek.org/" },
-  "blogPost": [
-    { "@type": "BlogPosting", "headline": "What twelve live AWS environments cost us last month", "url": "https://planetek.org/insights/what-twelve-aws-environments-cost", "datePublished": "2026-08-02" },
-    { "@type": "BlogPosting", "headline": "How to move a small-business website to AWS without breaking your email", "url": "https://planetek.org/insights/move-your-website-to-aws-without-breaking-email", "datePublished": "2026-08-02" },
-    { "@type": "BlogPosting", "headline": "Public GenAI demos that cannot run up the bill", "url": "https://planetek.org/insights/genai-demos-with-hard-cost-caps", "datePublished": "2026-08-02" }
+  "@graph": [
+    {
+      "@type": "Blog",
+      "@id": "https://planetek.org/insights#blog",
+      "name": "Planetek Insights",
+      "url": "https://planetek.org/insights",
+      "description": "Field notes from Planetek LLC on AWS cost engineering, migrations, and GenAI guardrails.",
+      "publisher": {
+        "@type": "Organization",
+        "@id": "https://planetek.org/#org",
+        "name": "Planetek LLC",
+        "url": "https://planetek.org/"
+      },
+      "blogPost": [
+        {
+          "@type": "BlogPosting",
+          "headline": "What twelve live AWS environments cost us last month",
+          "url": "https://planetek.org/insights/what-twelve-aws-environments-cost",
+          "datePublished": "2026-08-02"
+        },
+        {
+          "@type": "BlogPosting",
+          "headline": "Public GenAI demos that cannot run up the bill",
+          "url": "https://planetek.org/insights/genai-demos-with-hard-cost-caps",
+          "datePublished": "2026-07-29"
+        },
+        {
+          "@type": "BlogPosting",
+          "headline": "How to move a small-business website to AWS without breaking your email",
+          "url": "https://planetek.org/insights/move-your-website-to-aws-without-breaking-email",
+          "datePublished": "2026-07-19"
+        }
+      ]
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://planetek.org/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Insights",
+          "item": "https://planetek.org/insights"
+        }
+      ]
+    }
   ]
 }
 </script>
@@ -88,23 +130,23 @@
         client workloads.</p>
         <span class="read">Read the note →</span>
       </a>
-      <a class="post-card" href="/insights/move-your-website-to-aws-without-breaking-email">
-        <p class="post-date">August 2, 2026 · Migration</p>
-        <h3>How to move a small-business website to AWS without breaking your email</h3>
-        <p>The risky part of a website move is not the website. It is the DNS zone that carries your mail.
-        This is the order of operations that made our own cutover boring.</p>
-        <span class="read">Read the note →</span>
-      </a>
       <a class="post-card" href="/insights/genai-demos-with-hard-cost-caps">
-        <p class="post-date">August 2, 2026 · GenAI</p>
+        <p class="post-date">July 29, 2026 · GenAI</p>
         <h3>Public GenAI demos that cannot run up the bill</h3>
         <p>Anyone on the internet can use our Bedrock-backed assistant and model workbench, yet the
         worst-case daily spend is a number we computed before launch. Here is the guardrail stack.</p>
         <span class="read">Read the note →</span>
       </a>
+      <a class="post-card" href="/insights/move-your-website-to-aws-without-breaking-email">
+        <p class="post-date">July 19, 2026 · Migration</p>
+        <h3>How to move a small-business website to AWS without breaking your email</h3>
+        <p>The risky part of a website move is not the website. It is the DNS zone that carries your mail.
+        This is the order of operations that made our own cutover boring.</p>
+        <span class="read">Read the note →</span>
+      </a>
     </div>
-    <p class="section-lede" style="margin-top:26px">New notes land here as the work produces them. If a topic
-    would help your team, <a href="/#contact">ask for it</a>.</p>
+    <p class="section-lede" style="margin-top:26px">New notes land here as the work produces them. Follow
+    along by <a href="/feed.xml">RSS</a>. If a topic would help your team, <a href="/#contact">ask for it</a>.</p>
   </div>
 </section>
 

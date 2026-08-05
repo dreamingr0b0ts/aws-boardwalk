@@ -222,6 +222,17 @@ article li::marker { color: var(--accent); }
 article strong { color: var(--ink); }
 article code { font: 400 .9em var(--mono); background: var(--surface); border: 1px solid var(--border);
   border-radius: 5px; padding: 1px 5px; overflow-wrap: anywhere; }
+/* --- "Try it right now": numbered evaluator actions, mirrored from the capability statement --- */
+.tries { margin-top: 28px; display: grid; gap: 14px; }
+@media (min-width: 720px) { .tries { grid-template-columns: 1fr 1fr; } }
+.try { display: flex; gap: 16px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 18px 20px; }
+.try .n { font: 600 20px/1 var(--mono); color: var(--accent); padding-top: 2px; }
+.try p { margin: 0; font-size: 14.5px; color: var(--ink-2); }
+.try .u { display: inline-block; margin-top: 10px; font: 400 12.5px/1.4 var(--mono); color: var(--accent);
+  text-decoration: none; overflow-wrap: anywhere; }
+.try .u:hover { text-decoration: underline; }
+
 .note-card { margin-top: 24px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
   padding: 20px 22px; position: relative; overflow: hidden; }
 .note-card::before { content: ""; position: absolute; top: 0; left: 16px; right: 16px; height: 3px;
@@ -230,6 +241,11 @@ article code { font: 400 .9em var(--mono); background: var(--surface); border: 1
 .note-card p + p { margin-top: 10px; }
 article .post-foot { margin-top: 44px; padding-top: 18px; border-top: 1px solid var(--border);
   font-size: 14.5px; color: var(--ink-2); }
+.post-author { margin-top: 44px; display: flex; gap: 16px; align-items: center; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; }
+.post-author img { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; flex: none; }
+.post-author p { margin-top: 0; font-size: 14px; }
+.post-author .post-author-name { font: 600 13px/1.6 var(--mono); color: var(--ink); }
 
 /* --- footer --- */
 footer { background: var(--pine-deep); color: var(--night-sub); font-size: 13px; }

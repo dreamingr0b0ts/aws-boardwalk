@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>Planetek Insights</title>
+    <link>https://planetek.org/insights</link>
+    <atom:link href="https://planetek.org/feed.xml" rel="self" type="application/rss+xml"/>
+    <description>Field notes from Planetek LLC on AWS cost engineering, migrations, and GenAI guardrails, written by the engineer who did the work.</description>
+    <language>en-us</language>
+    <lastBuildDate>Sun, 02 Aug 2026 09:00:00 -0600</lastBuildDate>
+    <item>
+      <title>What twelve live AWS environments cost us last month</title>
+      <link>https://planetek.org/insights/what-twelve-aws-environments-cost</link>
+      <guid isPermaLink="true">https://planetek.org/insights/what-twelve-aws-environments-cost</guid>
+      <pubDate>Sun, 02 Aug 2026 09:00:00 -0600</pubDate>
+      <dc:creator>Trevor Lewis</dc:creator>
+      <description>Twelve production-grade AWS environments plus this website metered $12.23 in AWS usage in July 2026. The cost-engineering rules that keep it there.</description>
+    </item>
+    <item>
+      <title>Public GenAI demos that cannot run up the bill</title>
+      <link>https://planetek.org/insights/genai-demos-with-hard-cost-caps</link>
+      <guid isPermaLink="true">https://planetek.org/insights/genai-demos-with-hard-cost-caps</guid>
+      <pubDate>Wed, 29 Jul 2026 09:00:00 -0600</pubDate>
+      <dc:creator>Trevor Lewis</dc:creator>
+      <description>Anyone can use our Bedrock-backed assistant and model workbench, yet the worst-case daily spend was computed before launch. The guardrail stack, layer by layer.</description>
+    </item>
+    <item>
+      <title>How to move a small-business website to AWS without breaking your email</title>
+      <link>https://planetek.org/insights/move-your-website-to-aws-without-breaking-email</link>
+      <guid isPermaLink="true">https://planetek.org/insights/move-your-website-to-aws-without-breaking-email</guid>
+      <pubDate>Sun, 19 Jul 2026 09:00:00 -0600</pubDate>
+      <dc:creator>Trevor Lewis</dc:creator>
+      <description>The risky part of a website migration is the DNS zone that carries your mail. The order of operations that made our own cutover boring.</description>
+    </item>
+  </channel>
+</rss>

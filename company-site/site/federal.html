@@ -33,14 +33,59 @@
       "serviceType": "Federal IT contracting and consulting",
       "url": "https://planetek.org/federal",
       "areaServed": "US",
-      "provider": { "@type": "Organization", "@id": "https://planetek.org/#org", "name": "Planetek LLC", "url": "https://planetek.org/" },
+      "provider": {
+        "@type": "Organization",
+        "@id": "https://planetek.org/#org",
+        "name": "Planetek LLC",
+        "url": "https://planetek.org/"
+      },
       "description": "SAM.gov registered contractor: cloud architecture, Zero Trust, DevSecOps, and vulnerability management for federal agencies and prime contractors."
     },
     {
       "@type": "BreadcrumbList",
       "itemListElement": [
-        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://planetek.org/" },
-        { "@type": "ListItem", "position": 2, "name": "Federal IT Contracting", "item": "https://planetek.org/federal" }
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://planetek.org/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Federal IT Contracting",
+          "item": "https://planetek.org/federal"
+        }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "@id": "https://planetek.org/federal#faq",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Do you work as a prime or a subcontractor?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Both. We are sized today for subcontract and teaming roles with established primes, and we pursue small prime awards directly as a certified Small Disadvantaged Business."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is your infrastructure work GovCloud-ready?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Everything we build is infrastructure as code in Terraform or CloudFormation, and the same patterns deploy to commercial and GovCloud regions. Nothing depends on console click-paths."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How quickly can you respond to an RFI or sources sought?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Small-business fast. When you email info@planetek.org you are corresponding with the engineer who would do the work, not a capture team."
+          }
+        }
       ]
     }
   ]
@@ -119,6 +164,9 @@
     <p class="section-lede">Registered and current in SAM.gov, with the identifiers above and the NAICS codes
     below. The two-page capability statement is a direct download:
     <a href="/assets/Planetek_Capability_Statement_Federal.pdf">Planetek_Capability_Statement_Federal.pdf</a>.</p>
+    <p class="section-lede">Building a teaming chart? The
+    <a href="/assets/Planetek_Teaming_One-Pager.pdf">one-page teaming statement</a> puts capabilities,
+    identifiers, NAICS codes, and logistics on a single sheet for prime and partner outreach.</p>
     <div class="facts" aria-label="NAICS codes">
       <div class="fact"><strong>541512</strong> Systems Design · Primary</div>
       <div class="fact"><strong>541511</strong> Custom Programming</div>
@@ -163,6 +211,49 @@
         <p>Keyless CI/CD through GitHub Actions OIDC, Checkov and Trivy gates on every change, and backup
         and restore drills with measured recovery times published to the page.</p>
         <a class="demo" href="https://ops.demos.planetek.org">Watch the pipeline work →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <p class="kicker">No meeting required</p>
+    <h2>Try it right now</h2>
+    <p class="section-lede">Four things an evaluator can do this minute, from the same list printed in our
+    capability statement.</p>
+    <div class="tries">
+      <div class="try">
+        <div class="n">1</div>
+        <div>
+          <p>Sign in as the Staff admin demo account, credentials are printed on the sign-in page, and take
+          a permit from submitted to decided.</p>
+          <a class="u" href="https://permits.demos.planetek.org">permits.demos.planetek.org</a>
+        </div>
+      </div>
+      <div class="try">
+        <div class="n">2</div>
+        <div>
+          <p>Press a button and watch a real Docker container launch on ECS Fargate, with streaming logs, a
+          cold-start waterfall, and an itemized cost ticket.</p>
+          <a class="u" href="https://containers.demos.planetek.org">containers.demos.planetek.org</a>
+        </div>
+      </div>
+      <div class="try">
+        <div class="n">3</div>
+        <div>
+          <p>Run your own capped Athena SQL against 3.1 million Colorado business registrations and check
+          the partition-pruning statistics for the query.</p>
+          <a class="u" href="https://data.demos.planetek.org">data.demos.planetek.org</a>
+        </div>
+      </div>
+      <div class="try">
+        <div class="n">4</div>
+        <div>
+          <p>Open the portfolio's month-to-date AWS bill, service by service, pulled live from Cost Explorer
+          with no sign-in.</p>
+          <a class="u" href="https://ops.demos.planetek.org">ops.demos.planetek.org</a>
+        </div>
       </div>
     </div>
   </div>

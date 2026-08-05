@@ -4,6 +4,13 @@ The boardwalk entrance: a zero-JS static one-pager (S3 + CloudFront, strict
 CSP with `script-src 'none'`) with one card per live environment. Publish
 with `make publish`; infra follows the standard plank patterns in `infra/`.
 
+Crawl files (added 2026-08-05): `site/robots.txt` and a one-URL
+`site/sitemap.xml`. These matter here more than on a normal site because the
+distribution maps 404s to `/index.html` with a 200 (one-pager fallback), so
+before these files existed, crawlers asking for robots.txt got the homepage
+HTML back. Real S3 objects win over the fallback; keep both files when
+touching the bucket sync.
+
 ## Design
 
 Identity: **the pier at lamplight**. The hub is the boardwalk itself. Dark
