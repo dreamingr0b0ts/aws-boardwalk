@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>What Twelve Live AWS Environments Cost Us Last Month | Planetek LLC</title>
-<meta name="description" content="Planetek's whole demo portfolio, twelve production-grade AWS environments plus this website, billed $8.84 in July 2026. The cost-engineering rules that keep it there.">
+<meta name="description" content="Planetek's whole demo portfolio, twelve production-grade AWS environments plus this website, metered $12.23 in AWS usage in July 2026. The cost-engineering rules that keep it there.">
 <link rel="canonical" href="https://planetek.org/insights/what-twelve-aws-environments-cost">
 <link rel="stylesheet" href="/assets/pages.css">
 <link rel="preload" as="image" href="/assets/note-ledger.webp" fetchpriority="high">
@@ -18,7 +18,7 @@
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="Planetek LLC">
 <meta property="og:title" content="What twelve live AWS environments cost us last month">
-<meta property="og:description" content="Twelve production-grade AWS environments plus this website billed $8.84 in July 2026. The cost-engineering rules that keep it there.">
+<meta property="og:description" content="Twelve production-grade AWS environments plus this website metered $12.23 in AWS usage in July 2026. The cost-engineering rules that keep it there.">
 <meta property="og:url" content="https://planetek.org/insights/what-twelve-aws-environments-cost">
 <meta property="og:image" content="https://planetek.org/assets/og.jpg">
 <meta name="twitter:card" content="summary_large_image">
@@ -28,9 +28,9 @@
   "@type": "BlogPosting",
   "@id": "https://planetek.org/insights/what-twelve-aws-environments-cost#post",
   "headline": "What twelve live AWS environments cost us last month",
-  "description": "Twelve production-grade AWS environments plus this website billed $8.84 in July 2026. The cost-engineering rules that keep it there.",
+  "description": "Twelve production-grade AWS environments plus this website metered $12.23 in AWS usage in July 2026. The cost-engineering rules that keep it there.",
   "datePublished": "2026-08-02",
-  "dateModified": "2026-08-02",
+  "dateModified": "2026-08-04",
   "url": "https://planetek.org/insights/what-twelve-aws-environments-cost",
   "mainEntityOfPage": "https://planetek.org/insights/what-twelve-aws-environments-cost",
   "author": { "@type": "Organization", "@id": "https://planetek.org/#org", "name": "Planetek LLC", "url": "https://planetek.org/" },
@@ -82,13 +82,16 @@
   demo hub and the website you are reading, and it is fourteen deployments serving strangers on the
   internet around the clock.</p>
 
-  <p>In July 2026, the AWS bill for all of it was $8.84.</p>
+  <p>In July 2026, all of it metered $12.23 in AWS usage.</p>
 
   <p>That number is not a stunt and it is not hidden in fine print. Our <a
   href="https://ops.demos.planetek.org">operations demo</a> publishes the current month's ledger straight
-  from Cost Explorer, so you can check what the figure is right now. The bill stays in single digits because
-  every environment follows the same short list of rules, and those rules transfer directly to real
-  workloads.</p>
+  from Cost Explorer, so you can check what the figure is right now. One accounting note, because the
+  distinction matters in cost work: $12.23 is metered usage, the figure Cost Explorer reports before any
+  discounts. Free-tier credits offset it in full, so the net infrastructure charge on the July invoice was
+  $0.00. We quote the metered number because it is the one that survives after credits expire. The bill
+  stays that small because every environment follows the same short list of rules, and those rules transfer
+  directly to real workloads.</p>
 
   <h2>Rule one: nothing idles for money</h2>
   <p>The single biggest decision was banning always-on infrastructure that bills by the hour. Across all
@@ -125,12 +128,13 @@
 
   <div class="note-card">
     <p><strong>The July 2026 ledger in one line:</strong> fourteen public deployments, thousands of visitor
-    requests, several thousand blocked probes a day, one bill under nine dollars, with the current month
-    published live on the <a href="https://ops.demos.planetek.org">ops demo</a>.</p>
+    requests, several thousand blocked probes a day, $12.23 in metered usage, $0.00 out of pocket after
+    free-tier credits, with the current month published live on the
+    <a href="https://ops.demos.planetek.org">ops demo</a>.</p>
   </div>
 
   <h2>What this means for your bill</h2>
-  <p>Your production workload is not a demo portfolio, and we would never promise you a nine-dollar month.
+  <p>Your production workload is not a demo portfolio, and we would never promise you a twelve-dollar month.
   Real businesses have real traffic, data that must stay hot, and compliance obligations that bill daily.
   But in most AWS accounts we assess, a meaningful share of spend is structural rather than useful:
   idle capacity waiting for traffic that arrives in bursts, oversized instances, orphaned volumes and

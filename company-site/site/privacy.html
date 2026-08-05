@@ -63,7 +63,9 @@
   .nav-links { display: flex; gap: 16px; flex-wrap: wrap; margin-left: auto; align-items: center; }
   .nav-links a { color: var(--night-sub); text-decoration: none; font-size: 13.5px; font-weight: 700; }
   .nav-links a:hover { color: #fff; }
-  @media (max-width: 560px) { .nav-links { margin-left: 0; flex-basis: 100%; padding-bottom: 4px; } }
+  .nav-links a.cta { background: #c4401f; color: #fff; padding: 8px 16px; border-radius: 9px; }
+  .nav-links a.cta:hover { background: #a53517; }
+  @media (max-width: 720px) { .nav-links { margin-left: 0; flex-basis: 100%; padding-bottom: 4px; } }
 
   /* ---- hero: the lockbox wall ----
      Photo: Elizabeth Kay via Unsplash (unsplash.com/photos/9szCcOw4BWo),
@@ -132,9 +134,14 @@
       Planetek
     </a>
     <div class="nav-links">
-      <a href="/#aws">Services</a>
-      <a href="https://demos.planetek.org">Live Demos</a>
-      <a href="/#contact">Contact</a>
+      <a href="/managed-aws">Managed AWS</a>
+      <a href="/federal">Federal</a>
+      <a href="/fractional-cto">Fractional Leadership</a>
+      <a href="/ai-training">AI Training</a>
+      <a href="/web-development">Web Development</a>
+      <a href="/insights">Insights</a>
+      <a href="/about">About</a>
+      <a class="cta" href="/#contact">Get Started</a>
     </div>
   </div>
 </nav>
