@@ -50,6 +50,7 @@ echo "$BODY" | grep -q 'application/ld+json' || [ $? -eq 141 ] ; check "JSON-LD 
 curl -sS $CURL "$URL/robots.txt" | grep -q "Sitemap:" || [ $? -eq 141 ] ; check "robots.txt with sitemap" $?
 curl -sS $CURL "$URL/sitemap.xml" | grep -q "<urlset" || [ $? -eq 141 ] ; check "sitemap.xml" $?
 curl -sS $CURL "$URL/feed.xml" | grep -q "<rss" || [ $? -eq 141 ] ; check "RSS feed" $?
+python3 ../tools/check_field_notes.py ; check "field-note surfaces in sync (repo)" $?
 curl -sS $CURL "$URL/assets/og.jpg" -o /dev/null -w "%{http_code}" | grep -q 200 || [ $? -eq 141 ] ; check "og image serves" $?
 
 # --- routing ------------------------------------------------------------------

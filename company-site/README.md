@@ -90,9 +90,14 @@ is hand-maintained at `site/feed.xml` (RSS 2.0, `dc:creator`, permalink
 guids); it is linked via `rel="alternate"` from the homepage, /insights, and
 every post, plus a visible link under the /insights post list. Shipping a new
 post means: the post page itself (copy an existing one: JSON-LD graph, stamp,
-author card), a card on /insights + its Blog JSON-LD entry, a feed.xml item
-and `lastBuildDate` bump, and a sitemap entry. `make verify` checks the feed
-serves.
+author card), a card on /insights + its Blog JSON-LD entry, a card on the
+homepage (short-form dates there, long-form everywhere else), a feed.xml item
+and `lastBuildDate` bump, and a sitemap entry. This checklist is enforced,
+not just documented: `tools/check_field_notes.py` treats each post's
+BlogPosting JSON-LD as the source of truth and fails `make verify` on any
+date, ordering, or presence drift across those surfaces (the homepage cards
+drifted exactly this way on 2026-08-06). Prose stays hand-authored per
+surface on purpose; only the derived facts are checked.
 
 ## Design
 
