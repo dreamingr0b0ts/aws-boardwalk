@@ -235,6 +235,9 @@
   .hero-meta { margin-top: 40px; display: flex; gap: 28px; flex-wrap: wrap;
     font: 400 12px/1.5 var(--mono); color: var(--night-dim); }
   .hero-meta strong { display: block; color: #fff; font-size: 17px; font-family: var(--body); font-weight: 700; }
+  /* Phone portrait: the four facts wrap 2x2; a grid keeps the second
+     column aligned across rows, which flex-wrap cannot. */
+  @media (max-width: 720px) { .hero-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 20px 16px; } }
   .hero-footnote { margin-top: 14px; font: 400 11.5px/1.7 var(--mono); color: var(--night-dim); }
   .hero-footnote a { color: var(--lamp-bright); }
 
