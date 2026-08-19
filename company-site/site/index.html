@@ -165,7 +165,7 @@
   }
   * { box-sizing: border-box; margin: 0; }
   @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
-  @media (min-width: 721px) { html { scroll-padding-top: 72px; } }
+  html { scroll-padding-top: 72px; } /* nav is sticky at every width now */
   body {
     background: var(--bg); color: var(--ink);
     font: 16px/1.58 var(--body);
@@ -194,6 +194,27 @@
   .nav-links a:hover { color: #fff; }
   .nav-links a.cta { background: var(--ember); color: #fff; padding: 8px 16px; border-radius: 9px; }
   .nav-links a.cta:hover { background: var(--ember-deep); color: #fff; }
+  /* Mobile: the menu folds into a hamburger. The CSP allows no inline JS, so
+     the toggle is a hidden checkbox: the label draws the burger, :checked
+     drops the menu. */
+  .nav-open, .nav-toggle { display: none; }
+  @media (max-width: 720px) {
+    .nav-open { display: block; position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0; }
+    .nav-toggle { display: flex; flex-direction: column; justify-content: center; gap: 5px;
+      margin-left: auto; width: 46px; height: 38px; padding: 0 12px; cursor: pointer;
+      border: 1px solid rgba(185,214,209,.3); border-radius: 9px; }
+    .nav-toggle span { height: 2px; border-radius: 2px; background: var(--night-sub);
+      transition: transform .18s ease, opacity .18s ease; }
+    .nav-open:focus-visible ~ .nav-toggle { outline: 2px solid var(--lamp-bright); outline-offset: 2px; }
+    .nav-open:checked ~ .nav-toggle span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .nav-open:checked ~ .nav-toggle span:nth-child(2) { opacity: 0; }
+    .nav-open:checked ~ .nav-toggle span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+    .nav-links { display: none; }
+    .nav-open:checked ~ .nav-links { display: flex; flex-direction: column; align-items: stretch;
+      gap: 0; flex-basis: 100%; margin-left: 0; padding: 4px 0 12px; }
+    .nav-links a { font-size: 15px; padding: 12px 2px; border-bottom: 1px solid rgba(185,214,209,.12); }
+    .nav-links a.cta { margin-top: 12px; border-bottom: none; text-align: center; padding: 12px 16px; }
+  }
 
   /* --- hero --- */
   header.hero { background: linear-gradient(180deg, var(--pine-deep), var(--pine)); color: var(--night-ink);
@@ -213,8 +234,6 @@
     linear-gradient(97deg, rgba(11,31,30,.94) 0%, rgba(11,31,30,.84) 30%, rgba(11,31,30,.5) 56%, rgba(11,31,30,.12) 84%, rgba(11,31,30,.06) 100%),
     linear-gradient(to bottom, rgba(11,31,30,.5) 0%, rgba(11,31,30,0) 30%, rgba(11,31,30,0) 62%, rgba(11,31,30,.62) 100%); }
   @media (max-width: 720px) {
-    /* the wrapped nav would eat a quarter of a small viewport if it stayed stuck */
-    nav.top { position: static; }
     .hero-photo { object-position: 74% 50%; }
     .hero-veil { background:
       linear-gradient(180deg, rgba(11,31,30,.95) 0%, rgba(11,31,30,.84) 52%, rgba(11,31,30,.48) 100%); } }
@@ -425,10 +444,13 @@
       <svg viewBox="247 102 1171 1149" aria-hidden="true"><use href="#pk-mark"/></svg>
       Planetek
     </a>
+    <input type="checkbox" id="nav-open" class="nav-open">
+    <label class="nav-toggle" for="nav-open" aria-label="Menu"><span></span><span></span><span></span></label>
     <div class="nav-links">
       <a href="/managed-aws">Managed AWS</a>
       <a href="/federal">Federal</a>
       <a href="/fractional-cto">Fractional Leadership</a>
+      <a href="https://demos.planetek.org">AWS Boardwalk</a>
       <a href="/insights">Insights</a>
       <a href="/about">About</a>
       <a class="cta" href="/schedule">Book a call</a>

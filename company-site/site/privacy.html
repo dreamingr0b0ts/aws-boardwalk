@@ -65,7 +65,27 @@
   .nav-links a:hover { color: #fff; }
   .nav-links a.cta { background: #c4401f; color: #fff; padding: 8px 16px; border-radius: 9px; }
   .nav-links a.cta:hover { background: #a53517; }
-  @media (max-width: 720px) { .nav-links { margin-left: 0; flex-basis: 100%; padding-bottom: 4px; } }
+  /* Mobile: the menu folds into a hamburger. The CSP allows no inline JS, so
+     the toggle is a hidden checkbox: the label draws the burger, :checked
+     drops the menu. */
+  .nav-open, .nav-toggle { display: none; }
+  @media (max-width: 720px) {
+    .nav-open { display: block; position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0; }
+    .nav-toggle { display: flex; flex-direction: column; justify-content: center; gap: 5px;
+      margin-left: auto; width: 46px; height: 38px; padding: 0 12px; cursor: pointer;
+      border: 1px solid rgba(185,214,209,.3); border-radius: 9px; }
+    .nav-toggle span { height: 2px; border-radius: 2px; background: var(--night-sub);
+      transition: transform .18s ease, opacity .18s ease; }
+    .nav-open:focus-visible ~ .nav-toggle { outline: 2px solid #f5b04c; outline-offset: 2px; }
+    .nav-open:checked ~ .nav-toggle span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .nav-open:checked ~ .nav-toggle span:nth-child(2) { opacity: 0; }
+    .nav-open:checked ~ .nav-toggle span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+    .nav-links { display: none; }
+    .nav-open:checked ~ .nav-links { display: flex; flex-direction: column; align-items: stretch;
+      gap: 0; flex-basis: 100%; margin-left: 0; padding: 4px 0 12px; }
+    .nav-links a { font-size: 15px; padding: 12px 2px; border-bottom: 1px solid rgba(185,214,209,.12); }
+    .nav-links a.cta { margin-top: 12px; border-bottom: none; text-align: center; padding: 12px 16px; }
+  }
 
   /* ---- hero: the lockbox wall ----
      Photo: Elizabeth Kay via Unsplash (unsplash.com/photos/9szCcOw4BWo),
@@ -157,10 +177,13 @@
       <svg viewBox="247 102 1171 1149" aria-hidden="true"><use href="#pk-mark"/></svg>
       Planetek
     </a>
+    <input type="checkbox" id="nav-open" class="nav-open">
+    <label class="nav-toggle" for="nav-open" aria-label="Menu"><span></span><span></span><span></span></label>
     <div class="nav-links">
       <a href="/managed-aws">Managed AWS</a>
       <a href="/federal">Federal</a>
       <a href="/fractional-cto">Fractional Leadership</a>
+      <a href="https://demos.planetek.org">AWS Boardwalk</a>
       <a href="/insights">Insights</a>
       <a href="/about">About</a>
       <a class="cta" href="/schedule">Book a call</a>
