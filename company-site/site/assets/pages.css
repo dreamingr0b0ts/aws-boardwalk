@@ -75,7 +75,7 @@ a:focus-visible { outline: 2px solid var(--glow); outline-offset: 2px; }
 
 /* --- nav --- */
 nav.top { background: var(--pine-deep); color: var(--night-ink); border-bottom: 1px solid rgba(185,214,209,.16); }
-.nav-inner { display: flex; align-items: center; gap: 18px; padding: 12px 0; flex-wrap: wrap; }
+.nav-inner { display: flex; align-items: center; gap: 18px; padding: 12px 20px; flex-wrap: wrap; }
 .brand { display: flex; align-items: baseline; gap: 10px; text-decoration: none; color: #fff;
   font: 700 17px/1 var(--display); text-transform: uppercase; letter-spacing: .07em; padding-top: 2px; }
 .brand svg { width: 21px; height: 20px; color: var(--night-sub); flex: none; position: relative; top: 1px; }
