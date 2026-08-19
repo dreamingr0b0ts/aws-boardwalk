@@ -211,11 +211,12 @@
   .top-links a[aria-current="page"] { color: #fff; border-bottom: 2px solid var(--lamp-bright); padding-bottom: 2px; }
   .top-links a.top-cta { background: var(--glow); color: #fff; padding: 7px 14px 6px; border-radius: 8px; }
   .top-links a.top-cta:hover { filter: brightness(1.1); }
-  /* Mobile: the menu folds into a hamburger, same pattern as planetek.org.
-     The hub's CSP is script-src 'none', so the toggle is a hidden checkbox:
-     the label draws the burger, :checked drops the menu. */
+  /* Below 960px (phones in either orientation) the menu folds into a
+     hamburger, same pattern as planetek.org. The hub's CSP is script-src
+     'none', so the toggle is a hidden checkbox: the label draws the burger,
+     :checked drops the menu. */
   .nav-open, .nav-toggle { display: none; }
-  @media (max-width: 720px) {
+  @media (max-width: 960px) {
     .top-inner { flex-wrap: wrap; }
     .nav-open { display: block; position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0; }
     .nav-toggle { display: flex; flex-direction: column; justify-content: center; gap: 5px;
@@ -228,8 +229,9 @@
     .nav-open:checked ~ .nav-toggle span:nth-child(2) { opacity: 0; }
     .nav-open:checked ~ .nav-toggle span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
     .top-links { display: none; }
-    .nav-open:checked ~ .top-links { display: flex; flex-direction: column; align-items: stretch;
-      gap: 0; flex-basis: 100%; padding: 4px 0 12px; }
+    .nav-open:checked ~ .top-links { display: flex; flex-direction: column; flex-wrap: nowrap; align-items: stretch;
+      gap: 0; flex-basis: 100%; padding: 4px 0 12px;
+      max-height: calc(100vh - 76px); overflow-y: auto; }
     .top-links a { font-size: 15px; padding: 12px 2px; border-bottom: 1px solid rgba(185,214,209,.12); }
     .top-links a[aria-current="page"] { border-bottom: 1px solid rgba(185,214,209,.12); padding-bottom: 12px;
       border-left: 3px solid var(--lamp-bright); padding-left: 10px; }
@@ -268,9 +270,9 @@
     <label class="nav-toggle" for="nav-open" aria-label="Menu"><span></span><span></span><span></span></label>
     <div class="top-links">
       <a href="https://planetek.org/managed-aws">Managed AWS</a>
+      <a href="/" aria-current="page">AWS Boardwalk</a>
       <a href="https://planetek.org/federal">Federal</a>
       <a href="https://planetek.org/fractional-cto">Fractional Leadership</a>
-      <a href="/" aria-current="page">AWS Boardwalk</a>
       <a href="https://planetek.org/insights">Insights</a>
       <a href="https://planetek.org/about">About</a>
       <a class="top-cta" href="https://planetek.org/schedule">Book a call</a>
