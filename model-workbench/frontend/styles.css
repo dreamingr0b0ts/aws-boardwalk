@@ -339,10 +339,10 @@ footer {
 .pknav { background: #0b1f1e; border-bottom: 1px solid rgba(185,214,209,.16); }
 .pknav-inner { max-width: 1100px; margin: 0 auto; padding: 12px 20px; display: flex;
   align-items: center; gap: 18px; flex-wrap: wrap; box-sizing: border-box; }
-.pknav-brand { display: flex; align-items: baseline; gap: 9px;
-  font: 700 15px/1 "PK Josefin", ui-sans-serif, system-ui, sans-serif;
-  text-transform: uppercase; letter-spacing: .08em; color: #fff; text-decoration: none; padding-top: 2px; }
-.pknav-brand svg { width: 19px; height: 18px; color: #b9d6d1; flex: none; position: relative; top: 1px; }
+.pknav-brand { display: flex; align-items: baseline; gap: 10px;
+  font: 700 17px/1 "PK Josefin", ui-sans-serif, system-ui, sans-serif;
+  text-transform: uppercase; letter-spacing: .07em; color: #fff; text-decoration: none; padding-top: 2px; }
+.pknav-brand svg { width: 21px; height: 20px; color: #b9d6d1; flex: none; position: relative; top: 1px; }
 .pknav-links { display: flex; gap: 16px; flex-wrap: wrap; margin-left: auto; align-items: center;
   font-family: "PK Mulish", ui-sans-serif, system-ui, sans-serif; }
 .pknav-links a { color: #b9d6d1; text-decoration: none; font-size: 13.5px; font-weight: 700; }
