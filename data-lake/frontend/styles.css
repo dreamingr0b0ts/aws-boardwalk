@@ -304,3 +304,45 @@ footer {
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
 }
+
+/* ---- Pier gate: the standard Planetek nav, shared by every boardwalk
+   property. Self-contained on purpose: fixed pine palette, own fonts, and
+   a pknav- prefix so it cannot collide with this plank's styles. The
+   hamburger below 960px is a hidden checkbox (the label draws the burger,
+   :checked drops the menu) because several planks ship script-src 'none'. */
+@font-face { font-family: "PK Josefin"; font-style: normal; font-weight: 700; font-display: swap;
+  src: url("/fonts/josefin-sans-latin-700-normal.woff2") format("woff2"); }
+@font-face { font-family: "PK Mulish"; font-style: normal; font-weight: 700; font-display: swap;
+  src: url("/fonts/mulish-latin-700-normal.woff2") format("woff2"); }
+.pknav { background: #0b1f1e; border-bottom: 1px solid rgba(185,214,209,.16); }
+.pknav-inner { max-width: 1100px; margin: 0 auto; padding: 12px 20px; display: flex;
+  align-items: center; gap: 18px; flex-wrap: wrap; box-sizing: border-box; }
+.pknav-brand { display: flex; align-items: baseline; gap: 9px;
+  font: 700 15px/1 "PK Josefin", ui-sans-serif, system-ui, sans-serif;
+  text-transform: uppercase; letter-spacing: .08em; color: #fff; text-decoration: none; padding-top: 2px; }
+.pknav-brand svg { width: 19px; height: 18px; color: #b9d6d1; flex: none; position: relative; top: 1px; }
+.pknav-links { display: flex; gap: 16px; flex-wrap: wrap; margin-left: auto; align-items: center;
+  font-family: "PK Mulish", ui-sans-serif, system-ui, sans-serif; }
+.pknav-links a { color: #b9d6d1; text-decoration: none; font-size: 13.5px; font-weight: 700; }
+.pknav-links a:hover { color: #fff; }
+.pknav-links a.pknav-cta { background: #c4401f; color: #fff; padding: 8px 16px; border-radius: 9px; }
+.pknav-links a.pknav-cta:hover { background: #a53517; }
+.pknav-open, .pknav-toggle { display: none; }
+@media (max-width: 960px) {
+  .pknav-open { display: block; position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0; }
+  .pknav-toggle { display: flex; flex-direction: column; justify-content: center; gap: 5px;
+    margin-left: auto; width: 46px; height: 38px; padding: 0 12px; cursor: pointer;
+    border: 1px solid rgba(185,214,209,.3); border-radius: 9px; box-sizing: border-box; }
+  .pknav-toggle span { height: 2px; border-radius: 2px; background: #b9d6d1;
+    transition: transform .18s ease, opacity .18s ease; }
+  .pknav-open:focus-visible ~ .pknav-toggle { outline: 2px solid #f5b04c; outline-offset: 2px; }
+  .pknav-open:checked ~ .pknav-toggle span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+  .pknav-open:checked ~ .pknav-toggle span:nth-child(2) { opacity: 0; }
+  .pknav-open:checked ~ .pknav-toggle span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+  .pknav-links { display: none; }
+  .pknav-open:checked ~ .pknav-links { display: flex; flex-direction: column; flex-wrap: nowrap;
+    align-items: stretch; gap: 0; flex-basis: 100%; margin-left: 0; padding: 4px 0 12px;
+    max-height: calc(100vh - 76px); overflow-y: auto; }
+  .pknav-links a { font-size: 15px; padding: 12px 2px; border-bottom: 1px solid rgba(185,214,209,.12); }
+  .pknav-links a.pknav-cta { margin-top: 12px; border-bottom: none; text-align: center; padding: 12px 16px; }
+}
