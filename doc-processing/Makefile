@@ -43,9 +43,16 @@ publish:
 	DIST=$$($(TF) output -raw distribution_id); \
 	$(TF) output -json | jq '{region: "us-east-1", userPoolClientId: .user_pool_client_id.value}' \
 		> frontend/config.json; \
-	aws s3 sync frontend "s3://$$BUCKET" --delete; \
+	aws s3 sync frontend "s3://$$BUCKET" --exclude "*" --include "fonts/*" \
+	  --cache-control "public, max-age=31536000, immutable"; \
+	aws s3 sync frontend "s3://$$BUCKET" --exclude "*" \
+	  --include "*.webp" --include "*.jpg" --include "*.png" --include "*.svg" --include "*.ico" \
+	  --exclude "fonts/*" --cache-control "public, max-age=86400"; \
+	aws s3 sync frontend "s3://$$BUCKET" --delete \
+	  --cache-control "public, max-age=300, must-revalidate"; \
 	aws s3 cp "s3://$$BUCKET/vendor" "s3://$$BUCKET/vendor" --recursive --exclude "*" \
-		--include "*.mjs" --content-type text/javascript --metadata-directive REPLACE > /dev/null; \
+		--include "*.mjs" --content-type text/javascript \
+		--cache-control "public, max-age=300, must-revalidate" --metadata-directive REPLACE > /dev/null; \
 	aws cloudfront create-invalidation --distribution-id "$$DIST" --paths "/*" --no-cli-pager --output text > /dev/null; \
 	echo "published → $$($(TF) output -raw site_url)"
 

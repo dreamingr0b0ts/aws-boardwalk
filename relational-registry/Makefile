@@ -21,7 +21,13 @@ deploy: init
 publish:
 	@BUCKET=$$($(TF) output -raw site_bucket); \
 	DIST=$$($(TF) output -raw distribution_id); \
-	aws s3 sync frontend "s3://$$BUCKET" --delete --exclude "evidence/*"; \
+	aws s3 sync frontend "s3://$$BUCKET" --exclude "*" --include "fonts/*" \
+	  --cache-control "public, max-age=31536000, immutable"; \
+	aws s3 sync frontend "s3://$$BUCKET" --exclude "*" \
+	  --include "*.webp" --include "*.jpg" --include "*.png" --include "*.svg" --include "*.ico" \
+	  --exclude "fonts/*" --cache-control "public, max-age=86400"; \
+	aws s3 sync frontend "s3://$$BUCKET" --delete --exclude "evidence/*" \
+	  --cache-control "public, max-age=300, must-revalidate"; \
 	aws cloudfront create-invalidation --distribution-id "$$DIST" --paths "/*" --no-cli-pager --output text > /dev/null; \
 	echo "published → $$($(TF) output -raw site_url)"
 

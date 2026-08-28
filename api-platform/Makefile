@@ -26,7 +26,13 @@ publish:
 	SITE=$$($(TF) output -raw site_url); \
 	node backend/spec-to-json.mjs infra/openapi.yaml frontend/openapi.json "$$SITE"; \
 	jq -n --arg key "$$($(TF) output -raw demo_api_key)" '{demoKey: $$key}' > frontend/config.json; \
-	aws s3 sync frontend "s3://$$BUCKET" --delete; \
+	aws s3 sync frontend "s3://$$BUCKET" --exclude "*" --include "fonts/*" \
+	  --cache-control "public, max-age=31536000, immutable"; \
+	aws s3 sync frontend "s3://$$BUCKET" --exclude "*" \
+	  --include "*.webp" --include "*.jpg" --include "*.png" --include "*.svg" --include "*.ico" \
+	  --exclude "fonts/*" --cache-control "public, max-age=86400"; \
+	aws s3 sync frontend "s3://$$BUCKET" --delete \
+	  --cache-control "public, max-age=300, must-revalidate"; \
 	aws cloudfront create-invalidation --distribution-id "$$DIST" --paths "/*" --no-cli-pager --output text > /dev/null; \
 	echo "published → $$SITE"
 

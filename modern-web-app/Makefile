@@ -24,7 +24,13 @@ publish:
 	DIST=$$($(TF) output -raw distribution_id); \
 	$(TF) output -json | jq '{region: "us-east-1", userPoolId: .user_pool_id.value, userPoolClientId: .user_pool_client_id.value}' \
 		> frontend/dist/config.json; \
-	aws s3 sync frontend/dist "s3://$$BUCKET" --delete; \
+	aws s3 sync frontend/dist "s3://$$BUCKET" --exclude "*" --include "fonts/*" --include "assets/*" \
+	  --cache-control "public, max-age=31536000, immutable"; \
+	aws s3 sync frontend/dist "s3://$$BUCKET" --exclude "*" \
+	  --include "*.webp" --include "*.jpg" --include "*.png" --include "*.svg" --include "*.ico" \
+	  --exclude "fonts/*" --exclude "assets/*" --cache-control "public, max-age=86400"; \
+	aws s3 sync frontend/dist "s3://$$BUCKET" --delete \
+	  --cache-control "public, max-age=300, must-revalidate"; \
 	aws cloudfront create-invalidation --distribution-id "$$DIST" --paths "/*" --no-cli-pager --output text > /dev/null; \
 	echo "published → https://$$($(TF) output -raw cloudfront_domain)"
 
