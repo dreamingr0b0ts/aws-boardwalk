@@ -40,7 +40,7 @@ jobs:
     name: security scan (Checkov + Trivy)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Checkov (Terraform misconfigurations)
         uses: bridgecrewio/checkov-action@v12
@@ -71,13 +71,13 @@ jobs:
         # NOT in this matrix — deploy-demo-teardown is local-only via make.
         dir: [platform, modern-web-app, genai-assistant, doc-processing, event-mesh, data-lake, api-platform, container-works, security-posture, network-blueprint, relational-registry, model-workbench, demo-hub, company-site, devops-sre]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: hashicorp/setup-terraform@v3
+      - uses: hashicorp/setup-terraform@v4
         with:
           terraform_version: "~1.10"
 
-      - uses: aws-actions/configure-aws-credentials@v4
+      - uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/ops-gh-plan
           aws-region: ${{ env.AWS_REGION }}
@@ -112,13 +112,13 @@ jobs:
         # always-on infra/ roots only (see plan matrix note)
         dir: [platform, modern-web-app, genai-assistant, doc-processing, event-mesh, data-lake, api-platform, container-works, security-posture, network-blueprint, relational-registry, model-workbench, demo-hub, company-site, devops-sre]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: hashicorp/setup-terraform@v3
+      - uses: hashicorp/setup-terraform@v4
         with:
           terraform_version: "~1.10"
 
-      - uses: aws-actions/configure-aws-credentials@v4
+      - uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/ops-gh-apply
           aws-region: ${{ env.AWS_REGION }}

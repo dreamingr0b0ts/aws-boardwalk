@@ -39,16 +39,16 @@ jobs:
       matrix:
         dir: [security-posture, network-blueprint, relational-registry]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: hashicorp/setup-terraform@v3
+      - uses: hashicorp/setup-terraform@v4
         with:
           terraform_version: "~1.10"
           # No wrapper: the Makefiles capture `terraform output -raw` values
           # in command substitutions, which the wrapper's echo would corrupt.
           terraform_wrapper: false
 
-      - uses: aws-actions/configure-aws-credentials@v4
+      - uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/ops-gh-apply
           aws-region: ${{ env.AWS_REGION }}
