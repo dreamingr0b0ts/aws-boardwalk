@@ -282,9 +282,9 @@ article .post-foot { margin-top: 44px; padding-top: 18px; border-top: 1px solid 
 .hero .store-note { color: var(--night-dim); }
 .shots { margin-top: 28px; display: grid; gap: 20px; max-width: 900px;
   grid-template-columns: repeat(auto-fit, minmax(min(210px, 100%), 1fr)); }
-.shot { margin: 0; }
-.shot img { display: block; width: 100%; border-radius: 20px; border: 1px solid var(--border);
-  background: var(--surface); }
+.shot { margin: 0 auto; max-width: 300px; }
+.shot img { display: block; width: 100%; height: auto; border-radius: 20px;
+  border: 1px solid var(--border); background: var(--surface); }
 .shot figcaption { margin-top: 11px; font-size: 13.5px; line-height: 1.6; color: var(--ink-3); }
 .disclaimer { margin-top: 26px; font: 400 12px/1.7 var(--mono); color: var(--ink-3); max-width: 760px; }
 
