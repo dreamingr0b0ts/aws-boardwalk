@@ -98,6 +98,31 @@ HERO=$(curl -sS $CURL -o /dev/null -w '%{http_code}' "$URL/assets/aws-village-du
 POSTS_LISTED=$(echo "$INS" | grep -c "class=\"post-card\"")
 [ "$POSTS_LISTED" -ge 3 ] ; check "insights index lists 3+ posts" $?
 
+# --- apps: the product hub and its per-app pages -------------------------------
+APPS=$(curl -sS $CURL "$URL/apps")
+echo "$APPS" | grep -q "Apps from Planetek" || [ $? -eq 141 ] ; check "apps hub /apps serves" $?
+echo "$APPS" | grep -q 'rel="canonical" href="https://planetek.org/apps"' || [ $? -eq 141 ] ; check "canonical on /apps" $?
+echo "$APPS" | grep -q 'href="/apps/govcon-radar"' || [ $? -eq 141 ] ; check "apps hub links its app pages" $?
+GCR=$(curl -sS $CURL "$URL/apps/govcon-radar")
+echo "$GCR" | grep -q "GovCon Radar" || [ $? -eq 141 ] ; check "app page /apps/govcon-radar (nested clean URL)" $?
+echo "$GCR" | grep -q 'rel="canonical" href="https://planetek.org/apps/govcon-radar"' || [ $? -eq 141 ] ; check "canonical on /apps/govcon-radar" $?
+# The whole point of the page: the two store listings and the product site.
+echo "$GCR" | grep -q "apps.apple.com/us/app/govcon-radar" || [ $? -eq 141 ] ; check "app page links the App Store listing" $?
+echo "$GCR" | grep -q "play.google.com/store/apps/details?id=org.planetek.govconradar" || [ $? -eq 141 ] ; check "app page links the Play Store listing" $?
+echo "$GCR" | grep -q "https://app.govconradar.com/" || [ $? -eq 141 ] ; check "app page links app.govconradar.com" $?
+echo "$GCR" | grep -q '"@type": "SoftwareApplication"' || [ $? -eq 141 ] ; check "app page carries SoftwareApplication JSON-LD" $?
+echo "$GCR" | grep -q "not affiliated with or endorsed by the U.S. Government" || [ $? -eq 141 ] ; check "app page carries the no-endorsement disclaimer" $?
+for A in badges/app-store.svg badges/google-play.png govcon-radar-matches.webp govcon-radar-dish.webp; do
+  [ "$(curl -sS $CURL -o /dev/null -w '%{http_code}' "$URL/assets/$A")" = "200" ] ; check "app asset serves: $A" $?
+done
+# Internal linking is what makes the section worth having, so it is checked,
+# not assumed: the nav on every page, the footer, and a real homepage section.
+echo "$BODY" | grep -q 'href="/apps"' || [ $? -eq 141 ] ; check "homepage links to /apps" $?
+echo "$BODY" | grep -q "Apps we build, ship, and run" || [ $? -eq 141 ] ; check "homepage carries the apps section" $?
+echo "$AWSPAGE" | grep -q '<a href="/apps">Apps</a>' || [ $? -eq 141 ] ; check "interior pages carry Apps in the nav" $?
+SMAP=$(curl -sS $CURL "$URL/sitemap.xml")
+echo "$SMAP" | grep -q "https://planetek.org/apps/govcon-radar" || [ $? -eq 141 ] ; check "sitemap lists the app page" $?
+
 # --- contact API --------------------------------------------------------------
 HP=$(curl -sS $CURL -X POST "$URL/api/contact" -H 'content-type: application/json' \
   -d '{"name":"Bot","email":"bot@example.com","message":"spam spam spam","website":"http://spam"}')

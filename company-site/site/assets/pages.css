@@ -271,6 +271,23 @@ article .post-foot { margin-top: 44px; padding-top: 18px; border-top: 1px solid 
 .post-author p { margin-top: 0; font-size: 14px; }
 .post-author .post-author-name { font: 600 13px/1.6 var(--mono); color: var(--ink); }
 
+/* --- app pages: store badges and handset screenshots --- */
+/* Both badges render at one height so neither store is favored; the Play
+   artwork is the wider of the two, which its brand guidelines require. */
+.stores { margin-top: 26px; display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+.stores img { display: block; height: 48px; width: auto; }
+.stores a { border-radius: 8px; }
+.stores a:hover { opacity: .88; }
+.store-note { margin-top: 12px; font: 400 12px/1.7 var(--mono); color: var(--ink-3); }
+.hero .store-note { color: var(--night-dim); }
+.shots { margin-top: 28px; display: grid; gap: 20px; max-width: 900px;
+  grid-template-columns: repeat(auto-fit, minmax(min(210px, 100%), 1fr)); }
+.shot { margin: 0; }
+.shot img { display: block; width: 100%; border-radius: 20px; border: 1px solid var(--border);
+  background: var(--surface); }
+.shot figcaption { margin-top: 11px; font-size: 13.5px; line-height: 1.6; color: var(--ink-3); }
+.disclaimer { margin-top: 26px; font: 400 12px/1.7 var(--mono); color: var(--ink-3); max-width: 760px; }
+
 /* --- footer --- */
 footer { background: var(--pine-deep); color: var(--night-sub); font-size: 13px; }
 .foot-grid { display: grid; gap: 28px; padding: 38px 20px 30px; max-width: 1100px; margin: 0 auto; }

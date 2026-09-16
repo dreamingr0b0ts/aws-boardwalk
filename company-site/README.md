@@ -9,7 +9,7 @@ GoDaddy so the nameserver cutover never touches email.
 
 | Piece | What |
 | --- | --- |
-| `site/` | Dependency-free static site: homepage, five service pages (three core in the nav; see the service hierarchy note below), /about, /schedule, insights + three field notes, privacy/terms/404 (SEO: canonical, OG, JSON-LD, sitemap, RSS at /feed.xml) |
+| `site/` | Dependency-free static site: homepage, five service pages (three core in the nav; see the service hierarchy note below), /apps + a page per shipped app, /about, /schedule, insights + three field notes, privacy/terms/404 (SEO: canonical, OG, JSON-LD, sitemap, RSS at /feed.xml) |
 | `backend/contact.mjs` | Contact form Lambda: honeypot, validation, per-IP + global daily caps (DynamoDB TTL counters), SESv2 send |
 | `infra/` | Zone (`prevent_destroy`), ACM cert (DNS-validated), CloudFront + router function (www→apex, clean URLs), HTTP API, SES identities |
 
@@ -54,6 +54,40 @@ grouping and every footer) but were demoted and reframed:
 `scripts/verify.sh` greps for the new H1s; the /about education list still
 carries the Cornell certificate.
 
+## Apps (added 2026-09-16)
+
+Planetek ships its own products, not only client work, and they live under
+`/apps`: a hub at `site/apps.html` and **one page per app** at
+`site/apps/<slug>.html`. The split is deliberate and should not be collapsed
+into a single combined page. A page per app gets its own title, description,
+canonical, and `SoftwareApplication` markup, so each product can rank for its
+own name instead of competing with its siblings, and a new app is a new file
+rather than a restructure with redirects. The hub carries the nav slot and the
+sitewide footer link. The pattern mirrors `/insights` + `/insights/<slug>`,
+and the CloudFront router already maps nested extensionless paths to `.html`.
+
+First app: **GovCon Radar** (`/apps/govcon-radar`), live on the App Store and
+Google Play, product site `app.govconradar.com`. That site links back here, so
+the two properties reinforce each other; keep both directions intact. Its repo
+is `~/Developer/govcon-radar`, which is the source of truth for every claim on
+the page — pricing, plan limits, and the store URLs live in `web/lib/seo.ts`
+and `web/app/pricing/pricing-client.tsx`. When the product changes, this page
+and `app.govconradar.com/pricing/` both have to move, and the page says out
+loud that the product's own pricing page wins if they disagree.
+
+Two rules the product's own copy standard imposes, carried over here because
+the page is about it: never imply government endorsement (the page and its
+FAQ JSON-LD both carry the "not affiliated with or endorsed by the U.S.
+Government, SAM.gov, or any federal agency" line), and keep the Apple and
+Google trademark attributions with the badges. The badges render at one
+height, with the Play artwork wider, which Google's brand guidelines require.
+
+Shipping a new app means: its page under `site/apps/`, a card on `/apps`, a
+sitemap entry, and a `verify.sh` block (the existing one checks the store
+links, the disclaimer, the JSON-LD, and every vendored asset). The nav, the
+footer, and the homepage section already point at the hub, so they only change
+when the hub does.
+
 ## Structured data (expanded 2026-08-05)
 
 Every page carries JSON-LD; the sitewide review's checklist is fully covered:
@@ -67,6 +101,10 @@ Every page carries JSON-LD; the sitewide review's checklist is fully covered:
   the auto-updated monthly cost figure so `tools/update_monthly_costs.py`'s
   single-marker invariant holds (the marker count check fails loudly if the
   phrase is ever duplicated).
+- `/apps` — `CollectionPage` + `ItemList` + `BreadcrumbList`.
+- `/apps/<app>` — `SoftwareApplication` (store listings in `sameAs`, the real
+  `offers`, `publisher` pointing at the homepage `Organization` @id) +
+  `BreadcrumbList` + `FAQPage` mirroring the visible questions.
 - `/about` — `ProfilePage` + `Person` + `BreadcrumbList`.
 - `/insights` — `Blog` + `BreadcrumbList`; each field note is a `BlogPosting`
   (Person author linked to `/about#person`, its own hero image, dates) +
@@ -139,6 +177,11 @@ Interior-page heroes (added 2026-08-02, same license and pipeline, all
   (https://unsplash.com/photos/lQIUbkn6jj4), /web-development.
 - `insights-notebook.webp` — open notebook and pen by Clay Banks
   (https://unsplash.com/photos/n9AaeihA9HI), /insights.
+- `apps-radar-domes.webp` — weather radar domes at golden hour by David Stroia
+  (https://unsplash.com/@quebek), /apps.
+- `govcon-radar-dish.webp` — radio dish under the Milky Way by Stephan Widua
+  (https://unsplash.com/@stewi), /apps/govcon-radar. Both are vendored from
+  the GovCon Radar site so the two properties read as one brand.
 - `note-ledger.webp` — old handwritten ledger by camera obscura
   (https://unsplash.com/photos/rvVhr2LngP4), the cost field note.
 - `note-mailboxes.webp` — rural mailboxes by Tolga Ahmetler
@@ -148,6 +191,15 @@ Interior-page heroes (added 2026-08-02, same license and pipeline, all
 
 Not Unsplash: `trevor-lewis.webp` (640x651 ≈ 22 KB) on /about is the owner's
 own headshot, so it carries no photo credit in the footer.
+
+Also not Unsplash, and not credited in a footer either: the three GovCon Radar
+screenshots (`govcon-radar-matches|brief|pipeline.webp`, 640px wide WebP made
+with `cwebp -q 80 -resize 640 0` from the iOS store assets in
+`~/Developer/govcon-radar/docs/store-assets/ios/`) are our own product's
+screens, and `assets/badges/` holds Apple's and Google's official store badges,
+whose trademark attribution sits in the visible disclaimer on
+/apps/govcon-radar. Re-export the screenshots from the store assets whenever
+the app's UI changes, so the page never shows a screen the app no longer has.
 
 Two document downloads also live in `site/assets/`:
 

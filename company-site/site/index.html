@@ -435,6 +435,24 @@
   .foot-credit { color: var(--night-dim); }
   .foot-bar { border-top: 1px solid rgba(185,214,209,.16); padding: 15px 20px; text-align: center;
     font: 400 11.5px/1.6 var(--mono); color: var(--night-dim); }
+  /* --- our own software: the product strip --- */
+  .door-apps { --door: #2e9a68; }  /* radar green: the GovCon Radar brand */
+  .app-feature { margin-top: 26px; display: grid; gap: 22px; align-items: start; }
+  @media (min-width: 760px) { .app-feature { grid-template-columns: 1.55fr 1fr; } }
+  .app-shot { margin: 0; justify-self: center; max-width: 250px; }
+  .app-shot img { display: block; width: 100%; height: 360px; object-fit: cover;
+    object-position: top center; border-radius: 20px 20px 6px 6px; border: 1px solid var(--border);
+    background: var(--surface);
+    -webkit-mask-image: linear-gradient(180deg, #000 74%, transparent 100%);
+    mask-image: linear-gradient(180deg, #000 74%, transparent 100%); }
+  .app-shot figcaption { margin-top: 10px; font-size: 13px; line-height: 1.6; color: var(--ink-3);
+    text-align: center; }
+  /* Both badges render at one height so neither store is favored; the Play
+     artwork is the wider of the two, which its brand guidelines require. */
+  .stores { margin-top: 18px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  .stores img { display: block; height: 44px; width: auto; }
+  .stores a { border-radius: 8px; }
+  .stores a:hover { opacity: .88; }
 </style>
 </head>
 <body>
@@ -452,6 +470,7 @@
       <a href="https://demos.planetek.org">AWS Boardwalk</a>
       <a href="/fractional-cto">Fractional Leadership</a>
       <a href="/federal">Federal</a>
+      <a href="/apps">Apps</a>
       <a href="/insights">Insights</a>
       <a href="/about">About</a>
       <a class="cta" href="/schedule">Book a call</a>
@@ -575,6 +594,43 @@
     </div>
     <p class="boardwalk-foot" style="margin-top:18px">All twelve run on the same patterns we sell: Terraform
     end-to-end, keyless CI/CD, least-privilege IAM, and free-tier-first architecture.</p>
+  </div>
+</section>
+
+<!-- ================= Our own software ================= -->
+<section id="apps">
+  <div class="wrap">
+    <p class="kicker">Our own software</p>
+    <h2>Apps we build, ship, and run</h2>
+    <p class="section-lede">Most of what we do is client work, but we also ship products of our own on the
+    same AWS patterns we sell, which means we pay the bill, carry the pager, and pass store review like any
+    other customer. The first one you can install is in both app stores today.</p>
+
+    <div class="app-feature">
+      <div class="card door-apps">
+        <h3>GovCon Radar</h3>
+        <p>A federal contracting radar for small businesses. It reads the active contract opportunities
+        published on SAM.gov every day, scores the ones in your codes against your capability profile with
+        the reasoning shown, and writes a go or no-go brief that is allowed to tell you to pass. Free to
+        download, with a free plan that never asks for a card.</p>
+        <p class="stack">SAM.gov &middot; USAspending &middot; Amazon Bedrock &middot; iOS &amp; Android</p>
+        <div class="stores">
+          <a href="https://apps.apple.com/us/app/govcon-radar/id6804326371" rel="noopener">
+            <img src="/assets/badges/app-store.svg" alt="Download GovCon Radar on the App Store" width="132" height="44" loading="lazy" decoding="async">
+          </a>
+          <a href="https://play.google.com/store/apps/details?id=org.planetek.govconradar" rel="noopener">
+            <img src="/assets/badges/google-play.png" alt="Get GovCon Radar on Google Play" width="148" height="44" loading="lazy" decoding="async">
+          </a>
+        </div>
+        <a class="demo" href="/apps/govcon-radar">More about GovCon Radar &rarr;</a>
+      </div>
+      <figure class="app-shot">
+        <img src="/assets/govcon-radar-matches.webp" alt="The GovCon Radar matches screen on iPhone, listing federal notices with scores of 72 and 68, each tagged with its notice type, NAICS code, small business set-aside, and response deadline" width="640" height="1391" loading="lazy" decoding="async">
+        <figcaption>Scored matches, each one opening into the reasoning behind its score.</figcaption>
+      </figure>
+    </div>
+
+    <a class="more" href="/apps">All Planetek apps &rarr;</a>
   </div>
 </section>
 
@@ -765,6 +821,7 @@
         <li><a href="/about">About the founder</a></li>
         <li><a href="https://www.linkedin.com/in/trevor-lewis-mcis">Trevor Lewis on LinkedIn</a></li>
         <li><a href="https://demos.planetek.org">Live AWS demos</a></li>
+        <li><a href="/apps">Apps we build</a></li>
         <li><a href="https://github.com/dreamingr0b0ts/aws-boardwalk">Open-source code</a></li>
         <li><a href="/insights">Insights</a></li>
       </ul>
