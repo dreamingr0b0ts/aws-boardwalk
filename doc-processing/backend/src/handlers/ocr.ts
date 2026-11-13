@@ -5,9 +5,10 @@ import {
   type Block,
 } from '@aws-sdk/client-textract';
 import { GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
-import { PDFDocument } from 'pdf-lib';
+import { createHash, randomUUID } from 'node:crypto';
 import { round4, round6, type WordRef } from '../lib/geometry.js';
-import { putDoc, updateDoc, type Box, type DocRecord, type KvPair, type QueryAnswer } from '../lib/store.js';
+import { inspectUpload } from '../lib/inspect.js';
+import { claimGrant, putDoc, updateDoc, type Box, type DocRecord, type KvPair, type QueryAnswer } from '../lib/store.js';
 
 const BUCKET = process.env.DOCS_BUCKET!;
 const MAX_UPLOAD_BYTES = Number(process.env.MAX_UPLOAD_BYTES ?? 4 * 1024 * 1024);
@@ -45,6 +46,8 @@ interface StartInput {
   step: 'start';
   bucket: string;
   key: string;
+  /** Step Functions execution id: identifies this run across task retries. */
+  executionId?: string;
 }
 
 interface PollInput {
@@ -67,16 +70,33 @@ export async function handler(event: StartInput | PollInput): Promise<PipelineOu
  * Validate the just-uploaded object, register the document record, and start
  * the async Textract FORMS analysis. Validation failures mark the record
  * REJECTED and end the pipeline without spending a Textract cent.
+ *
+ * Three things have to hold before a job starts, in this order:
+ *   1. this run holds the upload's single-use grant (a replayed POST does not);
+ *   2. the bytes are the type their extension claims and within the page cap;
+ *   3. Textract is pointed at a private copy of exactly those bytes, because
+ *      the uploader can still overwrite the incoming/ object until the
+ *      presigned POST expires and Textract reads its input asynchronously.
  */
-async function start({ bucket, key }: StartInput): Promise<PipelineOutput> {
+async function start({ bucket, key, executionId }: StartInput): Promise<PipelineOutput> {
   const [prefix, docId, ...rest] = key.split('/');
   const filename = decodeURIComponent(rest.join('/'));
   if (prefix !== 'incoming' || !docId || !filename) throw new Error(`Unexpected object key: ${key}`);
+  const runId = executionId ?? randomUUID();
 
   const head = await s3.send(new HeadObjectCommand({ Bucket: bucket, Key: key }));
   const sizeBytes = head.ContentLength ?? 0;
+  // Trustworthy: the presigned POST policy pins x-amz-meta-source to 'anon'
+  // or 'upload', so only an IAM-credentialed `make seed` can write 'seed'.
   const metaSource = head.Metadata?.source;
   const source = metaSource === 'seed' ? 'seed' : metaSource === 'anon' ? 'anon' : 'upload';
+
+  // Checked before anything is written: a replay must not be able to touch
+  // the record the first run created, let alone start a second job.
+  if (source !== 'seed' && !(await claimGrant(docId, key, runId))) {
+    console.warn(`ignoring ${key}: no unclaimed upload grant (replayed or ungranted POST)`);
+    return { docId, rejected: true };
+  }
 
   const base: DocRecord = {
     docId,
@@ -102,28 +122,39 @@ async function start({ bucket, key }: StartInput): Promise<PipelineOutput> {
     return reject(`File is ${(sizeBytes / 1024 / 1024).toFixed(1)} MB; the demo cap is ${MAX_UPLOAD_BYTES / 1024 / 1024} MB`);
   }
 
-  if (ext === 'pdf') {
-    const obj = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
-    const bytes = await obj.Body!.transformToByteArray();
-    let pageCount: number;
-    try {
-      const pdf = await PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false });
-      pageCount = pdf.getPageCount();
-    } catch {
-      return reject('File could not be parsed as a PDF');
-    }
-    if (pageCount > MAX_PAGES) {
-      return reject(`Document has ${pageCount} pages; the demo cap is ${MAX_PAGES} pages per document`);
-    }
+  // Every type is read and judged by its bytes, not just PDFs: the page cap
+  // is the cost ceiling and a multi-page TIFF bills per page like any PDF.
+  const obj = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+  const bytes = await obj.Body!.transformToByteArray();
+  if (bytes.byteLength < 1 || bytes.byteLength > MAX_UPLOAD_BYTES) {
+    return reject(`File is ${(bytes.byteLength / 1024 / 1024).toFixed(1)} MB; the demo cap is ${MAX_UPLOAD_BYTES / 1024 / 1024} MB`);
   }
+  const verdict = await inspectUpload(bytes, ext, MAX_PAGES);
+  if (!verdict.ok) return reject(verdict.reason);
 
-  await putDoc(base);
+  // Freeze what was just validated under a prefix no presigned POST can
+  // write. From here on the record, the viewer, and Textract all use it.
+  const pinnedKey = `validated/${docId}/${rest.join('/')}`;
+  await s3.send(
+    new PutObjectCommand({
+      Bucket: bucket,
+      Key: pinnedKey,
+      Body: bytes,
+      ContentType: head.ContentType,
+      Metadata: head.Metadata,
+    })
+  );
+
+  await putDoc({ ...base, sizeBytes: bytes.byteLength, s3Key: pinnedKey });
 
   const job = await textract.send(
     new StartDocumentAnalysisCommand({
-      DocumentLocation: { S3Object: { Bucket: bucket, Name: key } },
+      DocumentLocation: { S3Object: { Bucket: bucket, Name: pinnedKey } },
       FeatureTypes: ['FORMS', 'QUERIES'],
       QueriesConfig: { Queries: QUERIES },
+      // Same execution, same job: a retried task gets the original JobId back
+      // instead of paying for a second analysis.
+      ClientRequestToken: createHash('sha256').update(`${docId}:${runId}`).digest('hex'),
     })
   );
   await updateDoc(docId, {}, 'ocr-started');

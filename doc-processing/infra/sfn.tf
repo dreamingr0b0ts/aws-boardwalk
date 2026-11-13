@@ -6,7 +6,8 @@
 #
 # Retries are limited to Lambda *service* errors on purpose: retrying an
 # application error in RegisterAndStartOcr could start (and pay for) a second
-# Textract job.
+# Textract job. (The job's ClientRequestToken is derived from the execution
+# id as a second guard: a retried task gets the same JobId back.)
 
 locals {
   lambda_retry = [{
@@ -49,6 +50,10 @@ resource "aws_sfn_state_machine" "pipeline" {
           step       = "start"
           "bucket.$" = "$.detail.bucket.name"
           "key.$"    = "$.detail.object.key"
+          # Lets the Lambda tell a retry of this execution (allowed to
+          # continue) from a second execution for the same object (a replayed
+          # presigned POST, which must not start another Textract job).
+          "executionId.$" = "$$.Execution.Id"
         }
         Retry = local.lambda_retry
         Catch = local.catch_to_failed

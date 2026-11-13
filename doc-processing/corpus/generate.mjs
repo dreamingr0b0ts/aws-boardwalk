@@ -1,9 +1,9 @@
 // Generates the seed corpus: eight fictional City of Alpenglow documents that
 // exercise every pipeline stage (form key/values for Textract FORMS, names and
 // dates and amounts for Comprehend, distinct genres for the Bedrock
-// classifier), plus one over-the-page-cap fixture used by verify.sh to prove
-// the rejection guard. PDFs land in ./pdfs (gitignored); `make seed` uploads
-// everything not starting with "_" through the live pipeline.
+// classifier), plus two over-the-page-cap fixtures (a PDF and a TIFF) used by
+// verify.sh to prove the rejection guard. Files land in ./pdfs (gitignored);
+// `make seed` uploads every PDF not starting with "_" through the live pipeline.
 
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -314,6 +314,37 @@ async function overLimitFixture() {
   await save(pdf, '_over-page-limit.pdf');
 }
 
+// ---- verify fixture: a 7-page TIFF, over the same cap ------------------------
+//
+// The page cap has to hold for every type Textract bills per page, not just
+// PDFs. This writes a minimal but valid classic TIFF: seven 1x1 bilevel pages
+// that share one pixel, each with its own image file directory.
+
+function overLimitTiffFixture() {
+  const PAGES = 7;
+  const TAGS = [[256, 1], [257, 1], [258, 1], [259, 1], [262, 1], [273, 8], [278, 1], [279, 1]];
+  const IFD = 2 + TAGS.length * 12 + 4;
+  const buf = new Uint8Array(8 + 1 + PAGES * IFD);
+  const dv = new DataView(buf.buffer);
+  buf.set([0x49, 0x49, 0x2a, 0x00]); // "II*\0", little-endian
+  dv.setUint32(4, 9, true); // first directory
+  buf[8] = 0x80; // the shared pixel
+  for (let p = 0; p < PAGES; p++) {
+    const at = 9 + p * IFD;
+    dv.setUint16(at, TAGS.length, true);
+    TAGS.forEach(([tag, value], i) => {
+      const e = at + 2 + i * 12;
+      dv.setUint16(e, tag, true);
+      dv.setUint16(e + 2, 4, true); // LONG
+      dv.setUint32(e + 4, 1, true);
+      dv.setUint32(e + 8, value, true);
+    });
+    dv.setUint32(at + 2 + TAGS.length * 12, p + 1 < PAGES ? at + IFD : 0, true);
+  }
+  writeFileSync(join(OUT, '_over-page-limit.tiff'), buf);
+  console.log('  _over-page-limit.tiff');
+}
+
 console.log('generating seed corpus →', OUT);
 await permitApplication();
 await inspectionReport();
@@ -324,4 +355,5 @@ await meetingMinutes();
 await renewalLetter();
 await contractorRegistration();
 await overLimitFixture();
+overLimitTiffFixture();
 console.log('done');

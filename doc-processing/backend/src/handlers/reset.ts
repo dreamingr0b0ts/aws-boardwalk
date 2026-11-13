@@ -31,11 +31,13 @@ export async function handler(): Promise<{ purged: number }> {
   } while (startKey);
 
   for (const doc of uploads) {
-    const listed = await s3.send(
-      new ListObjectsV2Command({ Bucket: BUCKET, Prefix: `incoming/${doc.docId}/` })
-    );
-    const keys = (listed.Contents ?? []).map((o) => ({ Key: o.Key! }));
-    keys.push({ Key: `extracted/${doc.docId}.json` });
+    // The upload as it arrived, the pinned copy the pipeline processed, and
+    // the extraction: all three hold the visitor's document.
+    const keys = [{ Key: `extracted/${doc.docId}.json` }];
+    for (const prefix of [`incoming/${doc.docId}/`, `validated/${doc.docId}/`]) {
+      const listed = await s3.send(new ListObjectsV2Command({ Bucket: BUCKET, Prefix: prefix }));
+      keys.push(...(listed.Contents ?? []).map((o) => ({ Key: o.Key! })));
+    }
     await s3.send(new DeleteObjectsCommand({ Bucket: BUCKET, Delete: { Objects: keys, Quiet: true } }));
     await ddb.send(new DeleteCommand({ TableName: TABLE, Key: { PK: `DOC#${doc.docId}`, SK: 'META' } }));
   }

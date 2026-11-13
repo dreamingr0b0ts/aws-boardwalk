@@ -157,6 +157,11 @@ echo "$SHP" | grep -q '"ok":true' || [ $? -eq 141 ] ; check "booking honeypot sw
 SBAD=$(curl -sS $CURL -o /dev/null -w '%{http_code}' -X POST "$URL/api/schedule/book" \
   -H 'content-type: application/json' -d '{"name":"Verify","email":"info@planetek.org","slot":"2030-01-07T03:00:00Z"}')
 [ "$SBAD" = "400" ] ; check "unavailable slot rejected (400)" $?
+# The address becomes an SMTP recipient, so one that could smuggle a second
+# recipient is refused before any counter, booking, or mail is touched.
+SINJ=$(curl -sS $CURL -o /dev/null -w '%{http_code}' -X POST "$URL/api/schedule/book" \
+  -H 'content-type: application/json' -d '{"name":"Verify","email":"a@example.com,evil","slot":"2030-01-07T16:00:00Z"}')
+[ "$SINJ" = "400" ] ; check "address that could carry a second recipient rejected (400)" $?
 
 # --- DNS zone contents --------------------------------------------------------
 RRS=$(aws route53 list-resource-record-sets --hosted-zone-id "$ZONE_ID" --output json)

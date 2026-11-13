@@ -36,9 +36,12 @@ resource "aws_s3_bucket_policy" "site_oac" {
   depends_on = [aws_s3_bucket_public_access_block.site]
 }
 
-# Documents bucket: originals under incoming/<docId>/, full Textract
-# extractions under extracted/<docId>.json. Uploads land here directly via
-# presigned POST; every ObjectCreated under incoming/ starts a pipeline run.
+# Documents bucket: uploads land under incoming/<docId>/ directly via
+# presigned POST, and every ObjectCreated there starts a pipeline run. A run
+# that holds the upload's grant and passes validation copies the exact bytes
+# it checked to validated/<docId>/ (writable only by the ocr role) and points
+# Textract and the viewer at that copy, so swapping the incoming/ object
+# afterwards changes nothing. Full extractions go to extracted/<docId>.json.
 resource "aws_s3_bucket" "docs" {
   bucket        = "${local.prefix}-docs-${local.account_id}"
   force_destroy = true

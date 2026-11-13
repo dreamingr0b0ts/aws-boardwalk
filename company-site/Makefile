@@ -3,10 +3,15 @@ ACCOUNT := $(shell aws sts get-caller-identity --query Account --output text)
 STATE_BUCKET := aws-boardwalk-tfstate-$(ACCOUNT)
 TF := terraform -chdir=infra
 
-.PHONY: init deploy publish verify outputs cert-status destroy
+.PHONY: init test deploy publish verify outputs cert-status destroy
 
 init:
 	$(TF) init -backend-config="bucket=$(STATE_BUCKET)" -input=false
+
+## Offline tests for the booking desk's outgoing mail (stubbed SES/DynamoDB,
+## no AWS calls; needs Node 22.15+ for module.registerHooks)
+test:
+	node --test backend/test/schedule.test.mjs
 
 deploy: init
 	$(TF) apply -auto-approve -input=false

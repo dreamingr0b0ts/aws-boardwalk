@@ -1,4 +1,4 @@
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { ConditionalCheckFailedException, DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand, PutCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 
 export const TABLE = process.env.TABLE_NAME!;
@@ -108,6 +108,58 @@ export interface DocRecord {
   docDate?: string | null;
   rejectReason?: string;
   error?: string;
+}
+
+// ---- upload grants ---------------------------------------------------------
+//
+// A presigned POST stays valid until it expires, and S3 will accept it any
+// number of times: each re-POST overwrites the object and fires another
+// "Object Created" event. The daily counters are only bumped when the grant
+// is issued, so without this record one grant could start the paid pipeline
+// over and over. Each grant therefore leaves one GRANT item, and a pipeline
+// run has to claim it before it may spend anything. The first run wins; every
+// later event for the same key finds the grant taken and exits for free.
+
+export const grantKey = (docId: string) => ({ PK: `DOC#${docId}`, SK: 'GRANT' });
+
+const GRANT_TTL_SECONDS = 3600;
+
+/** Record that an upload to exactly `s3Key` has been paid for in the counters. */
+export async function putGrant(docId: string, s3Key: string): Promise<void> {
+  await ddb.send(
+    new UpdateCommand({
+      TableName: TABLE,
+      Key: grantKey(docId),
+      UpdateExpression: 'SET #k = :key, #ttl = :ttl',
+      ExpressionAttributeNames: { '#k': 's3Key', '#ttl': 'ttl' },
+      ExpressionAttributeValues: { ':key': s3Key, ':ttl': Math.floor(Date.now() / 1000) + GRANT_TTL_SECONDS },
+    })
+  );
+}
+
+/**
+ * Claim a grant for one pipeline run. Returns false when there is no grant
+ * for this key or another run already holds it. Claiming again with the same
+ * `runId` succeeds, so a Step Functions retry of the same execution is not
+ * mistaken for a replay.
+ */
+export async function claimGrant(docId: string, s3Key: string, runId: string): Promise<boolean> {
+  try {
+    await ddb.send(
+      new UpdateCommand({
+        TableName: TABLE,
+        Key: grantKey(docId),
+        UpdateExpression: 'SET #c = :run',
+        ConditionExpression: '#k = :key AND (attribute_not_exists(#c) OR #c = :run)',
+        ExpressionAttributeNames: { '#k': 's3Key', '#c': 'claimedBy' },
+        ExpressionAttributeValues: { ':key': s3Key, ':run': runId },
+      })
+    );
+    return true;
+  } catch (err) {
+    if (err instanceof ConditionalCheckFailedException) return false;
+    throw err;
+  }
 }
 
 export async function getDoc(docId: string): Promise<DocRecord | undefined> {

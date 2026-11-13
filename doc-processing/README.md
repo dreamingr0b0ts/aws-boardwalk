@@ -6,7 +6,9 @@ Drop any PDF or image into the pipeline and watch it become structured, searchab
 
 ```
 presigned POST → S3 incoming/ → EventBridge → Step Functions
-  ├─ RegisterAndStartOcr   validate size/type/page-cap, start Textract FORMS (async)
+  ├─ RegisterAndStartOcr   claim the upload's single-use grant, validate size/type/
+  │                        page-cap from the bytes, pin them under validated/, then
+  │                        start Textract FORMS (async) on that pinned copy
   ├─ WaitForOcr ⟳ PollOcr  poll the job; parse text + key/value pairs; stash full
   │                        extraction in S3, summary metadata in DynamoDB
   ├─ DetectEntities        Comprehend entities + PII flag
@@ -64,12 +66,22 @@ Textract is the expensive unit (FORMS $0.05 + Queries $0.015 per page), so the c
 bound **pages**, not just requests:
 
 1. **Size cap (4 MB)** — enforced in the presigned POST conditions *and* re-checked in the pipeline.
-2. **Page cap (6)** — the PDF is parsed and counted **before** any Textract job starts.
+2. **Page cap (6)** — decided from the file's bytes **before** any Textract job starts,
+   for every type: PDF pages are parsed and counted, TIFF directories are walked, and
+   a file whose content does not match its extension (a PDF named `.png`, a file
+   carrying two format signatures) is rejected outright.
 3. **Per-tier daily caps** (5/visitor, 10 anonymous pool, 15/user) and a **global
    daily kill switch (30 docs)** — atomic DynamoDB counters checked before a
    presigned POST is ever issued. Anonymous uploads count into the same global cap,
    so the taste tier added reach without adding worst-case spend beyond the cap raise.
-4. **Edge throttle** (5 rps) on the API stage, plus the shared WAF per-IP rate limit.
+4. **One counted upload = one pipeline run.** S3 honors a presigned POST as often as
+   it is replayed until it expires (120 s), and each replay fires another event. So
+   every grant leaves a single-use `GRANT` item that a run must claim before it
+   spends anything; later events for the same key find it taken and exit as no-ops.
+   The run that wins copies the exact bytes it validated to `validated/` (which no
+   presigned POST can write) and Textract reads that copy, so overwriting the upload
+   after validation cannot swap in a bigger document.
+5. **Edge throttle** (5 rps) on the API stage, plus the shared WAF per-IP rate limit.
 
 Worst case: 30 docs × 6 pages × $0.065 ≈ **$12/day**, plus Comprehend/Bedrock pennies.
 Idle: **~$0** (all pay-per-use services; the archive search is DynamoDB + S3 reads only).
