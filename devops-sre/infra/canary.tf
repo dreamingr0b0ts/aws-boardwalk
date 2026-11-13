@@ -52,7 +52,7 @@ resource "aws_iam_role" "canary" {
     }]
   })
 
-  permissions_boundary = local.role_boundary_arn
+  permissions_boundary = aws_iam_policy.role_boundary.arn
 }
 
 resource "aws_iam_role_policy" "canary" {
