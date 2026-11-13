@@ -11,6 +11,13 @@
 #   s3:PutObject   in policy, NOT boundary  → implicitDeny
 #   s3:ListBucket  in boundary, NOT policy  → implicitDeny
 #   iam:CreateUser in neither               → implicitDeny
+#
+# Every other boardwalk role carries the shared boardwalk-role-boundary; this
+# one keeps its own, tighter ceiling because the ceiling IS the exhibit. For
+# that to be safe, the CI apply role is denied any write to this policy
+# (FrozenBoundaries in devops-sre/infra/github-oidc.tf): a pipeline that could
+# edit a boundary could raise it. So a change to the policy below must be
+# applied from the owner's machine before it is pushed, like the CI roles.
 
 resource "aws_iam_policy" "boundary" {
   name        = "${local.prefix}-permission-boundary"

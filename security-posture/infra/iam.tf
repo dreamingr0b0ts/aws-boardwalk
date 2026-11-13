@@ -19,6 +19,8 @@ data "aws_iam_policy_document" "lambda_assume" {
 resource "aws_iam_role" "api" {
   name               = "${local.prefix}-exhibit-api"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
+
+  permissions_boundary = local.role_boundary_arn
 }
 
 resource "aws_iam_role_policy_attachment" "api_logs" {
@@ -89,6 +91,8 @@ resource "aws_iam_role_policy" "api" {
 resource "aws_iam_role" "runner" {
   name               = "${local.prefix}-drill-runner"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
+
+  permissions_boundary = local.role_boundary_arn
 }
 
 resource "aws_iam_role_policy_attachment" "runner_logs" {

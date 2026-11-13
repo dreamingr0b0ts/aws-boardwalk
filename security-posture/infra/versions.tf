@@ -45,4 +45,8 @@ locals {
   # prefix while deployed and destroys them with the stack, so the always-on
   # API can answer 503 honestly between windows (plank 9/11 pattern).
   ssm_prefix = "/boardwalk/security-posture"
+
+  # Ceiling every role in this root carries. CI can only create or edit roles
+  # that have it: see the fence in devops-sre/infra/github-oidc.tf.
+  role_boundary_arn = "arn:aws:iam::${local.account_id}:policy/boardwalk-role-boundary"
 }

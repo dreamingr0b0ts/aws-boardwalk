@@ -52,4 +52,8 @@ locals {
   raw_table     = "business_entities_raw"
   curated_table = "business_entities"
   iceberg_table = "business_entities_iceberg"
+
+  # Ceiling every role in this root carries. CI can only create or edit roles
+  # that have it: see the fence in devops-sre/infra/github-oidc.tf.
+  role_boundary_arn = "arn:aws:iam::${local.account_id}:policy/boardwalk-role-boundary"
 }

@@ -91,6 +91,8 @@ resource "aws_iam_role" "exhibit_api" {
       Action    = "sts:AssumeRole"
     }]
   })
+
+  permissions_boundary = local.role_boundary_arn
 }
 
 resource "aws_iam_role_policy" "exhibit_api" {
@@ -159,6 +161,8 @@ resource "aws_iam_role" "sweep_runner" {
       Action    = "sts:AssumeRole"
     }]
   })
+
+  permissions_boundary = local.role_boundary_arn
 }
 
 resource "aws_iam_role_policy" "sweep_runner" {

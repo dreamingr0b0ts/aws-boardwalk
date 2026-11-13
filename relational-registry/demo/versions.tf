@@ -57,6 +57,10 @@ locals {
   account_id = data.aws_caller_identity.current.account_id
   region     = data.aws_region.current.region
   ssm_prefix = "/boardwalk/relational-registry"
+
+  # Ceiling every role in this root carries. CI can only create or edit roles
+  # that have it: see the fence in devops-sre/infra/github-oidc.tf.
+  role_boundary_arn = "arn:aws:iam::${local.account_id}:policy/boardwalk-role-boundary"
 }
 
 # The always-on root owns the site bucket the evidence report is written to.

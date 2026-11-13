@@ -17,6 +17,8 @@ data "aws_iam_policy_document" "lambda_assume" {
 resource "aws_iam_role" "query" {
   name               = "${local.prefix}-query-api"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
+
+  permissions_boundary = local.role_boundary_arn
 }
 
 resource "aws_iam_role_policy_attachment" "query_logs" {

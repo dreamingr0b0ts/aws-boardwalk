@@ -24,11 +24,15 @@ locals {
 resource "aws_iam_role" "api" {
   name               = "${local.prefix}-api"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
+
+  permissions_boundary = local.role_boundary_arn
 }
 
 resource "aws_iam_role" "finalize" {
   name               = "${local.prefix}-finalize"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
+
+  permissions_boundary = local.role_boundary_arn
 }
 
 resource "aws_iam_role_policy_attachment" "basic_logs" {
@@ -155,6 +159,8 @@ data "aws_iam_policy_document" "ecs_tasks_assume" {
 resource "aws_iam_role" "task_exec" {
   name               = "${local.prefix}-task-exec"
   assume_role_policy = data.aws_iam_policy_document.ecs_tasks_assume.json
+
+  permissions_boundary = local.role_boundary_arn
 }
 
 resource "aws_iam_role_policy_attachment" "task_exec" {
@@ -168,6 +174,8 @@ resource "aws_iam_role_policy_attachment" "task_exec" {
 resource "aws_iam_role" "task" {
   name               = "${local.prefix}-task"
   assume_role_policy = data.aws_iam_policy_document.ecs_tasks_assume.json
+
+  permissions_boundary = local.role_boundary_arn
 }
 
 resource "aws_iam_role_policy" "task_artifacts" {
@@ -199,6 +207,8 @@ data "aws_iam_policy_document" "codebuild_assume" {
 resource "aws_iam_role" "codebuild" {
   name               = "${local.prefix}-codebuild"
   assume_role_policy = data.aws_iam_policy_document.codebuild_assume.json
+
+  permissions_boundary = local.role_boundary_arn
 }
 
 resource "aws_iam_role_policy" "codebuild_all" {
@@ -259,6 +269,8 @@ data "aws_iam_policy_document" "scheduler_assume" {
 resource "aws_iam_role" "scheduler" {
   name               = "${local.prefix}-scheduler"
   assume_role_policy = data.aws_iam_policy_document.scheduler_assume.json
+
+  permissions_boundary = local.role_boundary_arn
 }
 
 resource "aws_iam_role_policy" "scheduler_run_task" {

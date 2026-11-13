@@ -45,4 +45,8 @@ locals {
   # The always-on query Lambda discovers the cluster through these at runtime,
   # so this root never has to know whether the database currently exists.
   ssm_prefix = "/boardwalk/relational-registry"
+
+  # Ceiling every role in this root carries. CI can only create or edit roles
+  # that have it: see the fence in devops-sre/infra/github-oidc.tf.
+  role_boundary_arn = "arn:aws:iam::${local.account_id}:policy/boardwalk-role-boundary"
 }

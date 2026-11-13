@@ -29,26 +29,36 @@ locals {
 resource "aws_iam_role" "public" {
   name               = "${local.prefix}-public-api"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
+
+  permissions_boundary = local.role_boundary_arn
 }
 
 resource "aws_iam_role" "me" {
   name               = "${local.prefix}-me-api"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
+
+  permissions_boundary = local.role_boundary_arn
 }
 
 resource "aws_iam_role" "admin" {
   name               = "${local.prefix}-admin-api"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
+
+  permissions_boundary = local.role_boundary_arn
 }
 
 resource "aws_iam_role" "demo" {
   name               = "${local.prefix}-demo-reset"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
+
+  permissions_boundary = local.role_boundary_arn
 }
 
 resource "aws_iam_role" "postconfirm" {
   name               = "${local.prefix}-postconfirm"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
+
+  permissions_boundary = local.role_boundary_arn
 }
 
 resource "aws_iam_role_policy_attachment" "basic_logs" {

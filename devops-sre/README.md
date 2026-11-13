@@ -31,9 +31,24 @@ make canary-stop   # after: idle cost back to ~$0
 
 - The **plan** role can read everything and change nothing (ReadOnlyAccess + the S3 state
   lockfile + `/boardwalk/*` SSM parameters for plan-time data sources).
-- The **apply** role is PowerUser plus an IAM slice fenced to plank-prefixed names
-  (`mwa-*`, `gai-*`, `hub-*`, `ops-*`), with an explicit deny on modifying the CI roles
-  themselves, so a compromised workflow can't widen its own trust policy.
+- The **apply** role is PowerUser plus an IAM slice with two fences. **Names:** only
+  plank-prefixed roles and policies (`mwa-*`, `gai-*`, `hub-*`, `ops-*`, …). **Power:** it
+  can create a role, or change what one may do, only if the role carries the
+  `boardwalk-role-boundary` permissions boundary, and it can never remove one. That
+  boundary withholds every IAM write, all of Organizations and Account, and role
+  assumption, so nothing the pipeline creates can hold more than the pipeline does.
+  Without it, "create a role, attach any policy, pass it to Lambda" is administrator,
+  and this is the Organization's management account.
+- Explicit denies on the apply role: modifying the CI roles or either boundary policy,
+  `sts:AssumeRole` (every member account has an admin role that trusts this account),
+  and `route53:DeleteHostedZone`.
+- The boundary policy, plank 8's `sec-permission-boundary`, and the three `ops-gh-*`
+  roles are **owner-managed**: a change to any of them is applied from the owner's
+  machine before it is pushed, because CI is denied the write by design.
+- In the workflows, only the `plan` and `apply` jobs may request an OIDC token. The scan
+  job (third-party scanners) and the build job (npm packages, install scripts off) get
+  a read-only checkout; bundles reach plan/apply as an artifact. Every action is pinned
+  to a commit SHA.
 - Fork PRs get no cloud credentials at all: the trust policy names this repo, and the
   plan job only runs for same-repo events.
 
