@@ -28,26 +28,36 @@ locals {
 resource "aws_iam_role" "api" {
   name               = "${local.prefix}-api"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
+
+  permissions_boundary = local.role_boundary_arn
 }
 
 resource "aws_iam_role" "worker" {
   name               = "${local.prefix}-worker"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
+
+  permissions_boundary = local.role_boundary_arn
 }
 
 resource "aws_iam_role" "notify" {
   name               = "${local.prefix}-notify"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
+
+  permissions_boundary = local.role_boundary_arn
 }
 
 resource "aws_iam_role" "escalate" {
   name               = "${local.prefix}-escalate"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
+
+  permissions_boundary = local.role_boundary_arn
 }
 
 resource "aws_iam_role" "reset" {
   name               = "${local.prefix}-reset"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
+
+  permissions_boundary = local.role_boundary_arn
 }
 
 resource "aws_iam_role_policy_attachment" "basic_logs" {
@@ -229,6 +239,8 @@ data "aws_iam_policy_document" "sfn_assume" {
 resource "aws_iam_role" "escalation" {
   name               = "${local.prefix}-escalation"
   assume_role_policy = data.aws_iam_policy_document.sfn_assume.json
+
+  permissions_boundary = local.role_boundary_arn
 }
 
 resource "aws_iam_role_policy" "escalation_all" {
@@ -291,6 +303,8 @@ data "aws_iam_policy_document" "events_assume" {
 resource "aws_iam_role" "events_to_sfn" {
   name               = "${local.prefix}-events-to-sfn"
   assume_role_policy = data.aws_iam_policy_document.events_assume.json
+
+  permissions_boundary = local.role_boundary_arn
 }
 
 resource "aws_iam_role_policy" "events_start_escalation" {
@@ -321,6 +335,8 @@ data "aws_iam_policy_document" "scheduler_assume" {
 resource "aws_iam_role" "scheduler" {
   name               = "${local.prefix}-scheduler"
   assume_role_policy = data.aws_iam_policy_document.scheduler_assume.json
+
+  permissions_boundary = local.role_boundary_arn
 }
 
 resource "aws_iam_role_policy" "scheduler_put_events" {

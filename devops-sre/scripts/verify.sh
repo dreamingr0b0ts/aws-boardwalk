@@ -41,6 +41,36 @@ echo "$APPLY_TRUST" | grep -q "repo:$REPO:environment:prod" || [ $? -eq 141 ]; c
 aws iam get-role-policy --role-name "${APPLY_ROLE##*/}" --policy-name plank-iam --output json \
   | grep -q "NeverSelfModify" || [ $? -eq 141 ]; check $? "apply role cannot modify its own IAM"
 
+# The fence is proven, not grepped: ask IAM what the apply role's live
+# policies would decide. `decide ACTION RESOURCE [BOUNDARY_ARN]` simulates the
+# call, optionally as if the target role carried (or the request named) that
+# permissions boundary.
+ACCT=$(echo "$APPLY_ROLE" | cut -d: -f5)
+BOUNDARY="arn:aws:iam::$ACCT:policy/boardwalk-role-boundary"
+decide() {
+  local ctx=()
+  [ -n "${3:-}" ] && ctx=(--context-entries "ContextKeyName=iam:PermissionsBoundary,ContextKeyValues=$3,ContextKeyType=string")
+  aws iam simulate-principal-policy --policy-source-arn "$APPLY_ROLE" --action-names "$1" \
+    --resource-arns "$2" "${ctx[@]}" --query 'EvaluationResults[0].EvalDecision' --output text --no-cli-pager
+}
+PROBE="arn:aws:iam::$ACCT:role/mwa-verify-probe"
+[ "$(decide iam:CreateRole "$PROBE")" = "implicitDeny" ]; check $? "apply role cannot create a role without the boundary"
+[ "$(decide iam:CreateRole "$PROBE" "$BOUNDARY")" = "allowed" ]; check $? "apply role can create a plank role under the boundary"
+[ "$(decide iam:AttachRolePolicy "$PROBE")" = "implicitDeny" ]; check $? "apply role cannot attach policies to an unbounded role"
+[ "$(decide iam:DeleteRolePermissionsBoundary "$PROBE" "$BOUNDARY")" = "implicitDeny" ]; check $? "apply role cannot strip a boundary"
+[ "$(decide iam:CreatePolicyVersion "$BOUNDARY")" = "explicitDeny" ]; check $? "apply role cannot rewrite the boundary policy"
+[ "$(decide sts:AssumeRole "arn:aws:iam::111122223333:role/OrganizationAccountAccessRole")" = "explicitDeny" ]; check $? "apply role cannot assume a role in another account"
+[ "$(decide route53:DeleteHostedZone "*")" = "explicitDeny" ]; check $? "apply role cannot delete a hosted zone"
+
+# Every role the boardwalk owns carries a boundary (the CI roles are managed
+# by hand and are the only exception).
+UNBOUNDED=$(aws iam list-roles --query 'Roles[?!starts_with(Path, `/aws-service-role/`)].RoleName' --output text --no-cli-pager \
+  | tr '\t' '\n' | grep -v '^ops-gh-' | while read -r R; do
+      B=$(aws iam get-role --role-name "$R" --query 'Role.PermissionsBoundary.PermissionsBoundaryArn' --output text --no-cli-pager)
+      [ "$B" = "None" ] && echo "$R"
+    done)
+[ -z "$UNBOUNDED" ]; check $? "every boardwalk role carries a permissions boundary${UNBOUNDED:+ (missing: $(echo $UNBOUNDED | tr '\n' ' '))}"
+
 # No long-lived AWS keys anywhere in the repo or workflows.
 ! grep -rE "AKIA[0-9A-Z]{16}" ../.github ../*/infra --include='*.yml' --include='*.tf' -q 2>/dev/null
 check $? "no AWS access keys anywhere in workflows or terraform"

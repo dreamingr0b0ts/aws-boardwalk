@@ -14,6 +14,19 @@
 # apply role to trust ref:refs/heads/main, which moved approval enforcement
 # out of IAM and let ANY main-branch job (incl. the scan job's third-party
 # actions) reach PowerUserAccess. The environment stays on the matrix legs.
+#
+# Three rules keep other people's code away from cloud credentials:
+#   1. Only the jobs that talk to AWS (plan, apply) may request an OIDC token.
+#      The scan and build jobs run third-party scanners and npm packages, so
+#      they get a read-only checkout and nothing else.
+#   2. Lambda bundles are built once, in the build job, with npm install
+#      scripts disabled, and handed to plan/apply as an artifact. No package
+#      code runs in a job that holds, or could mint, AWS credentials.
+#   3. Every action is pinned to a commit SHA (the tag it was taken from is in
+#      the trailing comment). A tag can be moved to different code; a SHA
+#      cannot. To update one, resolve the new tag with
+#      `git ls-remote --tags https://github.com/<owner>/<repo>` and replace
+#      both the SHA and the comment.
 
 name: terraform
 
@@ -23,9 +36,9 @@ on:
   push:
     branches: [main]
 
+# Nothing by default; each job states what it needs.
 permissions:
   contents: read
-  id-token: write
 
 concurrency:
   group: terraform-${{ github.ref }}
@@ -39,17 +52,21 @@ jobs:
   scan:
     name: security scan (Checkov + Trivy)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Checkov (Terraform misconfigurations)
-        uses: bridgecrewio/checkov-action@v12
+        uses: bridgecrewio/checkov-action@3f0caf0c3aa9f56ade6b49f6e60b63aaeafb75a3 # v12.3141.0
         with:
           directory: .
           config_file: .checkov.yaml
 
       - name: Trivy (IaC + dependency vulnerabilities)
-        uses: aquasecurity/trivy-action@v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: fs
           scanners: vuln,misconfig
@@ -57,11 +74,47 @@ jobs:
           exit-code: "1"
           ignore-unfixed: true
 
+  build:
+    name: build lambda bundles
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Every plank with a backend/package.json bundles the same way
+      # (esbuild → backend/dist/<handler>/). --ignore-scripts: a dependency's
+      # install hook is arbitrary code, and esbuild does not need its own.
+      - name: Bundle every plank's handlers
+        run: |
+          for pkg in */backend/package.json; do
+            dir=$(dirname "$pkg")
+            echo "::group::$dir"
+            (cd "$dir" && npm ci --ignore-scripts --no-fund --no-audit && npm run build)
+            echo "::endgroup::"
+          done
+
+      # Paths are kept relative to the workspace root (<plank>/backend/dist/…),
+      # so downloading into the root puts each bundle where terraform's
+      # archive_file expects it.
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: lambda-bundles
+          path: "*/backend/dist"
+          if-no-files-found: error
+          retention-days: 7
+
   plan:
     name: plan (${{ matrix.dir }})
     # Fork PRs get no cloud credentials: the OIDC trust names this repo only.
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     strategy:
       fail-fast: false
       matrix:
@@ -71,21 +124,23 @@ jobs:
         # NOT in this matrix — deploy-demo-teardown is local-only via make.
         dir: [platform, modern-web-app, genai-assistant, doc-processing, event-mesh, data-lake, api-platform, container-works, security-posture, network-blueprint, relational-registry, model-workbench, demo-hub, company-site, devops-sre]
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
-      - uses: hashicorp/setup-terraform@v4
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: lambda-bundles
+          path: .
+
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
         with:
           terraform_version: "~1.10"
 
-      - uses: aws-actions/configure-aws-credentials@v6
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
           role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/ops-gh-plan
           aws-region: ${{ env.AWS_REGION }}
-
-      - name: Build lambda bundles
-        if: hashFiles(format('{0}/backend/package.json', matrix.dir)) != ''
-        working-directory: ${{ matrix.dir }}/backend
-        run: npm ci --no-fund --no-audit && npm run build
 
       - name: terraform fmt / init / validate / plan
         working-directory: ${{ matrix.dir }}
@@ -101,9 +156,12 @@ jobs:
   apply:
     name: apply (${{ matrix.dir }})
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [scan, plan]
+    needs: [scan, build, plan]
     environment: prod
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     strategy:
       fail-fast: false
       max-parallel: 1 # platform first, then planks in dependency order
@@ -112,21 +170,24 @@ jobs:
         # always-on infra/ roots only (see plan matrix note)
         dir: [platform, modern-web-app, genai-assistant, doc-processing, event-mesh, data-lake, api-platform, container-works, security-posture, network-blueprint, relational-registry, model-workbench, demo-hub, company-site, devops-sre]
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
-      - uses: hashicorp/setup-terraform@v4
+      # The same bundles the plan legs saw, built by the credential-free job.
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: lambda-bundles
+          path: .
+
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
         with:
           terraform_version: "~1.10"
 
-      - uses: aws-actions/configure-aws-credentials@v6
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
           role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/ops-gh-apply
           aws-region: ${{ env.AWS_REGION }}
-
-      - name: Build lambda bundles
-        if: hashFiles(format('{0}/backend/package.json', matrix.dir)) != ''
-        working-directory: ${{ matrix.dir }}/backend
-        run: npm ci --no-fund --no-audit && npm run build
 
       - name: terraform apply
         working-directory: ${{ matrix.dir }}

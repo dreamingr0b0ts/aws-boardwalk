@@ -27,36 +27,50 @@ locals {
 resource "aws_iam_role" "permits" {
   name               = "${local.prefix}-permits-svc"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
+
+  permissions_boundary = local.role_boundary_arn
 }
 
 resource "aws_iam_role" "licenses" {
   name               = "${local.prefix}-licenses-svc"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
+
+  permissions_boundary = local.role_boundary_arn
 }
 
 resource "aws_iam_role" "facilities" {
   name               = "${local.prefix}-facilities-svc"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
+
+  permissions_boundary = local.role_boundary_arn
 }
 
 resource "aws_iam_role" "status" {
   name               = "${local.prefix}-status-svc"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
+
+  permissions_boundary = local.role_boundary_arn
 }
 
 resource "aws_iam_role" "platform" {
   name               = "${local.prefix}-platform-svc"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
+
+  permissions_boundary = local.role_boundary_arn
 }
 
 resource "aws_iam_role" "exports_api" {
   name               = "${local.prefix}-exports-svc"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
+
+  permissions_boundary = local.role_boundary_arn
 }
 
 resource "aws_iam_role" "exports_worker" {
   name               = "${local.prefix}-exports-worker"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
+
+  permissions_boundary = local.role_boundary_arn
 }
 
 resource "aws_iam_role_policy_attachment" "basic_logs" {

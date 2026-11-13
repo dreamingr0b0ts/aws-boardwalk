@@ -40,4 +40,8 @@ locals {
   prefix     = "apx"
   account_id = data.aws_caller_identity.current.account_id
   region     = data.aws_region.current.region
+
+  # Ceiling every role in this root carries. CI can only create or edit roles
+  # that have it: see the fence in devops-sre/infra/github-oidc.tf.
+  role_boundary_arn = "arn:aws:iam::${local.account_id}:policy/boardwalk-role-boundary"
 }

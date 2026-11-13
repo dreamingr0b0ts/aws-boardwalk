@@ -33,6 +33,89 @@ locals {
   plank_iam_prefixes = ["mwa-*", "gai-*", "hub-*", "idp-*", "evt-*", "dla-*", "apx-*", "ctr-*", "sec-*", "net-*", "rdb-*", "fmw-*", "www-*", "ops-*", "platform-*"]
   plank_role_arns    = [for p in local.plank_iam_prefixes : "arn:aws:iam::${local.account_id}:role/${p}"]
   plank_policy_arns  = [for p in local.plank_iam_prefixes : "arn:aws:iam::${local.account_id}:policy/${p}"]
+
+  # The prefixes fence NAMES. What a role may DO is fenced by the permissions
+  # boundary below, which lives outside every plank prefix so the apply role
+  # has no write path to it. Every other root spells this ARN out the same way
+  # (local.role_boundary_arn in its versions.tf).
+  role_boundary_name = "boardwalk-role-boundary"
+  role_boundary_arn  = "arn:aws:iam::${local.account_id}:policy/${local.role_boundary_name}"
+
+  # Plank 8's boundary exhibit is the one role with a different, far tighter
+  # ceiling (S3 reads + its own logs). The apply role may keep managing that
+  # role, but only while it carries exactly that boundary, and may not edit
+  # the boundary policy itself (FrozenBoundaries below).
+  exhibit_role_arn     = "arn:aws:iam::${local.account_id}:role/sec-boundary-demo"
+  exhibit_boundary_arn = "arn:aws:iam::${local.account_id}:policy/sec-permission-boundary"
+
+  # The IAM calls that decide what a role can do. Each supports the
+  # iam:PermissionsBoundary condition key, so each can be made conditional on
+  # the role carrying an approved boundary.
+  role_power_actions = [
+    "iam:CreateRole", "iam:PutRolePermissionsBoundary",
+    "iam:PutRolePolicy", "iam:DeleteRolePolicy",
+    "iam:AttachRolePolicy", "iam:DetachRolePolicy",
+  ]
+}
+
+# --- the ceiling for every role the boardwalk creates ---------------------------
+#
+# A permissions boundary caps a role no matter what its own policies say:
+# effective permissions are the intersection. Without one, "may create roles
+# named mwa-*" plus "may attach any policy" plus "may pass the role to Lambda"
+# adds up to full administrator, and because this account is the AWS
+# Organization's management account, administrator here reaches every member
+# account. With it, the most a role created by CI can ever hold is roughly
+# what CI itself holds: service APIs in this account, and none of the identity
+# machinery.
+#
+#   allowed   every service API except IAM, Organizations, Account, and STS;
+#             IAM reads and policy simulation (plank 8's policy desk);
+#             passing plank-prefixed roles (plank 4 hands task roles to ECS)
+#   never     creating or editing users, roles, policies, or keys;
+#             assuming any role, in this account or another;
+#             anything in Organizations or Account
+#
+# This policy and the CI roles are managed only from the owner's machine. A
+# change here must be applied locally before it is pushed.
+
+resource "aws_iam_policy" "role_boundary" {
+  # Checkov reads this document as if it GRANTED what it lists. It grants
+  # nothing: it is attached only as a permissions boundary, never as an
+  # identity policy, so it can only take away from what a role's own (narrow,
+  # separately scanned) policies allow. The five skips below are scoped to
+  # this one resource for that reason; every role policy stays under the gate.
+  # checkov:skip=CKV_AWS_286: ceiling, not a grant; and it withholds every IAM write, so PassRole (plank roles only, all under this same boundary) cannot be turned into escalation
+  # checkov:skip=CKV_AWS_287: ceiling, not a grant; no role receives credential-reading actions from this document
+  # checkov:skip=CKV_AWS_288: ceiling, not a grant; each role's own policy names the buckets and tables it may read
+  # checkov:skip=CKV_AWS_289: ceiling, not a grant; IAM, Organizations, Account and STS are excluded outright
+  # checkov:skip=CKV_AWS_290: ceiling, not a grant; resource scoping is the job of each role's own policy
+  name        = local.role_boundary_name
+  description = "Permissions boundary for every role the boardwalk creates: service APIs only, no IAM writes, no Organizations, no role assumption"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "ServicesButNotIdentity"
+        Effect    = "Allow"
+        NotAction = ["iam:*", "organizations:*", "account:*", "sts:*"]
+        Resource  = "*"
+      },
+      {
+        Sid      = "IamReadAndSimulate"
+        Effect   = "Allow"
+        Action   = ["iam:Get*", "iam:List*", "iam:SimulatePrincipalPolicy", "iam:SimulateCustomPolicy"]
+        Resource = "*"
+      },
+      {
+        Sid      = "PassOnlyPlankRoles"
+        Effect   = "Allow"
+        Action   = "iam:PassRole"
+        Resource = local.plank_role_arns
+      },
+    ]
+  })
 }
 
 # --- plan role (PRs + main) --------------------------------------------------
@@ -140,7 +223,8 @@ resource "aws_iam_role_policy_attachment" "gh_apply_poweruser" {
   policy_arn = "arn:aws:iam::aws:policy/PowerUserAccess"
 }
 
-# …plus exactly the IAM slice Terraform needs, fenced to plank-prefixed names.
+# …plus exactly the IAM slice Terraform needs. Two fences, both required:
+# names (plank prefixes only) and power (only roles under the boundary).
 resource "aws_iam_role_policy" "gh_apply_iam" {
   name = "plank-iam"
   role = aws_iam_role.gh_apply.id
@@ -149,12 +233,33 @@ resource "aws_iam_role_policy" "gh_apply_iam" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid    = "PlankRoles"
+        # Creating a role, or changing what one can do, is allowed only when
+        # the role carries the boardwalk boundary. For CreateRole and
+        # PutRolePermissionsBoundary the key is the boundary in the request;
+        # for the four policy calls it is the boundary already on the role.
+        # There is no grant for DeleteRolePermissionsBoundary at all, so a
+        # boundary, once on, stays on.
+        Sid       = "PlankRolesUnderTheBoundary"
+        Effect    = "Allow"
+        Action    = local.role_power_actions
+        Resource  = local.plank_role_arns
+        Condition = { StringEquals = { "iam:PermissionsBoundary" = local.role_boundary_arn } }
+      },
+      {
+        Sid       = "ExhibitRoleUnderItsOwnBoundary"
+        Effect    = "Allow"
+        Action    = local.role_power_actions
+        Resource  = local.exhibit_role_arn
+        Condition = { StringEquals = { "iam:PermissionsBoundary" = local.exhibit_boundary_arn } }
+      },
+      {
+        # Housekeeping that cannot widen a role. None of these calls supports
+        # the boundary condition key, and none needs it: the trust policy can
+        # change who may use a role, never what the role is capped at.
+        Sid    = "PlankRoleLifecycle"
         Effect = "Allow"
         Action = [
-          "iam:CreateRole", "iam:DeleteRole", "iam:UpdateRole",
-          "iam:UpdateAssumeRolePolicy", "iam:PutRolePolicy", "iam:DeleteRolePolicy",
-          "iam:AttachRolePolicy", "iam:DetachRolePolicy",
+          "iam:DeleteRole", "iam:UpdateRole", "iam:UpdateAssumeRolePolicy",
           "iam:TagRole", "iam:UntagRole",
           "iam:GetRole", "iam:ListRolePolicies", "iam:GetRolePolicy",
           "iam:ListAttachedRolePolicies", "iam:ListInstanceProfilesForRole",
@@ -170,6 +275,26 @@ resource "aws_iam_role_policy" "gh_apply_iam" {
           "iam:GetPolicy", "iam:GetPolicyVersion", "iam:ListPolicyVersions",
         ]
         Resource = local.plank_policy_arns
+      },
+      {
+        # Terraform refreshes the boundary policy on every devops-sre apply.
+        Sid      = "ReadRoleBoundary"
+        Effect   = "Allow"
+        Action   = ["iam:GetPolicy", "iam:GetPolicyVersion", "iam:ListPolicyVersions"]
+        Resource = local.role_boundary_arn
+      },
+      {
+        # A boundary is only a ceiling if the pipeline cannot raise it. The
+        # boardwalk boundary is already out of reach by name; plank 8's
+        # exhibit boundary sits inside the sec-* namespace, so its content is
+        # frozen here. Changing either means a local apply by the owner.
+        Sid    = "FrozenBoundaries"
+        Effect = "Deny"
+        Action = [
+          "iam:CreatePolicyVersion", "iam:DeletePolicyVersion",
+          "iam:SetDefaultPolicyVersion", "iam:DeletePolicy",
+        ]
+        Resource = [local.role_boundary_arn, local.exhibit_boundary_arn]
       },
       {
         # Instance profiles exist only in plank 9's demo root (the EC2 probe
@@ -198,6 +323,37 @@ resource "aws_iam_role_policy" "gh_apply_iam" {
         Resource = aws_iam_openid_connect_provider.github.arn
       },
       {
+        # Plank 8's demo root manages AWS Config's service-linked role. The
+        # nightly sweep has to refresh it (GetRole) and wait out its deletion
+        # before `terraform destroy` can finish; PowerUserAccess already
+        # carries Create/DeleteServiceLinkedRole but neither of these reads.
+        Sid      = "ReadConfigServiceLinkedRole"
+        Effect   = "Allow"
+        Action   = ["iam:GetRole", "iam:GetServiceLinkedRoleDeletionStatus"]
+        Resource = "arn:aws:iam::${local.account_id}:role/aws-service-role/config.amazonaws.com/*"
+      },
+      {
+        # PowerUserAccess allows sts:AssumeRole on anything, and every member
+        # account of the Organization has an admin role that trusts this
+        # account. Terraform here never assumes a role, so the pipeline may
+        # not either: not into a member account, not into anything.
+        Sid      = "NeverBecomeAnotherRole"
+        Effect   = "Deny"
+        Action   = "sts:AssumeRole"
+        Resource = "*"
+      },
+      {
+        # prevent_destroy only stops Terraform. This stops the credentials:
+        # no boardwalk root, demo roots included, ever deletes a hosted zone,
+        # and two of them carry the delegation and the company's mail records.
+        # (A future root that creates and removes its own zone would need a
+        # narrower statement here.)
+        Sid      = "NeverDeleteAHostedZone"
+        Effect   = "Deny"
+        Action   = "route53:DeleteHostedZone"
+        Resource = "*"
+      },
+      {
         # The CI roles themselves are managed only from the owner's machine —
         # a compromised workflow must not be able to widen its own trust or
         # permissions. Reads stay allowed so terraform can still refresh them.
@@ -207,6 +363,7 @@ resource "aws_iam_role_policy" "gh_apply_iam" {
           "iam:CreateRole", "iam:DeleteRole", "iam:UpdateRole",
           "iam:UpdateAssumeRolePolicy", "iam:PutRolePolicy", "iam:DeleteRolePolicy",
           "iam:AttachRolePolicy", "iam:DetachRolePolicy",
+          "iam:PutRolePermissionsBoundary", "iam:DeleteRolePermissionsBoundary",
           "iam:TagRole", "iam:UntagRole", "iam:PassRole",
         ]
         Resource = [

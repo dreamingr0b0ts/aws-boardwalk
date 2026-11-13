@@ -22,11 +22,15 @@ locals {
 resource "aws_iam_role" "run" {
   name               = "${local.prefix}-run-api"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
+
+  permissions_boundary = local.role_boundary_arn
 }
 
 resource "aws_iam_role" "public" {
   name               = "${local.prefix}-public-api"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
+
+  permissions_boundary = local.role_boundary_arn
 }
 
 resource "aws_iam_role_policy_attachment" "basic_logs" {

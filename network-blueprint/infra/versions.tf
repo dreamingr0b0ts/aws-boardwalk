@@ -44,4 +44,8 @@ locals {
   # Handshake with the demo root: it writes discovery parameters here while
   # the stack is deployed; the inspection API answers 503 when they are gone.
   ssm_prefix = "/boardwalk/network-blueprint"
+
+  # Ceiling every role in this root carries. CI can only create or edit roles
+  # that have it: see the fence in devops-sre/infra/github-oidc.tf.
+  role_boundary_arn = "arn:aws:iam::${local.account_id}:policy/boardwalk-role-boundary"
 }

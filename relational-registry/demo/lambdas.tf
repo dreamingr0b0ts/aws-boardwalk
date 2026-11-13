@@ -40,6 +40,8 @@ locals {
 resource "aws_iam_role" "seed" {
   name               = "${local.prefix}-seed-role"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
+
+  permissions_boundary = local.role_boundary_arn
 }
 
 resource "aws_iam_role_policy_attachment" "seed_logs" {
@@ -107,6 +109,8 @@ resource "aws_lambda_function" "seed" {
 resource "aws_iam_role" "report" {
   name               = "${local.prefix}-report-role"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
+
+  permissions_boundary = local.role_boundary_arn
 }
 
 resource "aws_iam_role_policy_attachment" "report_logs" {

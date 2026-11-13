@@ -31,21 +31,29 @@ locals {
 resource "aws_iam_role" "api" {
   name               = "${local.prefix}-api"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
+
+  permissions_boundary = local.role_boundary_arn
 }
 
 resource "aws_iam_role" "ocr" {
   name               = "${local.prefix}-ocr"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
+
+  permissions_boundary = local.role_boundary_arn
 }
 
 resource "aws_iam_role" "enrich" {
   name               = "${local.prefix}-enrich"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
+
+  permissions_boundary = local.role_boundary_arn
 }
 
 resource "aws_iam_role" "reset" {
   name               = "${local.prefix}-reset"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
+
+  permissions_boundary = local.role_boundary_arn
 }
 
 resource "aws_iam_role_policy_attachment" "basic_logs" {
@@ -207,6 +215,8 @@ data "aws_iam_policy_document" "sfn_assume" {
 resource "aws_iam_role" "pipeline" {
   name               = "${local.prefix}-pipeline"
   assume_role_policy = data.aws_iam_policy_document.sfn_assume.json
+
+  permissions_boundary = local.role_boundary_arn
 }
 
 resource "aws_iam_role_policy" "pipeline_all" {
@@ -252,6 +262,8 @@ data "aws_iam_policy_document" "events_assume" {
 resource "aws_iam_role" "events" {
   name               = "${local.prefix}-events"
   assume_role_policy = data.aws_iam_policy_document.events_assume.json
+
+  permissions_boundary = local.role_boundary_arn
 }
 
 resource "aws_iam_role_policy" "events_start_pipeline" {

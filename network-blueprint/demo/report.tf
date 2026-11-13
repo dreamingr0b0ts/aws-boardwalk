@@ -22,6 +22,8 @@ resource "aws_iam_role" "report" {
       Action    = "sts:AssumeRole"
     }]
   })
+
+  permissions_boundary = local.role_boundary_arn
 }
 
 resource "aws_iam_role_policy" "report" {

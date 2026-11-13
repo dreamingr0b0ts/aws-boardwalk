@@ -24,6 +24,8 @@ resource "aws_iam_role" "runbook_lambda" {
       Action    = "sts:AssumeRole"
     }]
   })
+
+  permissions_boundary = local.role_boundary_arn
 }
 
 resource "aws_iam_role_policy" "runbook_lambda" {
@@ -114,6 +116,8 @@ resource "aws_iam_role" "runbook_sfn" {
       Action    = "sts:AssumeRole"
     }]
   })
+
+  permissions_boundary = local.role_boundary_arn
 }
 
 resource "aws_iam_role_policy" "runbook_sfn" {

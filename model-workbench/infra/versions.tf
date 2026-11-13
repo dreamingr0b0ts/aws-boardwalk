@@ -89,4 +89,8 @@ locals {
       "arn:aws:bedrock:*::foundation-model/${replace(m.id, "/^(us|global)\\./", "")}",
     ]
   ])
+
+  # Ceiling every role in this root carries. CI can only create or edit roles
+  # that have it: see the fence in devops-sre/infra/github-oidc.tf.
+  role_boundary_arn = "arn:aws:iam::${local.account_id}:policy/boardwalk-role-boundary"
 }
