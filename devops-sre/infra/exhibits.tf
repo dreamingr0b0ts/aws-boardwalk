@@ -92,7 +92,7 @@ resource "aws_iam_role" "exhibit_api" {
     }]
   })
 
-  permissions_boundary = local.role_boundary_arn
+  permissions_boundary = aws_iam_policy.role_boundary.arn
 }
 
 resource "aws_iam_role_policy" "exhibit_api" {
@@ -162,7 +162,7 @@ resource "aws_iam_role" "sweep_runner" {
     }]
   })
 
-  permissions_boundary = local.role_boundary_arn
+  permissions_boundary = aws_iam_policy.role_boundary.arn
 }
 
 resource "aws_iam_role_policy" "sweep_runner" {
