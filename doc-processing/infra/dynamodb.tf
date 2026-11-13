@@ -2,6 +2,10 @@
 #   DOC#<docId>        / META           document record: status, pipeline step
 #                                       timeline, OCR/KV/entity/classification
 #                                       metadata — the searchable index
+#   DOC#<docId>        / GRANT          single-use upload grant: written when a
+#                                       presigned POST is issued, claimed by the
+#                                       one pipeline run allowed to spend on it
+#                                       (replayed POSTs find it taken); 1h TTL
 #   USAGE#<yyyy-mm-dd> / GLOBAL         atomic counter — global daily kill switch
 #   USAGE#<yyyy-mm-dd> / USER#<sub>     atomic counter — per-user daily cap
 #   USAGE#<yyyy-mm-dd> / ANON#<iphash>  atomic counter — per-visitor daily cap

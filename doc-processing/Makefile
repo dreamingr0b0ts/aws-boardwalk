@@ -4,7 +4,7 @@ STATE_BUCKET := aws-boardwalk-tfstate-$(ACCOUNT)
 TF := terraform -chdir=infra
 CREDS := .demo-creds
 
-.PHONY: init creds creds-show build deploy publish seed verify reset outputs destroy
+.PHONY: init creds creds-show build test deploy publish seed verify reset outputs destroy
 
 init:
 	$(TF) init -backend-config="bucket=$(STATE_BUCKET)" -input=false
@@ -28,6 +28,10 @@ creds-show: creds
 
 build:
 	cd backend && npm install --no-fund --no-audit && npm run build
+
+## Offline tests for the upload cost gate (stubbed AWS clients, no AWS calls)
+test:
+	cd backend && npm install --no-fund --no-audit && npm test
 
 ## Full deployment: bundle code, apply infra, publish frontend, seed corpus
 deploy: build init creds

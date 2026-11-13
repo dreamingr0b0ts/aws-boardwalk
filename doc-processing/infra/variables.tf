@@ -79,7 +79,7 @@ variable "max_upload_bytes" {
 }
 
 variable "max_pages" {
-  description = "Per-document page cap, checked by parsing the PDF before the Textract job is started"
+  description = "Per-document page cap, checked from the file's bytes (PDF pages or TIFF directories) before the Textract job is started"
   type        = number
   default     = 6
 }

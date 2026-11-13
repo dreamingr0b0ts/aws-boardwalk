@@ -6,7 +6,7 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { createHash, randomUUID } from 'node:crypto';
 import { spanBoxes, type WordRef } from '../lib/geometry.js';
 import { claims, HttpError, json, parseBody, requireString, router, type ApiEvent } from '../lib/http.js';
-import { ddb, TABLE, type Box, type DocRecord } from '../lib/store.js';
+import { ddb, putGrant, TABLE, type Box, type DocRecord } from '../lib/store.js';
 
 const BUCKET = process.env.DOCS_BUCKET!;
 const MAX_UPLOAD_BYTES = Number(process.env.MAX_UPLOAD_BYTES ?? 4 * 1024 * 1024);
@@ -234,8 +234,11 @@ interface UploadRequest {
 /**
  * The cost gate, in order: identity (Cognito JWT at the gateway, or the
  * hashed viewer IP for the anonymous taste tier) → request validation → the
- * tier's daily caps → global daily kill switch → only then a presigned POST
- * whose conditions re-pin key, content type, and size at the S3 door.
+ * tier's daily caps → global daily kill switch → a single-use grant record →
+ * only then a presigned POST whose conditions re-pin key, content type, and
+ * size at the S3 door. S3 will honor that POST as often as it is replayed
+ * until it expires, so the grant record is what makes one counted upload
+ * equal one pipeline run: the pipeline claims it before spending anything.
  * Anonymous uploads share the same global cap, so opening the taste tier
  * moved the worst-case day's page count not one page.
  */
@@ -273,10 +276,15 @@ async function issueUpload(event: ApiEvent, anon: boolean) {
     ? `anon-${today.replaceAll('-', '')}-${randomUUID()}`
     : `${today.replaceAll('-', '')}-${randomUUID().slice(0, 8)}`;
   const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, '-');
+  const key = `incoming/${docId}/${safeName}`;
+
+  // Written before the POST is handed out, so a grant always exists by the
+  // time its object can land.
+  await putGrant(docId, key);
 
   const post = await createPresignedPost(s3, {
     Bucket: BUCKET,
-    Key: `incoming/${docId}/${safeName}`,
+    Key: key,
     Conditions: [
       ['content-length-range', 1, MAX_UPLOAD_BYTES],
       { 'Content-Type': body.contentType },
@@ -286,7 +294,9 @@ async function issueUpload(event: ApiEvent, anon: boolean) {
       'x-amz-meta-source': anon ? 'anon' : 'upload',
       'x-amz-meta-uploader': who.email,
     },
-    Expires: 300,
+    // The browser posts the moment it has the grant. A short life bounds how
+    // long a replayed POST can keep producing (free, ignored) S3 events.
+    Expires: 120,
   });
 
   return json(200, {

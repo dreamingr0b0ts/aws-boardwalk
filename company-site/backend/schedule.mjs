@@ -2,12 +2,18 @@
 // Availability is computed, never stored: weekdays 09:00-20:00 America/Denver
 // in 30-minute slots, at least 24 hours out, up to three weeks ahead. A
 // booking is one conditional DynamoDB write (double-booking is impossible by
-// construction), then the invite lands at info@ as an .ics attachment. The
-// SES account stays in the sandbox on purpose, so mail only flows info@ →
-// info@ and the visitor gets their confirmation on the page instead.
+// construction), then the invite lands at info@ as an .ics attachment.
+//
+// With VISITOR_EMAIL on (SES production access), a confirmation also goes to
+// the address the visitor typed. That address is unverified, so this Lambda
+// must never become a way to send someone else our mail with a stranger's
+// words in it: every message names its recipient explicitly, the address has
+// to pass a strict syntax check, and the visitor's copy carries none of the
+// text the visitor supplied.
 // No npm deps: uses the AWS SDK v3 bundled with the nodejs22.x runtime.
 import { DynamoDBClient, PutItemCommand, QueryCommand, UpdateItemCommand } from "@aws-sdk/client-dynamodb";
 import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
+import { randomBytes } from "node:crypto";
 
 const ddb = new DynamoDBClient({});
 const ses = new SESv2Client({});
@@ -27,7 +33,28 @@ const STEP_MIN = 30;
 const LEAD_MS = 24 * 3600e3;
 const HORIZON_DAYS = 21;
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+// Strict on purpose: this address becomes an SMTP recipient and is written
+// into raw headers. The local part is dot-separated RFC 5322 "atext" (none of
+// those characters is a header delimiter), the domain is plain LDH labels.
+// No quoting, comments, angle brackets, commas, whitespace, or non-ASCII.
+const ATEXT = "[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+";
+const LABEL = "[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?";
+const EMAIL_RE = new RegExp(`^${ATEXT}(?:\\.${ATEXT})*@(?:${LABEL}\\.)+(?:[A-Za-z]{2,63}|xn--[A-Za-z0-9-]{1,59})$`);
+const validEmail = (s) => s.length <= 254 && s.indexOf("@") <= 64 && EMAIL_RE.test(s);
+
+// Visitor text, made safe for where it lands. Control characters (CR, LF,
+// tab, C1, the Unicode line separators) can never start a new line in a
+// single-line field; free text keeps its line breaks, normalized to \n.
+const CONTROLS = /[\u0000-\u001f\u007f-\u009f\u2028\u2029]+/g;
+const oneLine = (v, max) =>
+  (typeof v === "string" ? v : "").replace(CONTROLS, " ").replace(/ {2,}/g, " ").trim().slice(0, max);
+const freeText = (v, max) =>
+  (typeof v === "string" ? v : "").replace(/\r\n?/g, "\n")
+    .replace(/[\u0000-\u0009\u000b-\u001f\u007f-\u009f\u2028\u2029]/g, " ").trim().slice(0, max);
+
+// For raw headers: printable ASCII only, minus the two characters that could
+// close or escape a quoted display name.
+const headerText = (s, max) => s.replace(/[^\x20-\x7e]/g, " ").replace(/["\\]/g, "").replace(/ {2,}/g, " ").trim().slice(0, max);
 
 const dayFmt = new Intl.DateTimeFormat("en-CA", {
   timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit", weekday: "short",
@@ -127,7 +154,7 @@ function buildIcs(slotIso, name, email, company, topic, now) {
     `DTSTAMP:${icsStamp(isoSec(now))}`,
     `DTSTART:${icsStamp(slotIso)}`,
     `DTEND:${icsStamp(end)}`,
-    `SUMMARY:${icsEscape(`Planetek consultation with ${name}`)}`,
+    `SUMMARY:${icsEscape(name ? `Planetek consultation with ${name}` : "Consultation with Planetek")}`,
     `DESCRIPTION:${icsEscape(detail)}`,
     "STATUS:CONFIRMED",
     "END:VEVENT",
@@ -135,9 +162,46 @@ function buildIcs(slotIso, name, email, company, topic, now) {
   ].join("\r\n");
 }
 
+const b64 = (s) => Buffer.from(s, "utf8").toString("base64").replace(/.{76}/g, "$&\r\n");
+
+// One text part plus the .ics attachment. Both bodies are base64, so nothing
+// in them can be read as a header, a boundary, or an over-long SMTP line, and
+// the boundary is random per message rather than a string a visitor could type.
+function mimeMessage(headers, text, icsName, ics) {
+  const boundary = `pk-${randomBytes(18).toString("hex")}`;
+  return [
+    ...headers,
+    "MIME-Version: 1.0",
+    `Content-Type: multipart/mixed; boundary="${boundary}"`,
+    "",
+    `--${boundary}`,
+    "Content-Type: text/plain; charset=UTF-8",
+    "Content-Transfer-Encoding: base64",
+    "",
+    b64(text),
+    `--${boundary}`,
+    `Content-Type: text/calendar; charset=UTF-8; method=PUBLISH; name="${icsName}"`,
+    "Content-Transfer-Encoding: base64",
+    `Content-Disposition: attachment; filename="${icsName}"`,
+    "",
+    b64(ics),
+    `--${boundary}--`,
+    "",
+  ].join("\r\n");
+}
+
+// The recipient is always passed to SES explicitly. Left out, SES would take
+// recipients from the raw To/Cc/Bcc headers, and anything that reached those
+// headers could add addresses.
+const sendRaw = (to, raw) => ses.send(new SendEmailCommand({
+  ConfigurationSetName: CONFIG_SET,
+  Destination: { ToAddresses: [to] },
+  Content: { Raw: { Data: Buffer.from(raw) } },
+}));
+
 async function mailInvite(slotIso, name, email, company, topic, ip, now) {
   // Headers stay ASCII-safe; the full name still travels in the body and ICS.
-  const asciiName = name.replace(/[^\x20-\x7e]/g, "").trim() || "visitor";
+  const asciiName = headerText(name, 60);
   const when = whenFmt.format(new Date(slotIso));
   const body = [
     `Consultation booked from the website.`,
@@ -152,31 +216,14 @@ async function mailInvite(slotIso, name, email, company, topic, ip, now) {
     `The attached invite adds it to the calendar in one click.`,
   ].join("\r\n");
 
-  const raw = [
+  const raw = mimeMessage([
     `From: Planetek Booking Desk <${CONTACT}>`,
     `To: ${CONTACT}`,
-    `Reply-To: ${asciiName} <${email}>`,
-    `Subject: Consultation booked: ${asciiName}, ${when} MT`,
-    `MIME-Version: 1.0`,
-    `Content-Type: multipart/mixed; boundary="pk-invite"`,
-    ``,
-    `--pk-invite`,
-    `Content-Type: text/plain; charset=UTF-8`,
-    ``,
-    body,
-    `--pk-invite`,
-    `Content-Type: text/calendar; charset=UTF-8; method=PUBLISH; name="consultation.ics"`,
-    `Content-Disposition: attachment; filename="consultation.ics"`,
-    ``,
-    buildIcs(slotIso, name, email, company, topic, now),
-    `--pk-invite--`,
-    ``,
-  ].join("\r\n");
+    `Reply-To: ${asciiName ? `"${asciiName}" <${email}>` : email}`,
+    `Subject: Consultation booked: ${asciiName || "visitor"}, ${headerText(when, 60)} MT`,
+  ], body, "consultation.ics", buildIcs(slotIso, name, email, company, topic, now));
 
-  await ses.send(new SendEmailCommand({
-    ConfigurationSetName: CONFIG_SET,
-    Content: { Raw: { Data: Buffer.from(raw) } },
-  }));
+  await sendRaw(CONTACT, raw);
 }
 
 // Confirmation to the visitor's own address. Only possible once the SES
@@ -184,11 +231,15 @@ async function mailInvite(slotIso, name, email, company, topic, ip, now) {
 // identities), so it sits behind VISITOR_EMAIL and any failure is the
 // caller's to swallow: the booking and the owner invite must stand even
 // when the visitor's address is dead.
-async function mailVisitor(slotIso, name, email, now) {
-  const asciiName = name.replace(/[^\x20-\x7e]/g, "").trim() || "there";
+//
+// Nobody has proved they own this address, so the message is fixed text plus
+// the slot: no name, company, or topic. Whatever a stranger types into the
+// form, the only thing they can cause is this exact note reaching the one
+// address they entered.
+async function mailVisitor(slotIso, email, now) {
   const when = whenFmt.format(new Date(slotIso));
   const body = [
-    `Hi ${name},`,
+    `Hello,`,
     ``,
     `Your free 30-minute consultation with Planetek is booked for ${when} Mountain time.`,
     `The attached invite adds it to your calendar.`,
@@ -203,31 +254,14 @@ async function mailVisitor(slotIso, name, email, now) {
     `at planetek.org/schedule with this address.`,
   ].join("\r\n");
 
-  const raw = [
+  const raw = mimeMessage([
     `From: Planetek <${CONTACT}>`,
-    `To: ${asciiName} <${email}>`,
+    `To: ${email}`,
     `Reply-To: Planetek <${CONTACT}>`,
-    `Subject: Booked: your Planetek consultation, ${when} MT`,
-    `MIME-Version: 1.0`,
-    `Content-Type: multipart/mixed; boundary="pk-confirm"`,
-    ``,
-    `--pk-confirm`,
-    `Content-Type: text/plain; charset=UTF-8`,
-    ``,
-    body,
-    `--pk-confirm`,
-    `Content-Type: text/calendar; charset=UTF-8; method=PUBLISH; name="planetek-consultation.ics"`,
-    `Content-Disposition: attachment; filename="planetek-consultation.ics"`,
-    ``,
-    buildIcs(slotIso, name, email, "", "", now),
-    `--pk-confirm--`,
-    ``,
-  ].join("\r\n");
+    `Subject: Booked: your Planetek consultation, ${headerText(when, 60)} MT`,
+  ], body, "planetek-consultation.ics", buildIcs(slotIso, "", email, "", "", now));
 
-  await ses.send(new SendEmailCommand({
-    ConfigurationSetName: CONFIG_SET,
-    Content: { Raw: { Data: Buffer.from(raw) } },
-  }));
+  await sendRaw(email, raw);
 }
 
 export const handler = async (event) => {
@@ -250,16 +284,20 @@ export const handler = async (event) => {
     return json(400, { error: "Invalid request body." });
   }
 
+  if (!form || typeof form !== "object" || Array.isArray(form)) {
+    return json(400, { error: "Invalid request body." });
+  }
+
   // Honeypot: same trick as the contact form; bots learn nothing.
   if (form.website) return json(200, { ok: true });
 
-  const name = (form.name || "").trim().slice(0, 200);
-  const email = (form.email || "").trim().slice(0, 200);
-  const company = (form.company || "").trim().slice(0, 200);
-  const topic = (form.topic || "").trim().slice(0, 1000);
-  const slot = (form.slot || "").trim();
+  const name = oneLine(form.name, 100);
+  const email = typeof form.email === "string" ? form.email.trim() : "";
+  const company = oneLine(form.company, 200);
+  const topic = freeText(form.topic, 1000);
+  const slot = typeof form.slot === "string" ? form.slot.trim() : "";
 
-  if (!name || !EMAIL_RE.test(email)) {
+  if (!name || !validEmail(email)) {
     return json(400, { error: "Please provide your name and a valid email." });
   }
   if (!openSlots(now).includes(slot)) {
@@ -299,7 +337,7 @@ export const handler = async (event) => {
   let confirmationEmailed = false;
   if (VISITOR_EMAIL) {
     try {
-      await mailVisitor(slot, name, email, now);
+      await mailVisitor(slot, email, now);
       confirmationEmailed = true;
     } catch (err) {
       // Suppressed, invalid, or sandbox-blocked address: the booking stands,

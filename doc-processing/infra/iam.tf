@@ -90,6 +90,14 @@ resource "aws_iam_role_policy" "api_all" {
         Resource = "${aws_s3_bucket.docs.arn}/incoming/*"
       },
       {
+        # "View original" links point at the pinned copy the pipeline
+        # actually processed. Read-only: only the ocr role writes there.
+        Sid      = "PresignValidatedOriginals"
+        Effect   = "Allow"
+        Action   = ["s3:GetObject"]
+        Resource = "${aws_s3_bucket.docs.arn}/validated/*"
+      },
+      {
         # The archive search reads extraction JSONs (text + word map) to
         # find and geolocate matches. Read-only, still no AI services.
         Sid      = "SearchReadsExtractions"
@@ -108,11 +116,20 @@ resource "aws_iam_role_policy" "ocr_all" {
     Version = "2012-10-17"
     Statement = [
       {
-        # Read the original (page-count guard + Textract reads via the caller)
+        # Read the upload once, for the type and page-count guard.
         Sid      = "ReadIncoming"
         Effect   = "Allow"
         Action   = ["s3:GetObject"]
         Resource = "${aws_s3_bucket.docs.arn}/incoming/*"
+      },
+      {
+        # Pin the validated bytes where no presigned POST can overwrite them
+        # (uploads are fenced to incoming/), then let Textract read that copy:
+        # Textract fetches its input with the caller's permissions.
+        Sid      = "PinValidatedCopy"
+        Effect   = "Allow"
+        Action   = ["s3:PutObject", "s3:GetObject"]
+        Resource = "${aws_s3_bucket.docs.arn}/validated/*"
       },
       {
         Sid      = "WriteExtraction"
@@ -191,10 +208,14 @@ resource "aws_iam_role_policy" "reset_all" {
         Resource = aws_s3_bucket.docs.arn
       },
       {
-        Sid      = "DeleteDocObjects"
-        Effect   = "Allow"
-        Action   = ["s3:DeleteObject"]
-        Resource = ["${aws_s3_bucket.docs.arn}/incoming/*", "${aws_s3_bucket.docs.arn}/extracted/*"]
+        Sid    = "DeleteDocObjects"
+        Effect = "Allow"
+        Action = ["s3:DeleteObject"]
+        Resource = [
+          "${aws_s3_bucket.docs.arn}/incoming/*",
+          "${aws_s3_bucket.docs.arn}/validated/*",
+          "${aws_s3_bucket.docs.arn}/extracted/*",
+        ]
       },
     ]
   })

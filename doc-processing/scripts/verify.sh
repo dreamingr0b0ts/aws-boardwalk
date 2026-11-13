@@ -14,6 +14,7 @@ SITE=$($TF output -raw site_url)
 POOL=$($TF output -raw user_pool_id)
 CLIENT=$($TF output -raw user_pool_client_id)
 TABLE=$($TF output -raw table_name)
+SFN=$($TF output -raw state_machine_arn)
 EMAIL=$($TF output -raw demo_email)
 PASSWORD=$(cat .demo-creds)
 
@@ -112,6 +113,11 @@ S3_FORM=$(echo "$GRANT" | jq -r '.upload.fields | to_entries | map("-F \(.key)=\
 S3_CODE=$(eval curl -sS -o /dev/null -w "'%{http_code}'" "$S3_FORM" -F "file=@$TESTPDF" "$(echo "$GRANT" | jq -r '.upload.url')")
 [ "$S3_CODE" = "204" ]; check $? "presigned POST accepted by S3"
 
+# Replay the very same form. S3 accepts it again (a presigned POST is not
+# single-use) and fires a second event; the grant check further down proves
+# that second run spent nothing.
+S3_REPLAY=$(eval curl -sS -o /dev/null -w "'%{http_code}'" "$S3_FORM" -F "file=@$TESTPDF" "$(echo "$GRANT" | jq -r '.upload.url')")
+
 UP_STATUS=""
 for i in $(seq 1 50); do
   UP=$(curl -sS "$SITE/api/public/documents/$DOCID")
@@ -121,6 +127,19 @@ for i in $(seq 1 50); do
 done
 [ "$UP_STATUS" = "INDEXED" ]; check $? "uploaded document went through the full pipeline (status: $UP_STATUS)"
 [ "$(echo "$UP" | jq -r '.docType')" != "null" ]; check $? "uploaded document was classified ($(echo "$UP" | jq -r '.docType'))"
+case "$(echo "$UP" | jq -r '.s3Key')" in validated/*) true;; *) false;; esac; check $? "Textract read the pinned copy under validated/, not the replayable upload"
+
+# one counted upload = one pipeline run: of the two executions that object
+# produced, exactly one must have ended as a no-op before any spend
+RUNS=0; NOOPS=0
+for ARN in $(aws stepfunctions list-executions --state-machine-arn "$SFN" --max-results 25 \
+  --query 'executions[].executionArn' --output text --no-cli-pager); do
+  EX=$(aws stepfunctions describe-execution --execution-arn "$ARN" --output json --no-cli-pager)
+  echo "$EX" | jq -e --arg k "incoming/$DOCID/" '.input | fromjson | .detail.object.key | startswith($k)' > /dev/null 2>&1 || continue
+  RUNS=$((RUNS+1))
+  [ "$(echo "$EX" | jq -r '(.output // "{}") | fromjson | .rejected')" = "true" ] && NOOPS=$((NOOPS+1))
+done
+[ "$S3_REPLAY" = "204" ] && [ "$RUNS" = "2" ] && [ "$NOOPS" = "1" ]; check $? "replayed presigned POST started no second pipeline spend ($RUNS runs, $NOOPS no-op)"
 
 # ---- 6. the caps actually bite ----
 BIG=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$SITE/api/uploads" \
@@ -148,6 +167,28 @@ for i in $(seq 1 20); do
   sleep 3
 done
 [ "$REJ_STATUS" = "REJECTED" ]; check $? "7-page document REJECTED before any OCR spend"
+
+# the cap is decided from the bytes, not the filename: a 7-page TIFF and the
+# same 7-page PDF renamed .png must both be REJECTED before OCR
+reject_case() { # label, filename, content type, local file
+  local G ID FORM ST=""
+  G=$(curl -sS -X POST "$SITE/api/uploads" \
+    -H "authorization: Bearer $TOKEN" -H 'content-type: application/json' \
+    -d "{\"filename\":\"$2\",\"contentType\":\"$3\",\"sizeBytes\":$(stat -f%z "$4")}")
+  ID=$(echo "$G" | jq -r '.docId')
+  FORM=$(echo "$G" | jq -r '.upload.fields | to_entries | map("-F \(.key)=\(.value|@sh)") | join(" ")')
+  eval curl -sS -o /dev/null "$FORM" -F "file=@$4" "$(echo "$G" | jq -r '.upload.url')"
+  for i in $(seq 1 20); do
+    ST=$(curl -sS "$SITE/api/public/documents/$ID" | jq -r '.status // empty')
+    [ "$ST" = "REJECTED" ] || [ "$ST" = "INDEXED" ] || [ "$ST" = "FAILED" ] && break
+    sleep 3
+  done
+  [ "$ST" = "REJECTED" ]; check $? "$1 (status: $ST)"
+}
+OVER_TIFF=corpus/pdfs/_over-page-limit.tiff
+[ -f "$OVER_TIFF" ] || { echo "run 'make seed' first (TIFF fixture missing)"; exit 1; }
+reject_case "7-page TIFF REJECTED before any OCR spend" over-page-limit.tiff image/tiff "$OVER_TIFF"
+reject_case "7-page PDF renamed .png REJECTED before any OCR spend" photo.png image/png "$OVER"
 
 # daily cap: force today's per-user counter to the limit, expect 429, reset it
 TODAY=$(date -u +%F)
