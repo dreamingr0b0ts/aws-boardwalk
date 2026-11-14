@@ -19,7 +19,7 @@ import { IAMClient, SimulatePrincipalPolicyCommand } from "@aws-sdk/client-iam";
 import { AccessAnalyzerClient, ValidatePolicyCommand } from "@aws-sdk/client-accessanalyzer";
 import { WAFV2Client, GetSampledRequestsCommand } from "@aws-sdk/client-wafv2";
 import { CloudWatchClient, ListMetricsCommand, GetMetricDataCommand } from "@aws-sdk/client-cloudwatch";
-import { randomUUID } from "node:crypto";
+import { randomUUID, timingSafeEqual } from "node:crypto";
 
 const {
   TABLE_NAME, SSM_PREFIX, RUNNER_FUNCTION,
@@ -546,7 +546,19 @@ const routes = {
   "GET /api/fence": getFence,
 };
 
+// The origin lock. CloudFront adds a secret x-origin-verify header to every
+// request it forwards here (cloudfront.tf). A request without it reached the
+// execute-api hostname directly: around the WAF, and with an X-Forwarded-For
+// chain the caller wrote themselves. Fails closed, so a function deployed
+// without the secret trusts nothing.
+function fromEdge(event) {
+  const want = Buffer.from(process.env.ORIGIN_VERIFY ?? "");
+  const got = Buffer.from(event.headers?.["x-origin-verify"] ?? "");
+  return want.length > 0 && got.length === want.length && timingSafeEqual(got, want);
+}
+
 export const handler = async (event) => {
+  if (!fromEdge(event)) return json(403, { message: "Forbidden" });
   try {
     const fn = routes[event.routeKey];
     if (!fn) return json(404, { message: "Not found" });

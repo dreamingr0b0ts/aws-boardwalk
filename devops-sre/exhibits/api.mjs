@@ -20,7 +20,7 @@ import {
 } from "@aws-sdk/client-sfn";
 import { CostExplorerClient, GetCostAndUsageCommand } from "@aws-sdk/client-cost-explorer";
 import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda";
-import { randomUUID } from "node:crypto";
+import { randomUUID, timingSafeEqual } from "node:crypto";
 
 const { TABLE_NAME, SFN_ARN, RUNNER_FUNCTION, GITHUB_REPO } = process.env;
 const SITES = JSON.parse(process.env.SITES ?? "[]");
@@ -501,7 +501,19 @@ const routes = {
   "GET /api/cost": getCost,
 };
 
+// The origin lock. CloudFront adds a secret x-origin-verify header to every
+// request it forwards here (infra/site.tf). A request without it
+// reached the execute-api hostname directly: around the WAF, and with an
+// X-Forwarded-For chain the caller wrote themselves. Fails closed, so a
+// function deployed without the secret trusts nothing.
+function fromEdge(event) {
+  const want = Buffer.from(process.env.ORIGIN_VERIFY ?? "");
+  const got = Buffer.from(event.headers?.["x-origin-verify"] ?? "");
+  return want.length > 0 && got.length === want.length && timingSafeEqual(got, want);
+}
+
 export const handler = async (event) => {
+  if (!fromEdge(event)) return json(403, { message: "Forbidden" });
   try {
     const fn = routes[event.routeKey];
     if (!fn) return json(404, { message: "Not found" });

@@ -26,7 +26,7 @@ data "archive_file" "handler" {
 }
 
 resource "aws_lambda_function" "permits" {
-  function_name    = "${local.prefix}-permits-svc"
+  function_name    = local.service_functions.permits
   role             = aws_iam_role.permits.arn
   filename         = data.archive_file.handler["permits"].output_path
   source_code_hash = data.archive_file.handler["permits"].output_base64sha256
@@ -39,16 +39,23 @@ resource "aws_lambda_function" "permits" {
   environment {
     variables = {
       TABLE_NAME = aws_dynamodb_table.permits.name
+      # Only CloudFront sends this value; the handler refuses requests
+      # without it. See random_password.origin_verify.
+      ORIGIN_VERIFY = random_password.origin_verify.result
     }
   }
 
   tracing_config {
     mode = "Active" # X-Ray
   }
+
+  # Enforce the origin lock only once every edge is sending the header: the
+  # distribution finishes deploying before this function changes.
+  depends_on = [aws_cloudfront_distribution.site]
 }
 
 resource "aws_lambda_function" "licenses" {
-  function_name    = "${local.prefix}-licenses-svc"
+  function_name    = local.service_functions.licenses
   role             = aws_iam_role.licenses.arn
   filename         = data.archive_file.handler["licenses"].output_path
   source_code_hash = data.archive_file.handler["licenses"].output_base64sha256
@@ -61,16 +68,23 @@ resource "aws_lambda_function" "licenses" {
   environment {
     variables = {
       TABLE_NAME = aws_dynamodb_table.licenses.name
+      # Only CloudFront sends this value; the handler refuses requests
+      # without it. See random_password.origin_verify.
+      ORIGIN_VERIFY = random_password.origin_verify.result
     }
   }
 
   tracing_config {
     mode = "Active" # X-Ray
   }
+
+  # Enforce the origin lock only once every edge is sending the header: the
+  # distribution finishes deploying before this function changes.
+  depends_on = [aws_cloudfront_distribution.site]
 }
 
 resource "aws_lambda_function" "facilities" {
-  function_name    = "${local.prefix}-facilities-svc"
+  function_name    = local.service_functions.facilities
   role             = aws_iam_role.facilities.arn
   filename         = data.archive_file.handler["facilities"].output_path
   source_code_hash = data.archive_file.handler["facilities"].output_base64sha256
@@ -83,16 +97,23 @@ resource "aws_lambda_function" "facilities" {
   environment {
     variables = {
       TABLE_NAME = aws_dynamodb_table.facilities.name
+      # Only CloudFront sends this value; the handler refuses requests
+      # without it. See random_password.origin_verify.
+      ORIGIN_VERIFY = random_password.origin_verify.result
     }
   }
 
   tracing_config {
     mode = "Active" # X-Ray
   }
+
+  # Enforce the origin lock only once every edge is sending the header: the
+  # distribution finishes deploying before this function changes.
+  depends_on = [aws_cloudfront_distribution.site]
 }
 
 resource "aws_lambda_function" "status" {
-  function_name    = "${local.prefix}-status-svc"
+  function_name    = local.service_functions.status
   role             = aws_iam_role.status.arn
   filename         = data.archive_file.handler["status"].output_path
   source_code_hash = data.archive_file.handler["status"].output_base64sha256
@@ -105,12 +126,19 @@ resource "aws_lambda_function" "status" {
   environment {
     variables = {
       SERVICE_TABLES_JSON = jsonencode(local.service_tables)
+      # Only CloudFront sends this value; the handler refuses requests
+      # without it. See random_password.origin_verify.
+      ORIGIN_VERIFY = random_password.origin_verify.result
     }
   }
 
   tracing_config {
     mode = "Active" # X-Ray
   }
+
+  # Enforce the origin lock only once every edge is sending the header: the
+  # distribution finishes deploying before this function changes.
+  depends_on = [aws_cloudfront_distribution.site]
 }
 
 # Platform service: usage meter, self-service visitor keys, nightly key sweep.
@@ -118,7 +146,7 @@ resource "aws_lambda_function" "status" {
 # passing their generated ids through env vars would cycle (function → plan →
 # stage → API body → function).
 resource "aws_lambda_function" "platform" {
-  function_name    = "${local.prefix}-platform-svc"
+  function_name    = local.service_functions.platform
   role             = aws_iam_role.platform.arn
   filename         = data.archive_file.handler["platform"].output_path
   source_code_hash = data.archive_file.handler["platform"].output_base64sha256
@@ -138,18 +166,25 @@ resource "aws_lambda_function" "platform" {
       VISITOR_QUOTA       = var.visitor_quota_per_day
       KEYS_PER_IP_PER_DAY = var.visitor_keys_per_ip_per_day
       KEYS_PER_DAY_GLOBAL = var.visitor_keys_per_day
+      # Only CloudFront sends this value; the handler refuses requests
+      # without it. See random_password.origin_verify.
+      ORIGIN_VERIFY = random_password.origin_verify.result
     }
   }
 
   tracing_config {
     mode = "Active" # X-Ray
   }
+
+  # Enforce the origin lock only once every edge is sending the header: the
+  # distribution finishes deploying before this function changes.
+  depends_on = [aws_cloudfront_distribution.site]
 }
 
 # Exports service, API half: accepts jobs (202 + Location), reports them,
 # presigns finished artifacts. Never does the export work itself.
 resource "aws_lambda_function" "exports_api" {
-  function_name    = "${local.prefix}-exports-svc"
+  function_name    = local.service_functions.exports
   role             = aws_iam_role.exports_api.arn
   filename         = data.archive_file.handler["exports"].output_path
   source_code_hash = data.archive_file.handler["exports"].output_base64sha256
@@ -165,12 +200,19 @@ resource "aws_lambda_function" "exports_api" {
       QUEUE_URL       = aws_sqs_queue.export_jobs.url
       BUCKET          = aws_s3_bucket.exports.bucket
       EXPORTS_PER_DAY = var.exports_per_day
+      # Only CloudFront sends this value; the handler refuses requests
+      # without it. See random_password.origin_verify.
+      ORIGIN_VERIFY = random_password.origin_verify.result
     }
   }
 
   tracing_config {
     mode = "Active" # X-Ray
   }
+
+  # Enforce the origin lock only once every edge is sending the header: the
+  # distribution finishes deploying before this function changes.
+  depends_on = [aws_cloudfront_distribution.site]
 }
 
 # Exports service, worker half: queue-fed, reads the catalogs, writes the

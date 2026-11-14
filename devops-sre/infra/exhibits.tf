@@ -217,12 +217,19 @@ resource "aws_lambda_function" "exhibit_api" {
       # Mirror the Planetek-Infra-Tripwire budget: the ledger shows what the
       # infrastructure costs, not training subscriptions or tax.
       COST_EXCLUDE_SERVICES = "AWS Skill Builder Individual,Tax"
+      # Only CloudFront sends this value; the handler refuses requests
+      # without it. See random_password.origin_verify.
+      ORIGIN_VERIFY = random_password.origin_verify.result
     }
   }
 
   tracing_config {
     mode = "Active"
   }
+
+  # Enforce the origin lock only once every edge is sending the header: the
+  # distribution finishes deploying before this function changes.
+  depends_on = [aws_cloudfront_distribution.site]
 }
 
 resource "aws_lambda_function" "sweep_runner" {

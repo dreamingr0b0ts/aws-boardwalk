@@ -4,13 +4,26 @@
 # no aws_api_gateway_resource/method resources exist to drift from the spec.
 
 locals {
+  # The six services' function names, in one place, so the API definition can
+  # name its integrations WITHOUT referencing the function resources. That
+  # keeps the REST API, and the distribution in front of it, upstream of the
+  # functions: they can then wait for the distribution to finish deploying
+  # before they start enforcing the origin lock (depends_on in lambda.tf).
+  # Referencing aws_lambda_function.*.invoke_arn here instead would close a
+  # cycle (distribution -> API -> functions -> distribution).
+  service_functions = {
+    permits    = "${local.prefix}-permits-svc"
+    licenses   = "${local.prefix}-licenses-svc"
+    facilities = "${local.prefix}-facilities-svc"
+    status     = "${local.prefix}-status-svc"
+    platform   = "${local.prefix}-platform-svc"
+    exports    = "${local.prefix}-exports-svc"
+  }
+
+  # Exactly the strings aws_lambda_function.*.invoke_arn would give.
   lambda_uris = {
-    permits_uri    = aws_lambda_function.permits.invoke_arn
-    licenses_uri   = aws_lambda_function.licenses.invoke_arn
-    facilities_uri = aws_lambda_function.facilities.invoke_arn
-    status_uri     = aws_lambda_function.status.invoke_arn
-    platform_uri   = aws_lambda_function.platform.invoke_arn
-    exports_uri    = aws_lambda_function.exports_api.invoke_arn
+    for svc, name in local.service_functions :
+    "${svc}_uri" => "arn:aws:apigateway:${local.region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${local.region}:${local.account_id}:function:${name}/invocations"
   }
 
   # yamldecode → jsonencode so API Gateway always receives canonical JSON,

@@ -195,6 +195,27 @@ DL_URL=$(echo "$JOB" | jq -r '.data.downloadUrl')
 curl -sS "$DL_URL" | jq -e '.count == 24 and (.items | length == 24)' > /dev/null
 check $? "presigned download serves the full facilities catalog (24 records)"
 
+# ---- the origin lock: the API answers CloudFront, never the open internet ----
+# Straight at the execute-api hostname there is no WAF, and the caller writes
+# the whole X-Forwarded-For chain the visitor caps key on. So every handler
+# refuses a request that lacks the secret header only the distribution sends.
+# A missing API key is already a 403 at the gateway, so the keyed routes are
+# called WITH a valid key here: the refusal has to come from the Lambda, and
+# its body says so ("forbidden" vs the gateway's "Forbidden").
+API_DIRECT=$($TF output -raw stage_invoke_url)
+for ROUTE in /v2/status /v2/platform/usage; do
+  DIRECT=$(curl -sS -o /dev/null -w '%{http_code}' "$API_DIRECT$ROUTE")
+  [ "$DIRECT" = "403" ]; check $? "direct call to the API origin is refused: GET $ROUTE ($DIRECT)"
+done
+for ROUTE in "/v2/permits?limit=1" /v1/licenses /v2/facilities /v2/exports/EXP-NOPE0000; do
+  DBODY=$(curl -sS -H "x-api-key: $PARTNER_KEY" "$API_DIRECT$ROUTE")
+  [ "$(echo "$DBODY" | jq -r '.error // empty')" = "forbidden" ]; check $? "direct call with a valid key is still refused by the service: GET $ROUTE"
+done
+GUESS=$(curl -sS -o /dev/null -w '%{http_code}' -H 'x-origin-verify: guess' "$API_DIRECT/v2/status")
+[ "$GUESS" = "403" ]; check $? "a guessed origin header is refused too ($GUESS)"
+VIA=$(curl -sS -o /dev/null -w '%{http_code}' -H 'x-origin-verify: guess' "$SITE/v2/status")
+[ "$VIA" = "200" ]; check $? "through CloudFront a viewer-sent origin header is replaced, not trusted ($VIA)"
+
 echo
 echo "passed $PASS, failed $FAIL"
 [ "$FAIL" = "0" ]

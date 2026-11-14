@@ -131,6 +131,25 @@ CAP_CODE=$(curl -sS -o /tmp/gai-cap.json -w '%{http_code}' -X POST "$SITE/api/ch
 aws dynamodb delete-item --table-name "$TABLE" --no-cli-pager \
   --key "{\"PK\":{\"S\":\"USAGE#$TODAY\"},\"SK\":{\"S\":\"USER#$SUB\"}}" > /dev/null
 
+# ---- the origin lock: the API answers CloudFront, never the open internet ----
+# Straight at the execute-api hostname there is no WAF, and the caller writes
+# the whole X-Forwarded-For chain the visitor caps key on. So every handler
+# refuses a request that lacks the secret header only the distribution sends.
+API_DIRECT=$($TF output -raw api_endpoint)
+for ROUTE in /api/public/info /api/public/quota; do
+  DIRECT=$(curl -sS -o /dev/null -w '%{http_code}' "$API_DIRECT$ROUTE")
+  [ "$DIRECT" = "403" ]; check $? "direct call to the API origin is refused: GET $ROUTE ($DIRECT)"
+done
+GUESS=$(curl -sS -o /dev/null -w '%{http_code}' -H 'x-origin-verify: guess' "$API_DIRECT/api/public/info")
+[ "$GUESS" = "403" ]; check $? "a guessed origin header is refused too ($GUESS)"
+VIA=$(curl -sS -o /dev/null -w '%{http_code}' -H 'x-origin-verify: guess' "$SITE/api/public/info")
+[ "$VIA" = "200" ]; check $? "through CloudFront a viewer-sent origin header is replaced, not trusted ($VIA)"
+# the spending route too, with a question the front door accepts: refused
+# before any counter or model is touched
+DCHAT=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$API_DIRECT/api/public/chat" \
+  -H 'content-type: application/json' -d '{"questionId":"deck-cost"}')
+[ "$DCHAT" = "403" ]; check $? "direct POST to the visitor chat route is refused ($DCHAT)"
+
 echo
 echo "passed $PASS, failed $FAIL"
 [ "$FAIL" = "0" ]

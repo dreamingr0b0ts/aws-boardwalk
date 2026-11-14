@@ -32,12 +32,19 @@ resource "aws_lambda_function" "run" {
       ANON_MAX_OUTPUT_TOKENS  = tostring(var.anon_max_output_tokens)
       GUARDRAIL_ID            = aws_bedrock_guardrail.workbench.guardrail_id
       GUARDRAIL_VERSION       = aws_bedrock_guardrail_version.workbench.version
+      # Only CloudFront sends this value; the handler refuses requests
+      # without it. See random_password.origin_verify.
+      ORIGIN_VERIFY = random_password.origin_verify.result
     }
   }
 
   tracing_config {
     mode = "Active" # X-Ray
   }
+
+  # Enforce the origin lock only once every edge is sending the header: the
+  # distribution finishes deploying before this function changes.
+  depends_on = [aws_cloudfront_distribution.site]
 }
 
 resource "aws_lambda_function" "public" {
@@ -60,10 +67,17 @@ resource "aws_lambda_function" "public" {
       MAX_OUTPUT_TOKENS      = tostring(var.max_output_tokens)
       ANON_DAILY_LIMIT       = tostring(var.anon_daily_limit)
       ANON_MAX_OUTPUT_TOKENS = tostring(var.anon_max_output_tokens)
+      # Only CloudFront sends this value; the handler refuses requests
+      # without it. See random_password.origin_verify.
+      ORIGIN_VERIFY = random_password.origin_verify.result
     }
   }
 
   tracing_config {
     mode = "Active" # X-Ray
   }
+
+  # Enforce the origin lock only once every edge is sending the header: the
+  # distribution finishes deploying before this function changes.
+  depends_on = [aws_cloudfront_distribution.site]
 }

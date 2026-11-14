@@ -163,6 +163,24 @@ SINJ=$(curl -sS $CURL -o /dev/null -w '%{http_code}' -X POST "$URL/api/schedule/
   -H 'content-type: application/json' -d '{"name":"Verify","email":"a@example.com,evil","slot":"2030-01-07T16:00:00Z"}')
 [ "$SINJ" = "400" ] ; check "address that could carry a second recipient rejected (400)" $?
 
+# ---- the origin lock: the API answers CloudFront, never the open internet ----
+# Straight at the execute-api hostname there is no WAF, and the caller writes
+# the whole X-Forwarded-For chain the visitor caps key on. So every handler
+# refuses a request that lacks the secret header only the distribution sends.
+API_DIRECT=$($TF output -raw api_endpoint)
+DSLOTS=$(curl -sS -o /dev/null -w '%{http_code}' "$API_DIRECT/api/schedule/slots")
+[ "$DSLOTS" = "403" ] ; check "direct call to the API origin is refused: booking desk ($DSLOTS)" $?
+DBOOK=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$API_DIRECT/api/schedule/book" -H 'content-type: application/json' \
+  -d '{"name":"Verify","email":"info@planetek.org","slot":"2030-01-07T16:00:00Z"}')
+[ "$DBOOK" = "403" ] ; check "direct booking POST is refused before anything is touched ($DBOOK)" $?
+DCONTACT=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$API_DIRECT/api/contact" -H 'content-type: application/json' \
+  -d '{"name":"Bot","email":"bot@example.com","message":"spam spam spam","website":"http://spam"}')
+[ "$DCONTACT" = "403" ] ; check "direct call to the API origin is refused: contact form ($DCONTACT)" $?
+GUESS=$(curl -sS -o /dev/null -w '%{http_code}' -H 'x-origin-verify: guess' "$API_DIRECT/api/schedule/slots")
+[ "$GUESS" = "403" ] ; check "a guessed origin header is refused too ($GUESS)" $?
+VIA=$(curl -sS $CURL -o /dev/null -w '%{http_code}' -H 'x-origin-verify: guess' "$URL/api/schedule/slots")
+[ "$VIA" = "200" ] ; check "through CloudFront a viewer-sent origin header is replaced, not trusted ($VIA)" $?
+
 # --- DNS zone contents --------------------------------------------------------
 RRS=$(aws route53 list-resource-record-sets --hosted-zone-id "$ZONE_ID" --output json)
 echo "$RRS" | grep -q "mx01.mail.icloud.com" || [ $? -eq 141 ] ; check "iCloud MX records replicated" $?

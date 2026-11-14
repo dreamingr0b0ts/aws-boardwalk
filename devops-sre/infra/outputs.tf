@@ -46,6 +46,6 @@ output "exhibits_table" {
 }
 
 output "exhibits_api_endpoint" {
-  description = "Direct HTTP API endpoint (normal path is same-origin /api/* via CloudFront)"
+  description = "Direct HTTP API endpoint. Locked: only CloudFront's requests are served (see the origin lock in site.tf)"
   value       = aws_apigatewayv2_api.exhibits.api_endpoint
 }

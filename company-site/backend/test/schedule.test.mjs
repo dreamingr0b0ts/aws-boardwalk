@@ -45,12 +45,15 @@ registerHooks({
 const CONTACT = "info@planetek.org";
 Object.assign(process.env, {
   RATE_TABLE: "rate", BOOK_TABLE: "book", CONTACT_EMAIL: CONTACT, CONFIG_SET: "cfg", VISITOR_EMAIL: "true",
+  ORIGIN_VERIFY: "only-cloudfront-knows-this",
 });
 
 const { handler } = await import("../schedule.mjs");
 
-const call = (routeKey, body) =>
-  handler({ routeKey, body: body === undefined ? undefined : JSON.stringify(body), requestContext: { http: { sourceIp: "198.51.100.9" } } });
+// Every request the site makes arrives through CloudFront, which adds the
+// origin-lock header; `headers` lets a test play a caller that went around it.
+const call = (routeKey, body, headers = { "x-origin-verify": process.env.ORIGIN_VERIFY }) =>
+  handler({ routeKey, headers, body: body === undefined ? undefined : JSON.stringify(body), requestContext: { http: { sourceIp: "198.51.100.9" } } });
 
 const firstSlot = async () => JSON.parse((await call("GET /api/schedule/slots")).body).slots[0];
 const book = async (fields) => call("POST /api/schedule/book", { slot: await firstSlot(), ...fields });
@@ -197,4 +200,28 @@ test("the honeypot still swallows bots without sending anything", async () => {
   const res = await book({ name: "Bot", email: "bot@example.com", website: "http://spam" });
   assert.deepEqual(JSON.parse(res.body), { ok: true });
   assert.equal(sent.length, 0);
+});
+
+test("a request that did not come through CloudFront is refused before anything happens", async () => {
+  const slot = await firstSlot();
+  const booking = { name: "Jordan Reyes", email: "jordan@example.com", slot };
+  const secret = process.env.ORIGIN_VERIFY;
+  for (const headers of [undefined, {}, { "x-origin-verify": "" }, { "x-origin-verify": "guess" }, { "x-origin-verify": "x".repeat(secret.length) }]) {
+    assert.equal((await handler({ routeKey: "GET /api/schedule/slots", headers })).statusCode, 403, JSON.stringify(headers));
+    assert.equal((await call("POST /api/schedule/book", booking, headers ?? null)).statusCode, 403, JSON.stringify(headers));
+  }
+  assert.equal(sent.length, 0);
+
+  // Fails closed: deployed without the secret, the function trusts nothing.
+  delete process.env.ORIGIN_VERIFY;
+  try {
+    assert.equal((await call("POST /api/schedule/book", booking, {})).statusCode, 403);
+    assert.equal((await call("POST /api/schedule/book", booking, { "x-origin-verify": "" })).statusCode, 403);
+  } finally {
+    process.env.ORIGIN_VERIFY = secret;
+  }
+  assert.equal(sent.length, 0);
+
+  // The slot was never taken, so the real visitor can still have it.
+  assert.equal((await call("POST /api/schedule/book", booking)).statusCode, 200);
 });

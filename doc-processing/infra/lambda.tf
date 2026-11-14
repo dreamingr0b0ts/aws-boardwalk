@@ -33,12 +33,19 @@ resource "aws_lambda_function" "api" {
       GLOBAL_DAILY_LIMIT      = tostring(var.global_daily_limit)
       ANON_DAILY_LIMIT        = tostring(var.anon_daily_limit)
       ANON_GLOBAL_DAILY_LIMIT = tostring(var.anon_global_daily_limit)
+      # Only CloudFront sends this value; the handler refuses requests
+      # without it. See random_password.origin_verify.
+      ORIGIN_VERIFY = random_password.origin_verify.result
     }
   }
 
   tracing_config {
     mode = "Active" # X-Ray
   }
+
+  # Enforce the origin lock only once every edge is sending the header: the
+  # distribution finishes deploying before this function changes.
+  depends_on = [aws_cloudfront_distribution.site]
 }
 
 resource "aws_lambda_function" "ocr" {
