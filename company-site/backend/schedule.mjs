@@ -2,7 +2,12 @@
 // Availability is computed, never stored: weekdays 09:00-20:00 America/Denver
 // in 30-minute slots, at least 24 hours out, up to three weeks ahead. A
 // booking is one conditional DynamoDB write (double-booking is impossible by
-// construction), then the invite lands at info@ as an .ics attachment.
+// construction), then the invite lands at info@ as an .ics attachment. If the
+// invite cannot be sent the booking is undone: a slot nobody was told about
+// is worse than no booking.
+//
+// Daily caps count bookings made, per visitor and for the desk as a whole. A
+// request that ends without a booking hands its allowance back.
 //
 // With VISITOR_EMAIL on (SES production access), a confirmation also goes to
 // the address the visitor typed. That address is unverified, so this Lambda
@@ -11,9 +16,11 @@
 // to pass a strict syntax check, and the visitor's copy carries none of the
 // text the visitor supplied.
 // No npm deps: uses the AWS SDK v3 bundled with the nodejs22.x runtime.
-import { DynamoDBClient, PutItemCommand, QueryCommand, UpdateItemCommand } from "@aws-sdk/client-dynamodb";
+import {
+  DeleteItemCommand, DynamoDBClient, PutItemCommand, QueryCommand, UpdateItemCommand,
+} from "@aws-sdk/client-dynamodb";
 import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
-import { randomBytes, timingSafeEqual } from "node:crypto";
+import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 
 const ddb = new DynamoDBClient({});
 const ses = new SESv2Client({});
@@ -114,13 +121,55 @@ async function bookedSlots(now) {
   return new Set((res.Items || []).map((i) => i.sk.S));
 }
 
-// Same conditional day-counter as the contact form, in the shared table.
-async function underLimit(key, limit) {
-  const day = new Date().toISOString().slice(0, 10);
+// Who is asking. Behind CloudFront, requestContext.http.sourceIp is one of
+// CloudFront's own addresses: many visitors share one and one visitor arrives
+// from many, so a cap keyed on it is neither fair nor a cap. The visitor is
+// the second-from-last X-Forwarded-For entry: CloudFront appends the address
+// it saw, then API Gateway appends CloudFront's. Everything before that was
+// typed by the client and is ignored. The origin lock (fromEdge) is what makes
+// that position trustworthy; without CloudFront in front, the caller writes
+// the whole chain.
+//
+// Counters are keyed on a hash, so the rate table never holds an address, and
+// an IPv6 visitor is counted by /64, the block one subscriber is handed,
+// rather than by the single address they can change at will. (Same helper as
+// contact.mjs; each Lambda ships as one file.)
+function visitorOf(event) {
+  const chain = String(event.headers?.["x-forwarded-for"] ?? "")
+    .split(",").map((s) => s.trim()).filter(Boolean);
+  const seen = chain.length >= 2
+    ? chain[chain.length - 2]
+    : chain[0] ?? event.requestContext?.http?.sourceIp ?? "";
+  // It is printed in the owner's mail, so it has to look like an address.
+  const ip = /^[0-9A-Fa-f:.]{2,45}$/.test(seen) ? seen : "unknown";
+  return { ip, key: createHash("sha256").update(network(ip)).digest("hex").slice(0, 16) };
+}
+
+// "2001:db8:1:2:aaaa:bbbb:cccc:dddd" and every other address in the same /64
+// become "2001:db8:1:2::/64". IPv4, and anything unparseable, is returned as is.
+function network(ip) {
+  const mapped = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/i.exec(ip);
+  if (mapped) return mapped[1];
+  if (!ip.includes(":")) return ip;
+  const [head, tail] = ip.toLowerCase().split("::");
+  const h = head ? head.split(":") : [];
+  const t = tail ? tail.split(":") : [];
+  const groups = tail === undefined ? h : [...h, ...Array(Math.max(0, 8 - h.length - t.length)).fill("0"), ...t];
+  if (groups.length !== 8) return ip;
+  return `${groups.slice(0, 4).map((g) => g.replace(/^0+(?=.)/, "")).join(":")}::/64`;
+}
+
+// One conditional counter per key per UTC day, in the table the contact form
+// shares; items expire via TTL. take() claims a unit if the key is still under
+// its limit. giveBack() returns it when the request it was claimed for came to
+// nothing.
+const counterKey = (key, day) => ({ pk: { S: `${key}#${day}` } });
+
+async function take(key, limit, day) {
   try {
     await ddb.send(new UpdateItemCommand({
       TableName: RATE_TABLE,
-      Key: { pk: { S: `${key}#${day}` } },
+      Key: counterKey(key, day),
       UpdateExpression: "ADD #n :one SET #t = if_not_exists(#t, :ttl)",
       ConditionExpression: "attribute_not_exists(#n) OR #n < :limit",
       ExpressionAttributeNames: { "#n": "n", "#t": "ttl" },
@@ -134,6 +183,39 @@ async function underLimit(key, limit) {
   } catch (err) {
     if (err.name === "ConditionalCheckFailedException") return false;
     throw err;
+  }
+}
+
+async function giveBack(key, day) {
+  try {
+    await ddb.send(new UpdateItemCommand({
+      TableName: RATE_TABLE,
+      Key: counterKey(key, day),
+      UpdateExpression: "ADD #n :minus",
+      ConditionExpression: "#n > :zero",
+      ExpressionAttributeNames: { "#n": "n" },
+      ExpressionAttributeValues: { ":minus": { N: "-1" }, ":zero": { N: "0" } },
+    }));
+  } catch (err) {
+    // Best effort. The worst case is one unit of today's allowance lost.
+    console.error("counter refund failed", key, err.name);
+  }
+}
+
+// Undo a booking this request just made. The id check means it can only ever
+// remove its own row, never one a later visitor was given for the same slot.
+async function unbook(slot, bookingId) {
+  try {
+    await ddb.send(new DeleteItemCommand({
+      TableName: BOOK_TABLE,
+      Key: { pk: { S: "booking" }, sk: { S: slot } },
+      ConditionExpression: "bookingId = :id",
+      ExpressionAttributeValues: { ":id": { S: bookingId } },
+    }));
+    return true;
+  } catch (err) {
+    console.error("could not release slot; it stays blocked until removed by hand", slot, err.name);
+    return false;
   }
 }
 
@@ -316,35 +398,61 @@ export const handler = async (event) => {
     return json(400, { error: "That time is not available. Please pick another slot." });
   }
 
-  const ip = event.requestContext?.http?.sourceIp || "unknown";
-  if (!(await underLimit(`sched-ip#${ip}`, IP_LIMIT)) || !(await underLimit("sched-global", GLOBAL_LIMIT))) {
-    return json(429, { error: "Too many bookings today — please email us directly instead." });
-  }
+  // Claim today's allowance: the visitor's, then the desk's. Whatever is
+  // claimed is handed back if the request ends without a booking, so the caps
+  // count bookings and not attempts. (Counted the other way, ten requests for a
+  // slot that is already gone would close the desk for the day.)
+  const who = visitorOf(event);
+  const day = new Date(now).toISOString().slice(0, 10);
+  const mine = `sched-visitor#${who.key}`;
+  const tooMany = () => json(429, { error: "Too many bookings today — please email us directly instead." });
 
+  if (!(await take(mine, IP_LIMIT, day))) return tooMany();
+  if (!(await take("sched-global", GLOBAL_LIMIT, day))) {
+    await giveBack(mine, day);
+    return tooMany();
+  }
+  const handBack = () => Promise.all([giveBack(mine, day), giveBack("sched-global", day)]);
+
+  const bookingId = randomBytes(12).toString("hex");
   try {
     await ddb.send(new PutItemCommand({
       TableName: BOOK_TABLE,
       Item: {
         pk: { S: "booking" },
         sk: { S: slot },
+        bookingId: { S: bookingId },
         name: { S: name },
         email: { S: email },
         ...(company && { company: { S: company } }),
         ...(topic && { topic: { S: topic } }),
-        ip: { S: ip },
+        // The hashed visitor key, not an address: the owner's invite carries
+        // the address, and that is the only place it is kept.
+        visitor: { S: who.key },
         // Bookings self-clean a week after the meeting.
         ttl: { N: String(Math.floor(Date.parse(slot) / 1000) + 7 * 86400) },
       },
       ConditionExpression: "attribute_not_exists(sk)",
     }));
   } catch (err) {
+    await handBack();
     if (err.name === "ConditionalCheckFailedException") {
       return json(409, { error: "Someone just took that time. Please pick another slot." });
     }
     throw err;
   }
 
-  await mailInvite(slot, name, email, company, topic, ip, now);
+  // The owner has to hear about it, or it is not a booking. If the invite
+  // cannot be sent, release the slot and say so, rather than leave a time
+  // blocked that nobody knows was taken.
+  try {
+    await mailInvite(slot, name, email, company, topic, who.ip, now);
+  } catch (err) {
+    console.error("owner invite failed; releasing the slot", slot, err.name, err.message);
+    await unbook(slot, bookingId);
+    await handBack();
+    return json(503, { error: "We couldn't confirm that booking just now. Please try again in a minute." });
+  }
 
   let confirmationEmailed = false;
   if (VISITOR_EMAIL) {
