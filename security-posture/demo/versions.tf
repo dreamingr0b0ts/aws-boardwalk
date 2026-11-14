@@ -1,9 +1,12 @@
 # ── THE TEARDOWN ROOT ─────────────────────────────────────────────────────────
-# GuardDuty, Security Hub, AWS Config, and CloudTrail all bill by the day, so
-# this root exists only during demo windows: `make demo` up, `make teardown`
-# down. It is DELIBERATELY absent from .github/workflows/terraform.yml — CI
-# applies every always-on root on each push to main, and applying this one
-# would silently re-enable ~$0.50-1/day of security tooling. Keep it local.
+# Security Hub, AWS Config, and this root's KMS-encrypted trail all bill by
+# the day, so this root exists only during demo windows: `make demo` up,
+# `make teardown` down. It is DELIBERATELY absent from
+# .github/workflows/terraform.yml — CI applies every always-on root on each
+# push to main, and applying this one would silently re-enable ~$0.50-1/day of
+# security tooling. Keep it local. (GuardDuty is the exception: the detector
+# is the account's own always-on one in plank 10, borrowed here. See
+# guardduty.tf.)
 # The always-on half of the plank (site + persisted evidence) lives in ../infra.
 
 terraform {

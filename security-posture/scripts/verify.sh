@@ -4,7 +4,8 @@
 #   DEPLOYED  → verify every exhibit live (trail, KMS, GuardDuty, Security
 #               Hub, Config/NIST pack, boundary simulation) + fresh evidence
 #   TORN DOWN → verify the always-on half AND prove the idle state: no
-#               detector, no hub, no recorder, no trail left billing
+#               hub, no recorder, no demo trail left billing, and no practice
+#               findings left in the account's (always-on, plank 10) detector
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
@@ -109,7 +110,7 @@ if [ "$DEMO_RESOURCES" -gt 0 ]; then
   check $? "KMS key rotation enabled on the trail key"
 
   aws guardduty get-detector --detector-id "$DETECTOR" --query 'Status' --output text | grep -q ENABLED || [ $? -eq 141 ]
-  check $? "GuardDuty detector ENABLED"
+  check $? "GuardDuty detector ENABLED (the account's always-on one, borrowed)"
   N=$(aws guardduty list-findings --detector-id "$DETECTOR" --max-results 50 --query 'length(FindingIds)' --output text)
   [ "$N" -gt 0 ]; check $? "GuardDuty has findings to aggregate ($N+ listed)"
 
@@ -185,8 +186,21 @@ if [ "$DEMO_RESOURCES" -gt 0 ]; then
 else
   echo "— demo stack TORN DOWN: proving the idle state —"
 
-  [ "$(aws guardduty list-detectors --query 'length(DetectorIds)' --output text)" = "0" ]
-  check $? "no GuardDuty detector (nothing billing)"
+  # GuardDuty is the account's own always-on detector now (plank 10); this
+  # plank only borrows it. What must be gone is the practice findings the
+  # demo seeded: teardown archives them (scripts/archive-samples.sh).
+  GD=$(aws guardduty list-detectors --query 'DetectorIds[0]' --output text --no-cli-pager)
+  LEFT=0
+  if [ -n "$GD" ] && [ "$GD" != "None" ]; then
+    IDS=$(aws guardduty list-findings --detector-id "$GD" --max-items 50 --no-cli-pager \
+      --finding-criteria '{"Criterion":{"service.archived":{"Eq":["false"]}}}' \
+      --query 'FindingIds' --output text | tr '\t' '\n' | grep -v '^$' | grep -v '^None$' | tr '\n' ' ')
+    # shellcheck disable=SC2086  # the ids are meant to split into arguments
+    # AWS marks a practice finding with "sample": true inside AdditionalInfo.Value.
+    [ -n "$IDS" ] && LEFT=$(aws guardduty get-findings --detector-id "$GD" --finding-ids $IDS --output json --no-cli-pager \
+      | jq '[.Findings[] | select(((.Service.AdditionalInfo.Value // "{}") | (try fromjson catch {})) | .sample == true)] | length')
+  fi
+  [ "$LEFT" = "0" ]; check $? "no practice findings left active in the account's detector ($LEFT)"
   aws securityhub describe-hub > /dev/null 2>&1 && bad "Security Hub still subscribed" || ok "Security Hub not subscribed (nothing billing)"
   [ "$(aws configservice describe-configuration-recorders --query 'length(ConfigurationRecorders)' --output text)" = "0" ]
   check $? "no Config recorder (nothing billing)"

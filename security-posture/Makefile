@@ -40,9 +40,12 @@ outputs:
 destroy:
 	$(TF) destroy -auto-approve
 
-# ── teardown half (GuardDuty / Security Hub / Config / CloudTrail) ───────────
+# ── teardown half (Security Hub / Config / the KMS-encrypted trail) ──────────
 # These services bill by the day, so they exist only between `make demo` and
 # `make teardown`. This root is deliberately NOT in the CI matrix.
+# GuardDuty is not one of them any more: the detector is the account's own
+# always-on one (plank 10). `make demo` seeds practice findings into it and
+# `make teardown` archives them again.
 
 init-demo:
 	$(TFD) init -backend-config="bucket=$(STATE_BUCKET)" -input=false
@@ -55,7 +58,7 @@ demo: init-demo
 	$(TFD) apply -auto-approve -input=false $(DEMO_VARS)
 	@DETECTOR=$$($(TFD) output -raw detector_id); \
 	aws guardduty create-sample-findings --detector-id "$$DETECTOR" --no-cli-pager; \
-	echo "sample findings created on detector $$DETECTOR"
+	echo "practice findings seeded into the account's detector $$DETECTOR"
 	@echo "waiting 3 minutes for first evaluations to land…"; sleep 180
 	$(MAKE) report
 	$(MAKE) write-status DEPLOYED=true
@@ -71,13 +74,16 @@ report:
 	aws lambda invoke --function-name "$$FN" --cli-read-timeout 180 --no-cli-pager "$$OUT" > /dev/null; \
 	cat "$$OUT" | python3 -m json.tool; rm -f "$$OUT"
 
-## Final evidence snapshot, then destroy every daily-billing resource.
-## The site keeps serving the last report; status.json flips to torn-down.
+## Final evidence snapshot, archive the practice findings out of the account's
+## detector, then destroy every daily-billing resource. The site keeps serving
+## the last report; status.json flips to torn-down. Archiving must never block
+## the destroy (that is what stops the billing), hence its leading dash.
 ## The trailing delete handles a race: the report Lambda's final log lines can
 ## be delivered AFTER terraform destroys its log group, auto-recreating it
 ## unmanaged (no retention) — which then collides with the next demo's apply.
 teardown:
 	-$(MAKE) report
+	-./scripts/archive-samples.sh
 	$(TFD) destroy -auto-approve $(DEMO_VARS)
 	$(MAKE) write-status DEPLOYED=false
 	@aws logs delete-log-group --log-group-name /aws/lambda/sec-evidence-report 2>/dev/null || true

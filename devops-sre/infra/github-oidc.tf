@@ -104,6 +104,24 @@ locals {
       ]
     },
     {
+      # Switching the detector off, or teaching it to look away (a filter
+      # that auto-archives, a trusted IP list). Seeding and archiving
+      # findings stay open on purpose: plank 8's demo and the nightly sweep
+      # do both with practice findings, and neither can unsend the mail a
+      # real finding already produced.
+      Sid    = "GuardDutyStaysOn"
+      Effect = "Deny"
+      Action = [
+        "guardduty:DeleteDetector", "guardduty:UpdateDetector",
+        "guardduty:CreateFilter", "guardduty:UpdateFilter",
+        "guardduty:CreateIPSet", "guardduty:UpdateIPSet",
+      ]
+      Resource = [
+        aws_guardduty_detector.account.arn,
+        "${aws_guardduty_detector.account.arn}/*",
+      ]
+    },
+    {
       Sid    = "AlertRulesStayWired"
       Effect = "Deny"
       Action = [
@@ -141,7 +159,7 @@ locals {
 #             assuming any role, in this account or another;
 #             anything in Organizations or Account;
 #             changing the audit trail, its log bucket, the access analyzer,
-#             the account public access block, or the alert rules
+#             GuardDuty, the account public access block, or the alert rules
 #             (local.owner_only: an explicit Deny in a boundary binds the
 #             role whatever its own policy allows)
 #

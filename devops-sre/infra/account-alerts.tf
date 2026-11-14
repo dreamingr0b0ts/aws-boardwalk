@@ -4,6 +4,8 @@
 # EventBridge matches management events as CloudTrail records them (this needs
 # the trail in account-baseline.tf to be logging) and publishes a one-line
 # summary to SNS. Rules, matching and the first 1,000 emails a month are free.
+# Access Analyzer and GuardDuty findings arrive on the same bus as their own
+# events and are mailed the same way (the last two rules in this file).
 #
 # Everything here is rare by construction. Nothing automated in this account
 # signs in as root, creates a user or a key, edits the CI roles, or changes
@@ -117,7 +119,7 @@ locals {
 
     # Someone switching off the record, or the tripwires that read it.
     audit-change = {
-      description = "The audit trail, its bucket, the access analyzer, the account public access block or an alert rule was changed"
+      description = "The audit trail, its bucket, the access analyzer, GuardDuty, the account public access block or an alert rule was changed"
       pattern = jsonencode({
         "detail-type" = ["AWS API Call via CloudTrail"]
         detail = {
@@ -145,6 +147,15 @@ locals {
             {
               eventSource = ["access-analyzer.amazonaws.com"]
               eventName   = ["DeleteAnalyzer"]
+            },
+            {
+              # Switching the detector off, or teaching it to look away
+              # (suppression filters, trusted IP lists).
+              eventSource = ["guardduty.amazonaws.com"]
+              eventName = [
+                "DeleteDetector", "UpdateDetector",
+                "CreateFilter", "UpdateFilter", "CreateIPSet", "UpdateIPSet",
+              ]
             },
             {
               eventSource       = ["events.amazonaws.com"]
@@ -239,5 +250,61 @@ resource "aws_cloudwatch_event_target" "access_finding" {
       public   = "$.detail.isPublic"
     }
     input_template = "\"Boardwalk account alert [access-finding]: <kind> <resource> can be used from outside this account (open to anyone: <public>). Finding <id>. Review it in the IAM console under Access Analyzer.\""
+  }
+}
+
+# GuardDuty also speaks for itself: one event when a finding is first raised,
+# then one per publishing interval while it keeps recurring.
+#
+# Plank 8's demo seeds this same detector with AWS's practice findings, one of
+# every type, several hundred at a time. They must never reach the inbox.
+#
+# AWS marks a practice finding with "sample": true in the finding's
+# additionalInfo. (The "[SAMPLE]" title is only how the console displays one;
+# the finding's own title has no prefix, so a title filter would exclude
+# nothing.) The API returns that marker inside a JSON string, additionalInfo
+# .value, and exported findings may also carry it as a field of its own, so the
+# pattern accepts a finding only if BOTH say "not a sample": the field is
+# absent or false, AND the string is absent or does not contain the marker.
+# Written out as the four combinations because a pattern level takes one $or.
+# A finding with no additionalInfo at all, or one this rule cannot read, mails:
+# the mistake to avoid is silence.
+locals {
+  # "This string does not contain the sample marker."
+  guardduty_value_not_sample = [{ "anything-but" = { wildcard = "*\"sample\":true*" } }]
+}
+
+resource "aws_cloudwatch_event_rule" "guardduty_finding" {
+  name        = "${local.prefix}-alert-guardduty-finding"
+  description = "GuardDuty raised a finding (plank 8's practice findings excluded)"
+
+  event_pattern = jsonencode({
+    source        = ["aws.guardduty"]
+    "detail-type" = ["GuardDuty Finding"]
+    detail = {
+      "$or" = [
+        { service = { additionalInfo = { sample = [{ exists = false }], value = [{ exists = false }] } } },
+        { service = { additionalInfo = { sample = [{ exists = false }], value = local.guardduty_value_not_sample } } },
+        { service = { additionalInfo = { sample = [false], value = [{ exists = false }] } } },
+        { service = { additionalInfo = { sample = [false], value = local.guardduty_value_not_sample } } },
+      ]
+    }
+  })
+}
+
+resource "aws_cloudwatch_event_target" "guardduty_finding" {
+  rule = aws_cloudwatch_event_rule.guardduty_finding.name
+  arn  = aws_sns_topic.alerts.arn
+
+  input_transformer {
+    input_paths = {
+      title    = "$.detail.title"
+      type     = "$.detail.type"
+      severity = "$.detail.severity"
+      count    = "$.detail.service.count"
+      region   = "$.detail.region"
+      id       = "$.detail.id"
+    }
+    input_template = "\"Boardwalk account alert [guardduty-finding]: <title> Type <type>, severity <severity> (7 and up is high, 4 to 6.9 medium), seen <count> time(s), in <region>. Finding <id>. Open it in the GuardDuty console for the resource, the caller and the address involved.\""
   }
 }
