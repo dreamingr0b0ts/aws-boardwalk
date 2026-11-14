@@ -137,9 +137,11 @@ resource "aws_iam_role_policy" "schedule" {
         Resource = "${aws_cloudwatch_log_group.schedule.arn}:*"
       },
       {
+        # DeleteItem is how a booking is undone when the owner's invite cannot
+        # be sent; the handler conditions it on the id of the row it just wrote.
         Sid      = "Bookings"
         Effect   = "Allow"
-        Action   = ["dynamodb:Query", "dynamodb:PutItem"]
+        Action   = ["dynamodb:Query", "dynamodb:PutItem", "dynamodb:DeleteItem"]
         Resource = aws_dynamodb_table.bookings.arn
       },
       {

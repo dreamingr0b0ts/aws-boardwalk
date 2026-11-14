@@ -8,10 +8,11 @@ TF := terraform -chdir=infra
 init:
 	$(TF) init -backend-config="bucket=$(STATE_BUCKET)" -input=false
 
-## Offline tests for the booking desk's outgoing mail (stubbed SES/DynamoDB,
-## no AWS calls; needs Node 22.15+ for module.registerHooks)
+## Offline tests for the contact form and the booking desk: who a daily cap is
+## counted against, what counts, and what the outgoing mail may carry (stubbed
+## SES/DynamoDB, no AWS calls; needs Node 22.15+ for module.registerHooks)
 test:
-	node --test backend/test/schedule.test.mjs
+	node --test backend/test/contact.test.mjs backend/test/schedule.test.mjs
 
 deploy: init
 	$(TF) apply -auto-approve -input=false

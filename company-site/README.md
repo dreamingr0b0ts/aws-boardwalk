@@ -10,7 +10,17 @@ GoDaddy so the nameserver cutover never touches email.
 | Piece | What |
 | --- | --- |
 | `site/` | Dependency-free static site: homepage, five service pages (three core in the nav; see the service hierarchy note below), /apps + a page per shipped app, /about, /schedule, insights + three field notes, privacy/terms/404 (SEO: canonical, OG, JSON-LD, sitemap, RSS at /feed.xml) |
-| `backend/contact.mjs` | Contact form Lambda: honeypot, validation, per-IP + global daily caps (DynamoDB TTL counters), SESv2 send |
+| `backend/contact.mjs` | Contact form Lambda: honeypot, validation, per-visitor (10/day) + global (100/day) caps (DynamoDB TTL counters), SESv2 send |
+| `backend/schedule.mjs` | Booking desk Lambda: computed availability, one conditional write per slot, per-visitor (3/day) + global (10/day) caps, owner invite + optional visitor confirmation. A booking whose owner invite cannot be sent is undone. |
+| `backend/test/` | Offline tests for both (`make test`): stubbed SES and DynamoDB, no AWS calls |
+
+**How the daily caps count.** Both Lambdas sit behind CloudFront, so the address API Gateway reports
+(`sourceIp`) is one of CloudFront's own: many visitors share one and one visitor arrives from many.
+The caps key on the visitor instead, the second-from-last `X-Forwarded-For` entry, which CloudFront
+writes and a client cannot (the origin lock is what makes that position trustworthy). The key is a
+hash of the address, IPv6 by /64, so the counter table holds no addresses. A claim against a cap is
+handed back whenever the request ends without a message sent or a booking made, so the caps count
+results and not attempts.
 | `infra/` | Zone (`prevent_destroy`), ACM cert (DNS-validated), CloudFront + router function (www→apex, clean URLs), HTTP API, SES identities |
 
 ## Cutover runbook (owner does the GoDaddy steps)

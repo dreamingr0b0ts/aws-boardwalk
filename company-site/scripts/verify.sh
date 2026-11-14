@@ -133,9 +133,22 @@ BAD=$(curl -sS $CURL -o /dev/null -w '%{http_code}' -X POST "$URL/api/contact" \
 [ "$BAD" = "400" ] ; check "invalid submission rejected (400)" $?
 
 if [ "${SEND:-0}" = "1" ]; then
-  OK=$(curl -sS $CURL -X POST "$URL/api/contact" -H 'content-type: application/json' \
+  # Over IPv4 on purpose, so the address the form sees is the one checkip
+  # reports below.
+  OK=$(curl -4 -sS $CURL -X POST "$URL/api/contact" -H 'content-type: application/json' \
     -d '{"name":"Verify Script","email":"info@planetek.org","service":"Other","message":"Test submission from scripts/verify.sh — safe to ignore."}')
   echo "$OK" | grep -q '"ok":true' || [ $? -eq 141 ] ; check "real submission accepted (check the info@ inbox)" $?
+
+  # The daily cap must be counted against the visitor, not against whichever
+  # CloudFront address carried the request: after a real submission there is a
+  # counter row for THIS machine's address, hashed (see visitorOf in
+  # backend/contact.mjs). A row keyed any other way would not be found.
+  MYIP=$(curl -4 -sS https://checkip.amazonaws.com | tr -d '[:space:]')
+  VKEY=$(printf '%s' "$MYIP" | openssl dgst -sha256 | awk '{print $NF}' | cut -c1-16)
+  RATE_TABLE=$(aws lambda get-function-configuration --function-name www-contact --query 'Environment.Variables.TABLE_NAME' --output text --no-cli-pager)
+  COUNTED=$(aws dynamodb get-item --table-name "$RATE_TABLE" --consistent-read --no-cli-pager \
+    --key "{\"pk\":{\"S\":\"visitor#$VKEY#$(date -u +%F)\"}}" --query 'Item.n.N' --output text)
+  [ "$COUNTED" -ge 1 ] 2>/dev/null ; check "the submission was counted against this machine's own address, hashed (today: $COUNTED)" $?
 fi
 
 # --- booking desk -------------------------------------------------------------
@@ -162,6 +175,26 @@ SBAD=$(curl -sS $CURL -o /dev/null -w '%{http_code}' -X POST "$URL/api/schedule/
 SINJ=$(curl -sS $CURL -o /dev/null -w '%{http_code}' -X POST "$URL/api/schedule/book" \
   -H 'content-type: application/json' -d '{"name":"Verify","email":"a@example.com,evil","slot":"2030-01-07T16:00:00Z"}')
 [ "$SINJ" = "400" ] ; check "address that could carry a second recipient rejected (400)" $?
+
+# --- daily caps ----------------------------------------------------------------
+# Who a cap is counted against, and what counts, is proved offline by
+# `make test` (a live proof needs a real message or booking: see SEND=1 above).
+# What can be checked here without sending anything is that the functions
+# running ARE the handlers those tests cover, and that the booking desk is
+# allowed to undo a booking it could not tell the owner about.
+sha() { openssl dgst -sha256 | awk '{print $NF}'; }
+for FN in contact schedule; do
+  CODE_URL=$(aws lambda get-function --function-name "www-$FN" --query Code.Location --output text --no-cli-pager)
+  LIVE_SHA=$(curl -sS "$CODE_URL" -o "/tmp/www-$FN.zip" && unzip -p "/tmp/www-$FN.zip" "$FN.mjs" | sha)
+  rm -f "/tmp/www-$FN.zip"
+  [ -n "$LIVE_SHA" ] && [ "$LIVE_SHA" = "$(sha < "backend/$FN.mjs")" ] ; check "deployed www-$FN is the handler in this checkout" $?
+done
+SCHED_CFG=$(aws lambda get-function-configuration --function-name www-schedule --output json --no-cli-pager)
+SCHED_ROLE=$(echo "$SCHED_CFG" | python3 -c 'import json,sys; print(json.load(sys.stdin)["Role"])')
+BOOK_ARN=$(echo "$SCHED_CFG" | python3 -c 'import json,sys; c=json.load(sys.stdin); a=c["FunctionArn"].split(":"); print(f"arn:aws:dynamodb:{a[3]}:{a[4]}:table/" + c["Environment"]["Variables"]["BOOK_TABLE"])')
+UNDO=$(aws iam simulate-principal-policy --policy-source-arn "$SCHED_ROLE" --action-names dynamodb:DeleteItem \
+  --resource-arns "$BOOK_ARN" --query 'EvaluationResults[0].EvalDecision' --output text --no-cli-pager)
+[ "$UNDO" = "allowed" ] ; check "booking desk may release a slot whose invite could not be sent ($UNDO)" $?
 
 # ---- the origin lock: the API answers CloudFront, never the open internet ----
 # Straight at the execute-api hostname there is no WAF, and the caller writes
