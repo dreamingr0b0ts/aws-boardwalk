@@ -10,6 +10,7 @@
 | Plan/apply gates | `terraform plan` + fmt/validate on every PR; apply only on merge to `main`, behind the `prod` environment gate. |
 | DevSecOps scanning | **Checkov** (Terraform misconfig) + **Trivy** (IaC + dependency vulns) fail the build on every PR. |
 | Observability | CloudWatch dashboard `ops-boardwalk` (CloudFront, API p95, Lambda errors, DynamoDB, Bedrock), 4 alarms → SNS email, X-Ray tracing on the runbook Lambda + Step Functions. |
+| Account baseline | Always on, and not an exhibit: `ops-audit-trail` (every region's management events, log-file validation, one year in `ops-audit-logs-<account-id>`), the `ops-external-access` **IAM Access Analyzer**, the account-wide **S3 public access block**, and six `ops-alert-*` EventBridge tripwires that mail the alerts topic. |
 | Synthetic monitoring | CloudWatch Synthetics heartbeat over every live plank, **parked by default** (`make canary-start` / `canary-stop` around demo windows). |
 | Resilience runbook | Step Functions drill: snapshot the live permits table → restore to a scratch table → verify item-for-item → clean up → publish **measured RTO/RPO** to the status page. |
 | **Visitor drill** | The page's *Run the beacon drill* button starts that same state machine for real; the four stages render live from `GetExecutionHistory`, then the timed report lands on the record card. One at a time (extra POSTs 409-attach to the run under way), 10/day. |
@@ -42,9 +43,35 @@ make canary-stop   # after: idle cost back to ~$0
 - Explicit denies on the apply role: modifying the CI roles or either boundary policy,
   `sts:AssumeRole` (every member account has an admin role that trusts this account),
   and `route53:DeleteHostedZone`.
-- The boundary policy, plank 8's `sec-permission-boundary`, and the three `ops-gh-*`
-  roles are **owner-managed**: a change to any of them is applied from the owner's
-  machine before it is pushed, because CI is denied the write by design.
+- The account's own record is out of the pipeline's reach. The apply role is denied
+  stopping, deleting or editing the audit trail, any write to its log bucket, lifting
+  the account public access block, deleting the access analyzer or archiving its
+  findings, and touching the alert rules or the alerts topic's policy. The same denies
+  sit inside `boardwalk-role-boundary`, so minting a role to do it instead does not
+  work either. Reads stay open: CI's plan still shows drift.
+- The boundary policy, plank 8's `sec-permission-boundary`, the three `ops-gh-*`
+  roles, and the account baseline are **owner-managed**: a change to any of them is
+  applied from the owner's machine before it is pushed, because CI is denied the write
+  by design.
+
+## What the account tells the owner
+
+Six rules read the trail (and Access Analyzer) and mail one line each to the alerts
+topic. Nothing automated here does any of these things, so each mail is either the
+owner's own change arriving as a receipt, or something to look at now.
+
+| Rule | Fires when |
+|---|---|
+| `ops-alert-root-activity` | the root user signs in or makes an API call |
+| `ops-alert-identity-change` | an IAM user, access key, console password, MFA device or identity provider is created or changed |
+| `ops-alert-fence-change` | a CI role or a boundary policy is edited, or a boundary is taken off any role |
+| `ops-alert-audit-change` | the trail, its bucket, the analyzer, the account public access block or an alert rule is changed |
+| `ops-alert-organization-change` | anything changes in the AWS Organization (this is its management account) |
+| `ops-alert-access-finding` | Access Analyzer finds a resource usable from outside the account |
+
+A failed attempt mails too, with its error code. Not covered: a stolen credential
+behaving normally from a new place. That is GuardDuty's job, and GuardDuty here exists
+only inside plank 8's demo windows.
 - In the workflows, only the `plan` and `apply` jobs may request an OIDC token. The scan
   job (third-party scanners) and the build job (npm packages, install scripts off) get
   a read-only checkout; bundles reach plan/apply as an artifact. Every action is pinned
@@ -57,7 +84,10 @@ make canary-stop   # after: idle cost back to ~$0
 Idle ≈ **$0**: the dashboard and alarms are inside the free tier, the canary is stopped,
 the drill is on-demand (each run ≈ a cent), and the status page is S3 + CloudFront pennies.
 Worst case for the visitor exhibits: 10 drills/day ≈ $0.10, one Cost Explorer refresh $0.02,
-sweeps and the CI board free. The `env` cost allocation tag was activated 2026-07-30 (with a
+sweeps and the CI board free. The account baseline is free apart from log storage: the first
+copy of management events, external-access analysis, EventBridge rules on AWS events and the
+first 1,000 SNS emails a month cost nothing, and a year of logs for this account is a few
+hundred megabytes of S3 (cents). The `env` cost allocation tag was activated 2026-07-30 (with a
 backfill to July 1); per-plank attribution on the ledger fills in as AWS re-slices the month.
 
 ## Design

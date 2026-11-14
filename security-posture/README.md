@@ -76,7 +76,9 @@ make status     # is the demo stack up?
 bounded by the nightly **demo sweep** workflow (`.github/workflows/demo-sweep.yml`, 09:00 UTC),
 which runs this plank's own `make teardown` if the demo root was left up. Costs per window: Config
 configuration items + 130 rules' evaluations (about $1-3 for this account), GuardDuty/Security Hub
-in free trial (then pennies/day), CloudTrail first management trail free. Idle between windows:
+in free trial (then pennies/day), CloudTrail cents (the account's always-on audit trail in plank 10
+holds the free first copy of management events, so this demo trail bills as a second copy at $2 per
+100,000 events). Idle between windows:
 **$0** (a KMS key pending its 7-day deletion window bills nothing).
 
 ## Notes
