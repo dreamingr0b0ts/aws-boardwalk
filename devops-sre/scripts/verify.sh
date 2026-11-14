@@ -50,8 +50,10 @@ BOUNDARY="arn:aws:iam::$ACCT:policy/boardwalk-role-boundary"
 decide() {
   local ctx=()
   [ -n "${3:-}" ] && ctx=(--context-entries "ContextKeyName=iam:PermissionsBoundary,ContextKeyValues=$3,ContextKeyType=string")
+  # ${ctx[@]+...}: macOS still ships bash 3.2, where expanding an empty array
+  # under `set -u` is an "unbound variable" error.
   aws iam simulate-principal-policy --policy-source-arn "$APPLY_ROLE" --action-names "$1" \
-    --resource-arns "$2" "${ctx[@]}" --query 'EvaluationResults[0].EvalDecision' --output text --no-cli-pager
+    --resource-arns "$2" ${ctx[@]+"${ctx[@]}"} --query 'EvaluationResults[0].EvalDecision' --output text --no-cli-pager
 }
 PROBE="arn:aws:iam::$ACCT:role/mwa-verify-probe"
 [ "$(decide iam:CreateRole "$PROBE")" = "implicitDeny" ]; check $? "apply role cannot create a role without the boundary"
@@ -194,6 +196,85 @@ if [ -n "$DID" ]; then
 else
   bad "drill 409/completion checks skipped (no runId)"
 fi
+
+# ---- the account's own record: audit trail, analyzer, tripwires ----
+# Always on, unlike plank 8's demo stack. Config is read back from the live
+# account; the fence around it is simulated, not grepped (decide, above).
+TRAIL=$($TF output -raw audit_trail_name)
+AUDIT_BUCKET=$($TF output -raw audit_bucket)
+ANALYZER=$($TF output -raw access_analyzer_arn)
+
+TSTATUS=$(aws cloudtrail get-trail-status --name "$TRAIL" --output json --no-cli-pager)
+[ "$(echo "$TSTATUS" | jq -r '.IsLogging')" = "true" ]; check $? "audit trail is logging"
+[ -z "$(echo "$TSTATUS" | jq -r '.LatestDeliveryError // empty')" ]; check $? "audit trail's last delivery to S3 had no error"
+TDESC=$(aws cloudtrail describe-trails --trail-name-list "$TRAIL" --query 'trailList[0]' --output json --no-cli-pager)
+echo "$TDESC" | jq -e '.IsMultiRegionTrail and .IncludeGlobalServiceEvents and .LogFileValidationEnabled' > /dev/null
+check $? "audit trail covers every region and global services, with log-file validation"
+TRAIL_ARN=$(echo "$TDESC" | jq -r '.TrailARN')
+
+aws s3api get-public-access-block --bucket "$AUDIT_BUCKET" --query PublicAccessBlockConfiguration --output json --no-cli-pager \
+  | jq -e '[.[]] | length == 4 and all' > /dev/null; check $? "audit bucket blocks public access"
+[ "$(aws s3api get-bucket-versioning --bucket "$AUDIT_BUCKET" --query Status --output text --no-cli-pager)" = "Enabled" ]
+check $? "audit bucket keeps overwritten or deleted log files (versioning)"
+# A log file under today's or yesterday's date (UTC): the trail is not just
+# switched on, it is delivering. date -v is macOS, date -d is GNU.
+DELIVERED=0
+for DAY in "$(date -u +%Y/%m/%d)" "$(date -u -v-1d +%Y/%m/%d 2>/dev/null || date -u -d yesterday +%Y/%m/%d)"; do
+  NLOGS=$(aws s3api list-objects-v2 --bucket "$AUDIT_BUCKET" --prefix "AWSLogs/$ACCT/CloudTrail/us-east-1/$DAY/" \
+    --max-keys 1 --query KeyCount --output text --no-cli-pager)
+  [ "$NLOGS" -ge 1 ] 2>/dev/null && DELIVERED=1
+done
+[ "$DELIVERED" = "1" ]; check $? "audit bucket holds log files delivered in the last day"
+
+aws s3control get-public-access-block --account-id "$ACCT" --query PublicAccessBlockConfiguration --output json --no-cli-pager \
+  | jq -e '[.[]] | length == 4 and all' > /dev/null; check $? "account-wide S3 public access block: all four switches on"
+
+[ "$(aws accessanalyzer get-analyzer --analyzer-name "${ANALYZER##*/}" --query analyzer.status --output text --no-cli-pager)" = "ACTIVE" ]
+check $? "access analyzer is active"
+# The three CI roles trust GitHub's identity provider, so they are reachable
+# from outside by design. Any other active finding is something to look at.
+UNEXPECTED=$(aws accessanalyzer list-findings --analyzer-arn "$ANALYZER" --filter '{"status":{"eq":["ACTIVE"]}}' \
+  --query 'findings[].resource' --output text --no-cli-pager | tr '\t' '\n' | grep -v ':role/ops-gh-' | grep -v '^$' | sort -u)
+[ -z "$UNEXPECTED" ]; check $? "access analyzer: nothing reachable from outside the account but the CI roles${UNEXPECTED:+ (unexpected: $(echo $UNEXPECTED))}"
+
+ALERT_RULES=$(aws events list-rules --name-prefix ops-alert- --query 'Rules[?State==`ENABLED`].Name' --output text --no-cli-pager)
+[ "$(echo $ALERT_RULES | wc -w | tr -d ' ')" = "6" ]; check $? "six account alert rules enabled ($(echo $ALERT_RULES | wc -w | tr -d ' '))"
+UNWIRED=""
+for R in $ALERT_RULES; do
+  T=$(aws events list-targets-by-rule --rule "$R" --query 'Targets[0].Arn' --output text --no-cli-pager)
+  [ "$T" = "$TOPIC" ] || UNWIRED="$UNWIRED $R"
+done
+[ -z "$UNWIRED" ]; check $? "every alert rule mails the alerts topic${UNWIRED:+ (not wired:$UNWIRED)}"
+aws sns get-topic-attributes --topic-arn "$TOPIC" --query Attributes.Policy --output text --no-cli-pager \
+  | jq -e '.Statement | any(.Principal.Service? == "events.amazonaws.com" and .Action == "sns:Publish")' > /dev/null
+check $? "alerts topic lets the alert rules publish"
+[ "$(aws sns list-subscriptions-by-topic --topic-arn "$TOPIC" --query 'Subscriptions[0].SubscriptionArn' --output text --no-cli-pager | cut -d: -f1)" = "arn" ]
+check $? "alert email subscription is confirmed"
+
+# The pipeline reads the record and cannot touch it.
+[ "$(decide cloudtrail:StopLogging "$TRAIL_ARN")" = "explicitDeny" ]; check $? "apply role cannot stop the audit trail"
+[ "$(decide cloudtrail:DeleteTrail "$TRAIL_ARN")" = "explicitDeny" ]; check $? "apply role cannot delete the audit trail"
+[ "$(decide s3:DeleteObject "arn:aws:s3:::$AUDIT_BUCKET/AWSLogs/probe")" = "explicitDeny" ]; check $? "apply role cannot delete audit log files"
+[ "$(decide s3:PutBucketPolicy "arn:aws:s3:::$AUDIT_BUCKET")" = "explicitDeny" ]; check $? "apply role cannot rewrite the audit bucket's policy"
+[ "$(decide s3:PutAccountPublicAccessBlock "*")" = "explicitDeny" ]; check $? "apply role cannot lift the account-wide public access block"
+[ "$(decide access-analyzer:DeleteAnalyzer "$ANALYZER")" = "explicitDeny" ]; check $? "apply role cannot delete the access analyzer"
+[ "$(decide events:DisableRule "arn:aws:events:us-east-1:$ACCT:rule/ops-alert-root-activity")" = "explicitDeny" ]; check $? "apply role cannot disable an alert rule"
+[ "$(decide s3:GetBucketPolicy "arn:aws:s3:::$AUDIT_BUCKET")" = "allowed" ]; check $? "apply role can still read it all (drift shows up in CI's plan)"
+[ "$(decide cloudtrail:DeleteTrail "arn:aws:cloudtrail:us-east-1:$ACCT:trail/sec-trail")" = "allowed" ]; check $? "apply role can still tear down plank 8's demo trail (the nightly sweep)"
+
+# Nor can anything the pipeline creates: the same denies sit in the boundary.
+# Simulated as the most permissive role possible (allow everything) under the
+# live boundary document.
+BVER=$(aws iam get-policy --policy-arn "$BOUNDARY" --query Policy.DefaultVersionId --output text --no-cli-pager)
+BDOC=$(aws iam get-policy-version --policy-arn "$BOUNDARY" --version-id "$BVER" --query PolicyVersion.Document --output json --no-cli-pager)
+ALLOW_ALL='{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":"*","Resource":"*"}]}'
+under_boundary() {
+  aws iam simulate-custom-policy --policy-input-list "$ALLOW_ALL" --permissions-boundary-policy-input-list "$BDOC" \
+    --action-names "$1" --resource-arns "$2" --query 'EvaluationResults[0].EvalDecision' --output text --no-cli-pager
+}
+[ "$(under_boundary cloudtrail:StopLogging "$TRAIL_ARN")" = "explicitDeny" ]; check $? "no role under the boundary can stop the audit trail, whatever its own policy allows"
+[ "$(under_boundary s3:PutObject "arn:aws:s3:::$AUDIT_BUCKET/AWSLogs/probe")" = "explicitDeny" ]; check $? "no role under the boundary can write to the audit bucket"
+[ "$(under_boundary s3:GetObject "arn:aws:s3:::mwa-uploads-$ACCT/probe")" = "allowed" ]; check $? "the boundary still lets plank roles do plank work"
 
 # ---- the origin lock: the API answers CloudFront, never the open internet ----
 # Straight at the execute-api hostname there is no WAF, and the caller writes

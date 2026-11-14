@@ -56,6 +56,71 @@ locals {
     "iam:PutRolePolicy", "iam:DeleteRolePolicy",
     "iam:AttachRolePolicy", "iam:DetachRolePolicy",
   ]
+
+  # What only the owner may change: the account's own record and the
+  # tripwires that read it (account-baseline.tf, account-alerts.tf). An audit
+  # trail the least-trusted principal can pause is not much of one, so these
+  # denies are attached twice. On the apply role they stop the pipeline. In
+  # the boundary they stop every role the pipeline can create, which closes
+  # the detour of minting a role that does it instead. Reads stay open, so
+  # terraform can still refresh all of it and CI's plan still shows drift.
+  owner_only = [
+    {
+      Sid    = "AuditTrailStaysOn"
+      Effect = "Deny"
+      Action = [
+        "cloudtrail:StopLogging", "cloudtrail:DeleteTrail", "cloudtrail:UpdateTrail",
+        "cloudtrail:PutEventSelectors", "cloudtrail:PutInsightSelectors",
+      ]
+      Resource = local.audit_trail_arn
+    },
+    {
+      # Everything S3 offers except reading. CloudTrail delivers as a service
+      # principal and lifecycle expiry is S3's own; neither is an IAM role.
+      Sid       = "AuditLogIsReadOnly"
+      Effect    = "Deny"
+      NotAction = ["s3:Get*", "s3:List*"]
+      Resource  = [aws_s3_bucket.audit.arn, "${aws_s3_bucket.audit.arn}/*"]
+    },
+    {
+      # One action covers both setting and deleting the account-wide block.
+      Sid      = "PublicAccessBlockStaysOn"
+      Effect   = "Deny"
+      Action   = "s3:PutAccountPublicAccessBlock"
+      Resource = "*"
+    },
+    {
+      # Deleting the analyzer, or archiving what it found.
+      Sid    = "AccessAnalyzerStaysOn"
+      Effect = "Deny"
+      Action = [
+        "access-analyzer:DeleteAnalyzer", "access-analyzer:UpdateFindings",
+        "access-analyzer:CreateArchiveRule", "access-analyzer:UpdateArchiveRule",
+        "access-analyzer:ApplyArchiveRule",
+      ]
+      Resource = [
+        "arn:aws:access-analyzer:${local.region}:${local.account_id}:analyzer/${local.prefix}-external-access",
+        "arn:aws:access-analyzer:${local.region}:${local.account_id}:analyzer/${local.prefix}-external-access/*",
+      ]
+    },
+    {
+      Sid    = "AlertRulesStayWired"
+      Effect = "Deny"
+      Action = [
+        "events:DeleteRule", "events:DisableRule", "events:PutRule",
+        "events:PutTargets", "events:RemoveTargets",
+      ]
+      Resource = "arn:aws:events:${local.region}:${local.account_id}:rule/${local.prefix}-alert-*"
+    },
+    {
+      # Not sns:Unsubscribe: SNS does not put that call behind IAM, so no
+      # policy can hold it. verify.sh checks the email subscription is live.
+      Sid      = "AlertTopicStaysPut"
+      Effect   = "Deny"
+      Action   = ["sns:DeleteTopic", "sns:SetTopicAttributes", "sns:AddPermission", "sns:RemovePermission"]
+      Resource = aws_sns_topic.alerts.arn
+    },
+  ]
 }
 
 # --- the ceiling for every role the boardwalk creates ---------------------------
@@ -74,7 +139,11 @@ locals {
 #             passing plank-prefixed roles (plank 4 hands task roles to ECS)
 #   never     creating or editing users, roles, policies, or keys;
 #             assuming any role, in this account or another;
-#             anything in Organizations or Account
+#             anything in Organizations or Account;
+#             changing the audit trail, its log bucket, the access analyzer,
+#             the account public access block, or the alert rules
+#             (local.owner_only: an explicit Deny in a boundary binds the
+#             role whatever its own policy allows)
 #
 # This policy and the CI roles are managed only from the owner's machine. A
 # change here must be applied locally before it is pushed.
@@ -95,7 +164,7 @@ resource "aws_iam_policy" "role_boundary" {
 
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [
+    Statement = concat([
       {
         Sid       = "ServicesButNotIdentity"
         Effect    = "Allow"
@@ -114,7 +183,7 @@ resource "aws_iam_policy" "role_boundary" {
         Action   = "iam:PassRole"
         Resource = local.plank_role_arns
       },
-    ]
+    ], local.owner_only)
   })
 }
 
@@ -373,6 +442,20 @@ resource "aws_iam_role_policy" "gh_apply_iam" {
         ]
       },
     ]
+  })
+}
+
+# PowerUserAccess covers CloudTrail, S3, EventBridge and SNS in full. This
+# takes back the account's own record and its tripwires (local.owner_only).
+# The pipeline still reads them on every devops-sre apply; a change to any of
+# them is the owner's, applied locally before it is pushed.
+resource "aws_iam_role_policy" "gh_apply_owner_only" {
+  name = "owner-only"
+  role = aws_iam_role.gh_apply.id
+
+  policy = jsonencode({
+    Version   = "2012-10-17"
+    Statement = local.owner_only
   })
 }
 

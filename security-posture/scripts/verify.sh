@@ -190,8 +190,10 @@ else
   aws securityhub describe-hub > /dev/null 2>&1 && bad "Security Hub still subscribed" || ok "Security Hub not subscribed (nothing billing)"
   [ "$(aws configservice describe-configuration-recorders --query 'length(ConfigurationRecorders)' --output text)" = "0" ]
   check $? "no Config recorder (nothing billing)"
-  [ "$(aws cloudtrail describe-trails --query 'length(trailList)' --output text)" = "0" ]
-  check $? "no CloudTrail trail left behind"
+  # The account's own always-on audit trail (ops-audit-trail, plank 10) is
+  # meant to be there; only this plank's demo trail must be gone.
+  [ "$(aws cloudtrail describe-trails --query 'length(trailList[?Name==`sec-trail`])' --output text)" = "0" ]
+  check $? "no demo CloudTrail trail left behind"
   echo "$STATUS" | jq -e '.deployed == false' > /dev/null; check $? "status.json says torn down"
 
   # the exhibit API stays up (always-on root); the drill honestly refuses

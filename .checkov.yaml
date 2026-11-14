@@ -52,9 +52,11 @@ skip-check:
   - CKV_AWS_272 # Lambda code signing (terraform-hashed artifacts from a public repo)
   - CKV_AWS_338 # 1-year log retention: demo error logs are deliberately short-lived (14 days); traces TTL at 48h
 
+  # --- both CloudTrail trails (plank 8's demo trail and plank 10's always-on ops-audit-trail) ---
+  - CKV_AWS_252 # CloudTrail SNS topic per log delivery: nothing would consume a message per log file; the evidence Lambda reads trail status via API, and the always-on trail's alerts are EventBridge rules on the events themselves (devops-sre/infra/account-alerts.tf)
+  - CKV2_AWS_10 # CloudTrail → CloudWatch Logs: ingestion + storage + an extra role. The demo trail lives hours at a time; the always-on trail gets its alerting from EventBridge for free instead of metric filters on a paid log group. Both deliver to integrity-validated S3
+
   # --- plank 8's teardown stack (exists only during demo windows) ---
-  - CKV_AWS_252 # CloudTrail SNS topic per log delivery: nothing would consume it; the evidence Lambda reads trail status via API
-  - CKV2_AWS_10 # CloudTrail → CloudWatch Logs: ingestion + storage + an extra role for a trail that lives hours at a time; logs land in the KMS-encrypted, integrity-validated S3 bucket
   - CKV2_AWS_3 # GuardDuty org/all-region enablement: single-account demo detector, deployed for demo windows only by design
 
   # --- plank 9's teardown stack (exists only during demo windows) ---

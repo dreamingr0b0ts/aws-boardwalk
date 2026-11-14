@@ -41,6 +41,21 @@ output "alerts_topic_arn" {
   value = aws_sns_topic.alerts.arn
 }
 
+output "audit_trail_name" {
+  description = "The account's always-on, all-region CloudTrail trail (account-baseline.tf)"
+  value       = aws_cloudtrail.audit.name
+}
+
+output "audit_bucket" {
+  description = "Where the audit trail delivers; read-only to everything but the owner"
+  value       = aws_s3_bucket.audit.bucket
+}
+
+output "access_analyzer_arn" {
+  description = "External-access analyzer for this account"
+  value       = aws_accessanalyzer_analyzer.account.arn
+}
+
 output "exhibits_table" {
   value = aws_dynamodb_table.exhibits.name
 }
