@@ -6,7 +6,7 @@
 import { CloudTrailClient, DescribeTrailsCommand, GetTrailStatusCommand } from "@aws-sdk/client-cloudtrail";
 import { KMSClient, DescribeKeyCommand, GetKeyRotationStatusCommand } from "@aws-sdk/client-kms";
 import {
-  GuardDutyClient, GetFindingsStatisticsCommand,
+  GuardDutyClient,
   ListFindingsCommand, GetFindingsCommand as GdGetFindingsCommand,
 } from "@aws-sdk/client-guardduty";
 import { SecurityHubClient, GetEnabledStandardsCommand, GetFindingsCommand } from "@aws-sdk/client-securityhub";
@@ -60,23 +60,56 @@ async function collectKms() {
   };
 }
 
-// GuardDuty reports severity as numbers: 7.0–8.9 high, 4.0–6.9 medium, else low.
-async function collectGuardDuty() {
-  const { FindingStatistics } = await guardduty.send(new GetFindingsStatisticsCommand({
-    DetectorId: DETECTOR_ID,
-    FindingStatisticTypes: ["COUNT_BY_SEVERITY"],
-    FindingCriteria: { Criterion: { "service.archived": { Eq: ["false"] } } },
-  }));
-  const bySeverity = { HIGH: 0, MEDIUM: 0, LOW: 0 };
-  let total = 0;
-  for (const [sev, count] of Object.entries(FindingStatistics?.CountBySeverity ?? {})) {
-    const n = Number(sev);
-    const bucket = n >= 7 ? "HIGH" : n >= 4 ? "MEDIUM" : "LOW";
-    bySeverity[bucket] += count;
-    total += count;
+// The detector is the account's own always-on one (plank 10), borrowed for the
+// window. This report is public, so it counts and catalogues ONLY the practice
+// findings `make demo` seeds. Anything real the detector has raised is the
+// owner's business: it goes to the owner by mail (plank 10's alert rule) and
+// never onto this page.
+//
+// AWS marks a practice finding with "sample": true inside the JSON string at
+// Service.AdditionalInfo.Value. The "[SAMPLE]" title is only how the console
+// displays it; the API's Title carries no prefix. A finding whose marker is
+// missing or unreadable is treated as real, which keeps it off the page.
+export function isPractice(finding) {
+  try {
+    return JSON.parse(finding?.Service?.AdditionalInfo?.Value ?? "{}").sample === true;
+  } catch {
+    return false;
   }
-  const fieldGuide = await collectFieldGuide();
-  return { detectorId: DETECTOR_ID, total, bySeverity, sampleFindings: true, ...fieldGuide };
+}
+
+// GuardDuty reports severity as numbers: 7.0–8.9 high, 4.0–6.9 medium, else low.
+const severityBucket = (n) => (n >= 7 ? "HIGH" : n >= 4 ? "MEDIUM" : "LOW");
+
+export async function collectGuardDuty() {
+  // Every active finding id (a full seeding is one per finding type, a few
+  // hundred), then the findings themselves in the API's batches of 50.
+  const ids = [];
+  let nextToken;
+  do {
+    const res = await guardduty.send(new ListFindingsCommand({
+      DetectorId: DETECTOR_ID,
+      FindingCriteria: { Criterion: { "service.archived": { Eq: ["false"] } } },
+      MaxResults: 50,
+      NextToken: nextToken,
+    }));
+    ids.push(...(res.FindingIds ?? []));
+    nextToken = res.NextToken;
+  } while (nextToken && ids.length < 1000);
+
+  const practice = [];
+  for (let i = 0; i < ids.length; i += 50) {
+    const { Findings } = await guardduty.send(new GdGetFindingsCommand({
+      DetectorId: DETECTOR_ID,
+      FindingIds: ids.slice(i, i + 50),
+    }));
+    practice.push(...(Findings ?? []).filter(isPractice));
+  }
+
+  const bySeverity = { HIGH: 0, MEDIUM: 0, LOW: 0 };
+  for (const f of practice) bySeverity[severityBucket(f.Severity ?? 0)] += 1;
+
+  return { total: practice.length, bySeverity, sampleFindings: true, ...buildFieldGuide(practice) };
 }
 
 // The smoke field guide: GuardDuty finding types encode their own taxonomy —
@@ -112,33 +145,13 @@ function parseFindingType(type) {
   return { threatPurpose: purposePart, resource, family };
 }
 
-async function collectFieldGuide() {
-  // Sample findings (not all 400+): enough to catalogue the variety of types.
-  const ids = [];
-  let nextToken;
-  do {
-    const res = await guardduty.send(new ListFindingsCommand({
-      DetectorId: DETECTOR_ID,
-      FindingCriteria: { Criterion: { "service.archived": { Eq: ["false"] } } },
-      MaxResults: 50,
-      NextToken: nextToken,
-    }));
-    ids.push(...(res.FindingIds ?? []));
-    nextToken = res.NextToken;
-  } while (nextToken && ids.length < 200);
-
+function buildFieldGuide(findings) {
   const counts = new Map();
-  for (let i = 0; i < ids.length; i += 50) {
-    const { Findings } = await guardduty.send(new GdGetFindingsCommand({
-      DetectorId: DETECTOR_ID,
-      FindingIds: ids.slice(i, i + 50),
-    }));
-    for (const f of Findings ?? []) {
-      const entry = counts.get(f.Type) ?? { type: f.Type, count: 0, maxSeverity: 0 };
-      entry.count += 1;
-      entry.maxSeverity = Math.max(entry.maxSeverity, f.Severity ?? 0);
-      counts.set(f.Type, entry);
-    }
+  for (const f of findings) {
+    const entry = counts.get(f.Type) ?? { type: f.Type, count: 0, maxSeverity: 0 };
+    entry.count += 1;
+    entry.maxSeverity = Math.max(entry.maxSeverity, f.Severity ?? 0);
+    counts.set(f.Type, entry);
   }
 
   const fieldGuide = [...counts.values()]
@@ -150,14 +163,14 @@ async function collectFieldGuide() {
         threatPurpose: p.threatPurpose,
         resource: p.resource,
         family: p.family,
-        severity: e.maxSeverity >= 7 ? "HIGH" : e.maxSeverity >= 4 ? "MEDIUM" : "LOW",
+        severity: severityBucket(e.maxSeverity),
         plain: THREAT_PURPOSE[p.threatPurpose] ?? "A behavior the watch is trained to flag.",
       };
     })
     .sort((a, b) => b.count - a.count || b.type.localeCompare(a.type))
     .slice(0, 12);
 
-  return { fieldGuide, fieldGuideSampled: ids.length, distinctTypes: counts.size };
+  return { fieldGuide, fieldGuideSampled: findings.length, distinctTypes: counts.size };
 }
 
 async function collectSecurityHub() {
@@ -310,7 +323,8 @@ function renderHtml(ev) {
 <h1>Security Posture Evidence Report</h1>
 <p class="meta">City of Alpenglow demo account · region us-east-1 · generated ${esc(ev.generatedAt)} by the <code>sec-evidence-report</code> Lambda (plank 8, Planetek AWS Boardwalk)</p>
 <div class="note"><strong>Demo scope:</strong> the GuardDuty findings below are AWS-generated <em>sample</em> findings
-(titles prefixed “[SAMPLE]”), the practice smokes that exercise the detection→aggregation→evidence pipeline.
+(the console labels them “[SAMPLE]”), the practice smokes that exercise the detection→aggregation→evidence pipeline.
+Only those are counted here: the detector is this account's real one, and anything it genuinely finds stays off this page.
 Security Hub and Config results are real evaluations of this live AWS account, including its nine always-on
 demo environments.</div>
 

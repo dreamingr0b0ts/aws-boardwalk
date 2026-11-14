@@ -9,7 +9,7 @@ Design constraints for every plank:
 - **IaC everywhere.** Terraform, remote state in S3, `env:<name>` tags on every resource.
 - **One shared WAF web ACL** (per-IP rate limiting + AWS managed rules) fronts every distribution — and because each plank's API is same-origin behind CloudFront, the APIs too.
 - **Every API is locked to its distribution.** API Gateway's own hostname is public, so CloudFront adds a secret origin header and each API Lambda refuses requests that arrive without it. A direct call skips neither the WAF nor the per-visitor caps; each plank's verify suite proves it with a direct request that must answer 403.
-- **The account keeps its own record.** An always-on, all-region CloudTrail trail with log-file validation, an IAM Access Analyzer, an account-wide S3 public access block, and a handful of EventBridge tripwires (root use, new users or keys, edits to the CI roles, changes to the Organization) that mail the owner. All free, and the pipeline can read every piece of it and change none: the denies sit in the CI role and in the permissions boundary every other role carries.
+- **The account keeps its own record.** An always-on, all-region CloudTrail trail with log-file validation, an IAM Access Analyzer, GuardDuty, an account-wide S3 public access block, and a handful of EventBridge tripwires (root use, new users or keys, edits to the CI roles, changes to the Organization, any GuardDuty finding) that mail the owner. Free apart from GuardDuty, which is about 50 cents a month here. The pipeline can read every piece of it and change none: the denies sit in the CI role and in the permissions boundary every other role carries.
 - **One command up, one command down.** Every environment has `make deploy` / `make destroy`.
 
 ## The planks

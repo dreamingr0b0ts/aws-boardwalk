@@ -237,8 +237,26 @@ UNEXPECTED=$(aws accessanalyzer list-findings --analyzer-arn "$ANALYZER" --filte
   --query 'findings[].resource' --output text --no-cli-pager | tr '\t' '\n' | grep -v ':role/ops-gh-' | grep -v '^$' | sort -u)
 [ -z "$UNEXPECTED" ]; check $? "access analyzer: nothing reachable from outside the account but the CI roles${UNEXPECTED:+ (unexpected: $(echo $UNEXPECTED))}"
 
+# GuardDuty: on, with exactly the protection plans the Terraform states. The
+# paid extras (malware scans, runtime agents, RDS, EKS) must read DISABLED,
+# because a new detector enables some of them by default and they are where a
+# GuardDuty bill grows.
+GD=$($TF output -raw guardduty_detector_id)
+GDESC=$(aws guardduty get-detector --detector-id "$GD" --output json --no-cli-pager)
+[ "$(echo "$GDESC" | jq -r '.Status')" = "ENABLED" ]; check $? "GuardDuty detector is enabled"
+feature() { echo "$GDESC" | jq -r --arg n "$1" '.Features[] | select(.Name == $n) | .Status'; }
+[ "$(feature S3_DATA_EVENTS)" = "ENABLED" ] && [ "$(feature LAMBDA_NETWORK_LOGS)" = "ENABLED" ]
+check $? "GuardDuty watches S3 data events and Lambda network activity"
+GD_EXTRAS=$(echo "$GDESC" | jq -r '[.Features[] | select(.Status == "ENABLED") | .Name] - ["CLOUD_TRAIL", "DNS_LOGS", "FLOW_LOGS", "S3_DATA_EVENTS", "LAMBDA_NETWORK_LOGS"] | join(" ")')
+[ -z "$GD_EXTRAS" ]; check $? "no paid GuardDuty extras are switched on${GD_EXTRAS:+ (enabled: $GD_EXTRAS)}"
+# Whatever is active in the detector should be real. Practice findings belong
+# to plank 8's demo window and are archived when it closes.
+GD_OPEN=$(aws guardduty list-findings --detector-id "$GD" --max-items 50 --no-cli-pager \
+  --finding-criteria '{"Criterion":{"service.archived":{"Eq":["false"]}}}' --query 'length(FindingIds)' --output text)
+ok "GuardDuty active findings right now: $GD_OPEN (each one was mailed when it was raised)"
+
 ALERT_RULES=$(aws events list-rules --name-prefix ops-alert- --query 'Rules[?State==`ENABLED`].Name' --output text --no-cli-pager)
-[ "$(echo $ALERT_RULES | wc -w | tr -d ' ')" = "6" ]; check $? "six account alert rules enabled ($(echo $ALERT_RULES | wc -w | tr -d ' '))"
+[ "$(echo $ALERT_RULES | wc -w | tr -d ' ')" = "7" ]; check $? "seven account alert rules enabled ($(echo $ALERT_RULES | wc -w | tr -d ' '))"
 UNWIRED=""
 for R in $ALERT_RULES; do
   T=$(aws events list-targets-by-rule --rule "$R" --query 'Targets[0].Arn' --output text --no-cli-pager)
@@ -261,6 +279,13 @@ check $? "alert email subscription is confirmed"
 [ "$(decide events:DisableRule "arn:aws:events:us-east-1:$ACCT:rule/ops-alert-root-activity")" = "explicitDeny" ]; check $? "apply role cannot disable an alert rule"
 [ "$(decide s3:GetBucketPolicy "arn:aws:s3:::$AUDIT_BUCKET")" = "allowed" ]; check $? "apply role can still read it all (drift shows up in CI's plan)"
 [ "$(decide cloudtrail:DeleteTrail "arn:aws:cloudtrail:us-east-1:$ACCT:trail/sec-trail")" = "allowed" ]; check $? "apply role can still tear down plank 8's demo trail (the nightly sweep)"
+GD_ARN="arn:aws:guardduty:us-east-1:$ACCT:detector/$GD"
+[ "$(decide guardduty:DeleteDetector "$GD_ARN")" = "explicitDeny" ]; check $? "apply role cannot delete the GuardDuty detector"
+[ "$(decide guardduty:UpdateDetector "$GD_ARN")" = "explicitDeny" ]; check $? "apply role cannot disable the detector or change its plans"
+[ "$(decide guardduty:CreateFilter "$GD_ARN/filter/probe")" = "explicitDeny" ]; check $? "apply role cannot add a filter that hides findings"
+# Simulated on "*": the policy simulator does not accept a detector ARN for
+# the findings calls and answers implicitDeny for any role if given one.
+[ "$(decide guardduty:ArchiveFindings "*")" = "allowed" ]; check $? "apply role can still archive plank 8's practice findings (the nightly sweep)"
 
 # Nor can anything the pipeline creates: the same denies sit in the boundary.
 # Simulated as the most permissive role possible (allow everything) under the
@@ -274,6 +299,7 @@ under_boundary() {
 }
 [ "$(under_boundary cloudtrail:StopLogging "$TRAIL_ARN")" = "explicitDeny" ]; check $? "no role under the boundary can stop the audit trail, whatever its own policy allows"
 [ "$(under_boundary s3:PutObject "arn:aws:s3:::$AUDIT_BUCKET/AWSLogs/probe")" = "explicitDeny" ]; check $? "no role under the boundary can write to the audit bucket"
+[ "$(under_boundary guardduty:UpdateDetector "$GD_ARN")" = "explicitDeny" ]; check $? "no role under the boundary can switch GuardDuty off"
 [ "$(under_boundary s3:GetObject "arn:aws:s3:::mwa-uploads-$ACCT/probe")" = "allowed" ]; check $? "the boundary still lets plank roles do plank work"
 
 # ---- the origin lock: the API answers CloudFront, never the open internet ----

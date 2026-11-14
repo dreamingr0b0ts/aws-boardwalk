@@ -7,7 +7,7 @@
 <meta name="description" content="A deploy-demo-teardown security and governance environment: CloudTrail with KMS-encrypted logs, GuardDuty, Security Hub, an AWS Config NIST 800-53 conformance pack, IAM permission boundaries, and an auto-generated findings-to-evidence report that outlives the stack. Plank 8 of the Planetek AWS Boardwalk.">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Alpenglow Security Posture · the boardwalk's fire lookout">
-<meta property="og:description" content="GuardDuty, Security Hub, AWS Config with a NIST 800-53 conformance pack, and KMS-encrypted CloudTrail, staffed for demo windows and torn down after. The findings-to-evidence report stays behind.">
+<meta property="og:description" content="Security Hub, AWS Config with a NIST 800-53 conformance pack, KMS-encrypted CloudTrail, and GuardDuty practice findings, staffed for demo windows and torn down after. The findings-to-evidence report stays behind.">
 <meta property="og:url" content="https://security.demos.planetek.org/">
 <meta property="og:image" content="https://security.demos.planetek.org/img/og.jpg">
 <meta name="twitter:card" content="summary_large_image">
@@ -46,9 +46,10 @@
     <p class="hero-plate">Alpenglow Ranger District · the fire lookout</p>
     <p class="lede">Every forest that matters keeps a lookout: one tower with a clear view, a logbook,
     and standing orders to report what it sees. This plank is that tower, and it is deliberately
-    <em>not</em> always on. GuardDuty, Security Hub, AWS Config, and CloudTrail bill by the day, so
-    the stack is staffed for demo windows and shuttered after, the way a lookout runs for fire
-    season and closes for winter. What stays behind is the part an auditor actually wants: a
+    <em>not</em> always on. Security Hub, AWS Config, and the tower's own KMS-encrypted CloudTrail
+    bill by the day, so the stack is staffed for demo windows and shuttered after, the way a
+    lookout runs for fire season and closes for winter. (GuardDuty is the exception: it watches
+    this account year-round, and the tower borrows it for practice smokes.) What stays behind is the part an auditor actually wants: a
     <strong>findings-to-evidence report</strong>, rebuilt from live AWS APIs on every cycle and
     served below even while the stack itself is gone.</p>
     <div class="hero-meta">

@@ -56,6 +56,11 @@ output "access_analyzer_arn" {
   value       = aws_accessanalyzer_analyzer.account.arn
 }
 
+output "guardduty_detector_id" {
+  description = "The account's one GuardDuty detector for this region; plank 8's demo borrows it"
+  value       = aws_guardduty_detector.account.id
+}
+
 output "exhibits_table" {
   value = aws_dynamodb_table.exhibits.name
 }

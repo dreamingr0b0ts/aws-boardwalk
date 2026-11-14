@@ -9,11 +9,13 @@
 #   audit trail            every region's management events, hash-chained,
 #                          in a bucket nothing but CloudTrail writes to
 #   Access Analyzer        names anything reachable from outside the account
+#   GuardDuty              flags a credential or resource behaving abnormally
 #   public access block    account-wide: no bucket here can be made public
 #
-# All of it is free or costs cents: the first copy of management events is
-# free, external-access analysis is free, and a year of logs is a few hundred
-# megabytes. The alerts that read from this record are in account-alerts.tf.
+# All of it but GuardDuty is free or costs cents: the first copy of management
+# events is free, external-access analysis is free, and a year of logs is a
+# few hundred megabytes. GuardDuty is about 50 cents a month (see below). The
+# alerts that read from this record are in account-alerts.tf.
 #
 # Owner-managed, like the CI roles. The pipeline and every role it creates can
 # read these and change none of them (local.owner_only in github-oidc.tf), so
@@ -167,6 +169,66 @@ resource "aws_accessanalyzer_analyzer" "account" {
   # Wire the alarm before switching on the detector: the first scan runs
   # within minutes of creation.
   depends_on = [aws_cloudwatch_event_target.access_finding, aws_sns_topic_policy.alerts]
+}
+
+# --- threat detection -----------------------------------------------------------
+
+# GuardDuty reads the same management events the trail records, plus DNS and
+# network metadata, and flags what a rule cannot: a credential behaving in a
+# way it never has, from a place it never has. account-alerts.tf mails every
+# finding.
+#
+# The portfolio's second deliberate paid line (owner-approved 2026-11-14):
+# $4 per million management events analyzed, about 50 cents a month at this
+# account's measured volume and under $2 in its heaviest month.
+#
+# An account gets ONE detector per region. Plank 8's demo root used to create
+# and delete it; it now borrows this one (a data source in
+# security-posture/demo) for its practice findings and archives them at
+# teardown. us-east-1 only, where everything in this account runs.
+resource "aws_guardduty_detector" "account" {
+  enable = true
+
+  # How often an existing finding's updates are republished. A new finding is
+  # published within minutes whatever this says; six hours keeps one that
+  # stays open from mailing every quarter hour.
+  finding_publishing_frequency = "SIX_HOURS"
+
+  # Wire the alarm before switching on the detector.
+  depends_on = [aws_cloudwatch_event_target.guardduty_finding, aws_sns_topic_policy.alerts]
+}
+
+locals {
+  # Every protection plan, stated: what is on is on by decision, not because
+  # the API defaults a new detector that way. The disabled ones bill per
+  # vCPU, per instance or per gigabyte scanned and watch things this account
+  # does not keep running.
+  guardduty_features = {
+    S3_DATA_EVENTS         = "ENABLED"  # $0.80 per million S3 data events: cents here, and it covers the state and upload buckets
+    LAMBDA_NETWORK_LOGS    = "ENABLED"  # $1 per GB of Lambda network logs: this account produces kilobytes
+    EKS_AUDIT_LOGS         = "DISABLED" # no clusters
+    EBS_MALWARE_PROTECTION = "DISABLED" # per-GB volume scans; no always-on instances
+    RDS_LOGIN_EVENTS       = "DISABLED" # plank 11's cluster lives hours at a time
+    RUNTIME_MONITORING     = "DISABLED" # per-vCPU agents
+  }
+}
+
+resource "aws_guardduty_detector_feature" "account" {
+  for_each = local.guardduty_features
+
+  detector_id = aws_guardduty_detector.account.id
+  name        = each.key
+  status      = each.value
+
+  # Some plans carry sub-settings (runtime monitoring's agent management, RDS
+  # data risk) that the API reports back, all DISABLED, whether or not they
+  # were sent. Unignored, that is a diff on every plan, and one the pipeline
+  # cannot apply (GuardDutyStaysOn), so every push would fail this root. They
+  # do nothing while the plan itself is off, which is what `status` pins and
+  # verify.sh checks.
+  lifecycle {
+    ignore_changes = [additional_configuration]
+  }
 }
 
 # --- no public buckets, account-wide --------------------------------------------

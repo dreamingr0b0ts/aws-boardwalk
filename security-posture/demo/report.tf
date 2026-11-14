@@ -45,10 +45,11 @@ resource "aws_iam_role_policy" "report" {
         Resource = aws_kms_key.trail.arn
       },
       {
+        # The account's always-on detector (plank 10), read-only.
         Sid      = "ReadGuardDuty"
         Effect   = "Allow"
-        Action   = ["guardduty:ListDetectors", "guardduty:ListFindings", "guardduty:GetFindings", "guardduty:GetFindingsStatistics"]
-        Resource = "*" # read-only; detector id isn't known until apply and ListDetectors takes no ARN
+        Action   = ["guardduty:ListFindings", "guardduty:GetFindings"]
+        Resource = "arn:aws:guardduty:${local.region}:${local.account_id}:detector/${data.aws_guardduty_detector.account.id}"
       },
       {
         Sid      = "ReadSecurityHub"
@@ -113,7 +114,7 @@ resource "aws_lambda_function" "report" {
   environment {
     variables = {
       SITE_BUCKET       = data.terraform_remote_state.infra.outputs.site_bucket
-      DETECTOR_ID       = aws_guardduty_detector.main.id
+      DETECTOR_ID       = data.aws_guardduty_detector.account.id
       TRAIL_NAME        = aws_cloudtrail.main.name
       KMS_KEY_ID        = aws_kms_key.trail.key_id
       CONFORMANCE_PACK  = aws_config_conformance_pack.nist.name
@@ -132,7 +133,8 @@ output "report_function" {
 }
 
 output "detector_id" {
-  value = aws_guardduty_detector.main.id
+  description = "The account's always-on detector, borrowed for the window (owned by plank 10)"
+  value       = data.aws_guardduty_detector.account.id
 }
 
 output "trail_name" {

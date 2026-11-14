@@ -2,8 +2,10 @@
 
 **https://security.demos.planetek.org** · the boardwalk's first **deploy-demo-teardown** plank.
 
-GuardDuty, Security Hub, AWS Config, and CloudTrail bill by the day, so the detection stack exists
-only during demo windows. What persists between windows is the product: an auto-generated
+Security Hub, AWS Config, and a KMS-encrypted CloudTrail bill by the day, so the detection stack
+exists only during demo windows. (GuardDuty is the exception since 2026-11-14: the account's own
+always-on detector lives in plank 10, and this plank borrows it for a window's practice findings.)
+What persists between windows is the product: an auto-generated
 **findings-to-evidence report** (JSON + standalone HTML), rebuilt from live AWS APIs on every
 cycle and served by the always-on site — plus a set of **always-on live exhibits** (a policy desk
 and the shared WAF's fence log) that keep working year-round because IAM and the edge ACL cost
@@ -35,8 +37,11 @@ nothing to leave on.
 - **CloudTrail**: multi-region trail, log-file integrity validation, delivering to an S3 bucket
   encrypted with a **customer-managed KMS key** (automatic rotation; key policy fenced to this
   trail via `aws:SourceArn`).
-- **GuardDuty**: threat detection, seeded with AWS-generated *sample* findings (titles prefixed
-  `[SAMPLE]`) so the severity histogram is populated without staging an attack.
+- **GuardDuty**: threat detection, seeded with AWS-generated *sample* findings (the console labels
+  them `[SAMPLE]`) so the severity histogram is populated without staging an attack. The detector
+  is the account's real one (plank 10 owns it; an account gets one per region), so the evidence
+  report counts only findings AWS marked `"sample": true`, plank 10's alert rule ignores those, and
+  teardown archives them. Nothing the detector really finds is ever published here.
 - **Security Hub**: AWS Foundational Security Best Practices standard, evaluating the whole
   account (including the nine always-on planks); GuardDuty findings flow in automatically.
 - **AWS Config**: recorder over all supported resource types + the AWS-published
@@ -67,7 +72,7 @@ demonstrate it between demo windows, not only in the persisted report.
 ```
 make demo       # ~15 min: apply demo root, seed sample findings, wait, generate evidence
 make report     # any time while deployed: refresh evidence (fuller after 30-60 min)
-make teardown   # final evidence snapshot, destroy every daily-billing resource
+make teardown   # final evidence snapshot, archive the practice findings, destroy every daily-billing resource
 make verify     # both modes: live exhibits when deployed; proof of $0 idle when not
 make status     # is the demo stack up?
 ```
@@ -75,8 +80,9 @@ make status     # is the demo stack up?
 `make demo` prints a reminder that the stack bills until torn down, and a forgotten window is
 bounded by the nightly **demo sweep** workflow (`.github/workflows/demo-sweep.yml`, 09:00 UTC),
 which runs this plank's own `make teardown` if the demo root was left up. Costs per window: Config
-configuration items + 130 rules' evaluations (about $1-3 for this account), GuardDuty/Security Hub
-in free trial (then pennies/day), CloudTrail cents (the account's always-on audit trail in plank 10
+configuration items + 130 rules' evaluations (about $1-3 for this account), Security Hub in free
+trial (then pennies/day), GuardDuty nothing extra (it is on anyway, billed to plank 10, and
+practice findings are free), CloudTrail cents (the account's always-on audit trail in plank 10
 holds the free first copy of management events, so this demo trail bills as a second copy at $2 per
 100,000 events). Idle between windows:
 **$0** (a KMS key pending its 7-day deletion window bills nothing).
