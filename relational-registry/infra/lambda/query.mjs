@@ -25,7 +25,7 @@ import {
   DeleteCommand,
   QueryCommand,
 } from "@aws-sdk/lib-dynamodb";
-import { createHash } from "node:crypto";
+import { createHash, timingSafeEqual } from "node:crypto";
 
 const { SSM_PREFIX, TABLE_NAME } = process.env;
 const GLOBAL_DAILY_LIMIT = Number(process.env.GLOBAL_DAILY_LIMIT ?? 400);
@@ -952,7 +952,19 @@ async function getWakes() {
   return json(200, { wakes: (res.Items ?? []).map((i) => ({ at: i.at, ms: i.ms })) });
 }
 
+// The origin lock. CloudFront adds a secret x-origin-verify header to every
+// request it forwards here (cloudfront.tf). A request without it reached the
+// execute-api hostname directly: around the WAF, and with an X-Forwarded-For
+// chain the caller wrote themselves. Fails closed, so a function deployed
+// without the secret trusts nothing.
+function fromEdge(event) {
+  const want = Buffer.from(process.env.ORIGIN_VERIFY ?? "");
+  const got = Buffer.from(event.headers?.["x-origin-verify"] ?? "");
+  return want.length > 0 && got.length === want.length && timingSafeEqual(got, want);
+}
+
 export const handler = async (event) => {
+  if (!fromEdge(event)) return json(403, { message: "Forbidden" });
   const method = event.requestContext?.http?.method ?? "GET";
   const path = event.rawPath ?? "/";
   if (method === "GET" && path === "/api/status") return getStatus();

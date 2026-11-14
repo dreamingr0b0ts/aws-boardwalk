@@ -8,6 +8,7 @@ Design constraints for every plank:
 - **No banned services always-on:** NAT Gateway, ALB, RDS/OpenSearch instances, EKS, SageMaker endpoints, 24/7 Fargate.
 - **IaC everywhere.** Terraform, remote state in S3, `env:<name>` tags on every resource.
 - **One shared WAF web ACL** (per-IP rate limiting + AWS managed rules) fronts every distribution — and because each plank's API is same-origin behind CloudFront, the APIs too.
+- **Every API is locked to its distribution.** API Gateway's own hostname is public, so CloudFront adds a secret origin header and each API Lambda refuses requests that arrive without it. A direct call skips neither the WAF nor the per-visitor caps; each plank's verify suite proves it with a direct request that must answer 403.
 - **One command up, one command down.** Every environment has `make deploy` / `make destroy`.
 
 ## The planks

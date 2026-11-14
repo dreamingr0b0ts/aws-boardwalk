@@ -43,12 +43,19 @@ resource "aws_lambda_function" "api" {
       PRICE_VCPU_HOUR    = tostring(var.price_vcpu_hour)
       PRICE_GB_HOUR      = tostring(var.price_gb_hour)
       PRICE_PUBIP_HOUR   = tostring(var.price_public_ip_hour)
+      # Only CloudFront sends this value; the handler refuses requests
+      # without it. See random_password.origin_verify.
+      ORIGIN_VERIFY = random_password.origin_verify.result
     }
   }
 
   tracing_config {
     mode = "Active" # X-Ray
   }
+
+  # Enforce the origin lock only once every edge is sending the header: the
+  # distribution finishes deploying before this function changes.
+  depends_on = [aws_cloudfront_distribution.site]
 }
 
 # Persists a run's final state (exit code, duration, stop reason) from ECS

@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'node:crypto';
 import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from 'aws-lambda';
 
 export type ApiEvent = APIGatewayProxyEventV2;
@@ -21,9 +22,23 @@ export function json(statusCode: number, body: unknown): ApiResult {
   };
 }
 
+/**
+ * The origin lock. CloudFront adds a secret x-origin-verify header to every
+ * request it forwards here (infra/cloudfront.tf). A request without it reached
+ * the execute-api hostname directly: around the WAF, and with an
+ * X-Forwarded-For chain the caller wrote themselves. Fails closed, so a
+ * function deployed without the secret trusts nothing.
+ */
+export function fromEdge(headers: Record<string, string | undefined> | undefined): boolean {
+  const want = Buffer.from(process.env.ORIGIN_VERIFY ?? '');
+  const got = Buffer.from(headers?.['x-origin-verify'] ?? '');
+  return want.length > 0 && got.length === want.length && timingSafeEqual(got, want);
+}
+
 /** Dispatch on API Gateway's routeKey ("POST /api/query"). */
 export function router(routes: Record<string, RouteFn>) {
   return async (event: ApiEvent): Promise<ApiResult> => {
+    if (!fromEdge(event.headers)) return json(403, { message: 'Forbidden' });
     try {
       const fn = routes[event.routeKey];
       if (!fn) throw new HttpError(404, 'Not found');

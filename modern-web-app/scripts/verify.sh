@@ -139,6 +139,24 @@ CLOSED=$(curl -fsS -H "Authorization: Bearer $CIT" "$BASE/api/me/applications/$I
 curl -fsS "$BASE/api/public/verify/$INSP_ID" | jq -e '.record.inspection == "passed" and .record.closedAt != null' > /dev/null \
   && ok "public register shows the completed inspection" || bad "register shows inspection"
 
+# ---- the origin lock: the API answers CloudFront, never the open internet ----
+# Straight at the execute-api hostname there is no WAF, and the caller writes
+# the whole X-Forwarded-For chain the visitor caps key on. So every handler
+# refuses a request that lacks the secret header only the distribution sends.
+# The me/admin Lambdas only have JWT routes, so they are called with a valid
+# token: the gateway lets the request through and the Lambda has to refuse it.
+API_DIRECT=$($TF output -raw api_endpoint)
+[ "$(code "$API_DIRECT/api/public/stats")" = "403" ] \
+  && ok "direct call to the API origin is refused (public)" || bad "direct call refused (public)"
+[ "$(code -H "Authorization: Bearer $CIT" "$API_DIRECT/api/me/applications")" = "403" ] \
+  && ok "direct call with a valid citizen token is refused (me)" || bad "direct call refused (me)"
+[ "$(code -H "Authorization: Bearer $ADM" "$API_DIRECT/api/admin/applications")" = "403" ] \
+  && ok "direct call with a valid admin token is refused (admin)" || bad "direct call refused (admin)"
+[ "$(code -H 'x-origin-verify: guess' "$API_DIRECT/api/public/stats")" = "403" ] \
+  && ok "a guessed origin header is refused too" || bad "guessed origin header refused"
+[ "$(code -H 'x-origin-verify: guess' "$BASE/api/public/stats")" = "200" ] \
+  && ok "through CloudFront a viewer-sent origin header is replaced, not trusted" || bad "viewer-sent origin header replaced"
+
 echo
 echo "Result: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]

@@ -16,7 +16,7 @@
 import { BedrockRuntimeClient, ConverseCommand } from "@aws-sdk/client-bedrock-runtime";
 import { DynamoDBClient, ConditionalCheckFailedException } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
-import { createHash, randomUUID } from "node:crypto";
+import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
 import { SCENARIOS } from "./scenarios.mjs";
 
 const TABLE = process.env.TABLE_NAME;
@@ -429,7 +429,19 @@ async function getQuota(event, anon) {
   });
 }
 
+// The origin lock. CloudFront adds a secret x-origin-verify header to every
+// request it forwards here (cloudfront.tf). A request without it reached the
+// execute-api hostname directly: around the WAF, and with an X-Forwarded-For
+// chain the caller wrote themselves. Fails closed, so a function deployed
+// without the secret trusts nothing.
+function fromEdge(event) {
+  const want = Buffer.from(process.env.ORIGIN_VERIFY ?? "");
+  const got = Buffer.from(event.headers?.["x-origin-verify"] ?? "");
+  return want.length > 0 && got.length === want.length && timingSafeEqual(got, want);
+}
+
 export const handler = async (event) => {
+  if (!fromEdge(event)) return json(403, { message: "Forbidden" });
   const method = event.requestContext?.http?.method ?? "GET";
   const path = event.rawPath ?? "/";
   try {

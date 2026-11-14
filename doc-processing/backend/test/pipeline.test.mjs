@@ -22,6 +22,7 @@ Object.assign(process.env, {
   AWS_REGION: 'us-east-1',
   AWS_ACCESS_KEY_ID: 'AKIAFAKEFAKEFAKEFAKE',
   AWS_SECRET_ACCESS_KEY: 'fake',
+  ORIGIN_VERIFY: 'only-cloudfront-knows-this',
 });
 
 // ---- the fake cloud ---------------------------------------------------------
@@ -250,7 +251,7 @@ test('seed uploads need no grant and can be re-seeded', async () => {
 test('issuing an upload writes the grant for exactly the presigned key', async () => {
   const res = await api.handler({
     routeKey: 'POST /api/public/uploads',
-    headers: { 'x-forwarded-for': '203.0.113.7, 198.51.100.1' },
+    headers: { 'x-forwarded-for': '203.0.113.7, 198.51.100.1', 'x-origin-verify': process.env.ORIGIN_VERIFY },
     requestContext: { http: { sourceIp: '198.51.100.1' } },
     body: JSON.stringify({ filename: 'my scan.pdf', contentType: 'application/pdf', sizeBytes: 1000 }),
   });
@@ -271,4 +272,31 @@ test('issuing an upload writes the grant for exactly the presigned key', async (
   assert.equal((await run(ocr, post.fields.key, 'exec-A')).rejected, false);
   assert.equal((await run(ocr, post.fields.key, 'exec-B')).rejected, true);
   assert.equal(jobs.length, 1);
+});
+
+test('a request that did not come through CloudFront is refused before anything is written', async () => {
+  const direct = (headers) =>
+    api.handler({
+      routeKey: 'POST /api/public/uploads',
+      // On the direct path the caller writes this whole chain, which is why
+      // the visitor caps cannot be trusted there.
+      headers: { 'x-forwarded-for': '192.0.2.1, 192.0.2.2', ...headers },
+      requestContext: { http: { sourceIp: '192.0.2.2' } },
+      body: JSON.stringify({ filename: 'scan.pdf', contentType: 'application/pdf', sizeBytes: 1000 }),
+    });
+  const secret = process.env.ORIGIN_VERIFY;
+  for (const headers of [{}, { 'x-origin-verify': '' }, { 'x-origin-verify': 'guess' }, { 'x-origin-verify': 'x'.repeat(secret.length) }]) {
+    assert.equal((await direct(headers)).statusCode, 403, JSON.stringify(headers));
+  }
+  assert.equal(items.size, 0, 'no grant, no counter');
+
+  // Fails closed: a function deployed without the secret trusts nothing,
+  // not even an empty header that "matches" the empty configuration.
+  delete process.env.ORIGIN_VERIFY;
+  try {
+    assert.equal((await direct({})).statusCode, 403);
+    assert.equal((await direct({ 'x-origin-verify': '' })).statusCode, 403);
+  } finally {
+    process.env.ORIGIN_VERIFY = secret;
+  }
 });

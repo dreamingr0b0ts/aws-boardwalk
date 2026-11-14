@@ -55,6 +55,21 @@ data "aws_wafv2_web_acl" "edge" {
   scope = "CLOUDFRONT"
 }
 
+# The origin lock. API Gateway's execute-api hostname is public, so without
+# this anyone could call the API around CloudFront: no WAF, no edge rate limit,
+# and an X-Forwarded-For chain they wrote themselves. CloudFront adds this
+# value to every request it forwards to the API, and the API's Lambdas refuse
+# any request that arrives without it. (A REST API could take its own regional
+# WAF, but that is a second paid web ACL; the boardwalk's one ACL is
+# CloudFront-scope, so a secret only the distribution knows is the lock.)
+#
+# To rotate: terraform apply -replace=random_password.origin_verify. Expect a
+# few minutes of 403s while the distribution redeploys; pick a quiet hour.
+resource "random_password" "origin_verify" {
+  length  = 48
+  special = false
+}
+
 resource "aws_cloudfront_distribution" "site" {
   web_acl_id = data.aws_wafv2_web_acl.edge.arn
 
@@ -77,6 +92,13 @@ resource "aws_cloudfront_distribution" "site" {
     origin_id   = local.api_origin_id
     domain_name = local.api_domain
     origin_path = "/${aws_api_gateway_stage.live.stage_name}"
+
+    # The origin lock (random_password.origin_verify above). CloudFront sets
+    # this itself, replacing anything a viewer sends under the same name.
+    custom_header {
+      name  = "x-origin-verify"
+      value = random_password.origin_verify.result
+    }
 
     custom_origin_config {
       http_port              = 80

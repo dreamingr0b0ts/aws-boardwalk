@@ -15,7 +15,7 @@ output "site_url" {
 }
 
 output "api_endpoint" {
-  description = "Direct HTTP API endpoint (also reachable same-origin at <site>/api)"
+  description = "Direct HTTP API endpoint. Locked: only CloudFront's requests are served (see the origin lock in cloudfront.tf)"
   value       = aws_apigatewayv2_api.http.api_endpoint
 }
 

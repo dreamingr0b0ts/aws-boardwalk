@@ -42,12 +42,19 @@ resource "aws_lambda_function" "api" {
         { metric = "platform-edge-ip-reputation", label = "Amazon IP reputation list" },
         { metric = "platform-edge-known-bad-inputs", label = "Known bad inputs (incl. Log4j probes)" },
       ])
+      # Only CloudFront sends this value; the handler refuses requests
+      # without it. See random_password.origin_verify.
+      ORIGIN_VERIFY = random_password.origin_verify.result
     }
   }
 
   tracing_config {
     mode = "Active"
   }
+
+  # Enforce the origin lock only once every edge is sending the header: the
+  # distribution finishes deploying before this function changes.
+  depends_on = [aws_cloudfront_distribution.site]
 }
 
 resource "aws_lambda_function" "runner" {

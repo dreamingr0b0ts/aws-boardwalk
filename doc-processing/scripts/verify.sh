@@ -253,6 +253,28 @@ ANON_AFTER=$(curl -sS -o /dev/null -w '%{http_code}' "$SITE/api/public/documents
 [ "$ANON_AFTER" = "404" ]; check $? "anonymous document purged by the reset too"
 [ "$(echo "$AFTER" | jq '[.documents[] | select(.source=="seed" and .status=="INDEXED")] | length')" -ge 8 ]; check $? "seed corpus survived the reset"
 
+# ---- the origin lock: the API answers CloudFront, never the open internet ----
+# Straight at the execute-api hostname there is no WAF, and the caller writes
+# the whole X-Forwarded-For chain the visitor caps key on. So every handler
+# refuses a request that lacks the secret header only the distribution sends.
+API_DIRECT=$($TF output -raw api_endpoint)
+for ROUTE in /api/public/documents /api/public/uploads/quota; do
+  DIRECT=$(curl -sS -o /dev/null -w '%{http_code}' "$API_DIRECT$ROUTE")
+  [ "$DIRECT" = "403" ]; check $? "direct call to the API origin is refused: GET $ROUTE ($DIRECT)"
+done
+GUESS=$(curl -sS -o /dev/null -w '%{http_code}' -H 'x-origin-verify: guess' "$API_DIRECT/api/public/documents")
+[ "$GUESS" = "403" ]; check $? "a guessed origin header is refused too ($GUESS)"
+VIA=$(curl -sS -o /dev/null -w '%{http_code}' -H 'x-origin-verify: guess' "$SITE/api/public/documents")
+[ "$VIA" = "200" ]; check $? "through CloudFront a viewer-sent origin header is replaced, not trusted ($VIA)"
+# the spending route too, with a request the front door accepts
+DUP=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$API_DIRECT/api/public/uploads" \
+  -H 'content-type: application/json' -d '{"filename":"x.pdf","contentType":"application/pdf","sizeBytes":100}')
+[ "$DUP" = "403" ]; check $? "direct POST to the anonymous upload route is refused ($DUP)"
+# ...and through the front door the visitor identity is the real viewer IP: a
+# forged X-Forwarded-For entry only lands left of the entries CloudFront adds.
+SPOOF_ID=$(curl -sS -H 'x-forwarded-for: 203.0.113.99' "$SITE/api/public/uploads/quota" | jq -r '.anonId')
+[ -n "$ANONID" ] && [ "$SPOOF_ID" = "$ANONID" ]; check $? "a forged X-Forwarded-For does not change the visitor identity"
+
 echo
 echo "passed $PASS, failed $FAIL"
 [ "$FAIL" = "0" ]

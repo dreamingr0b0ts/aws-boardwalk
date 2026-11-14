@@ -2,6 +2,7 @@
 // No npm deps: uses the AWS SDK v3 bundled with the nodejs22.x runtime.
 import { DynamoDBClient, UpdateItemCommand } from "@aws-sdk/client-dynamodb";
 import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
+import { timingSafeEqual } from "node:crypto";
 
 const ddb = new DynamoDBClient({});
 const ses = new SESv2Client({});
@@ -42,7 +43,19 @@ async function underLimit(key, limit) {
   }
 }
 
+// The origin lock. CloudFront adds a secret x-origin-verify header to every
+// request it forwards here (infra/cloudfront.tf). A request without it
+// reached the execute-api hostname directly: around the WAF, and with an
+// X-Forwarded-For chain the caller wrote themselves. Fails closed, so a
+// function deployed without the secret trusts nothing.
+function fromEdge(event) {
+  const want = Buffer.from(process.env.ORIGIN_VERIFY ?? "");
+  const got = Buffer.from(event.headers?.["x-origin-verify"] ?? "");
+  return want.length > 0 && got.length === want.length && timingSafeEqual(got, want);
+}
+
 export const handler = async (event) => {
+  if (!fromEdge(event)) return json(403, { error: "Forbidden." });
   let form;
   try {
     form = JSON.parse(event.body || "{}");

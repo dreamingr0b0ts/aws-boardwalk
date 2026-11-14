@@ -84,10 +84,15 @@ resource "aws_lambda_function" "contact" {
       CONFIG_SET     = aws_sesv2_configuration_set.mail.configuration_set_name
       DAILY_IP_LIMIT = "10"
       DAILY_LIMIT    = "100"
+      # Only CloudFront sends this value; the handler refuses requests
+      # without it. See random_password.origin_verify.
+      ORIGIN_VERIFY = random_password.origin_verify.result
     }
   }
 
-  depends_on = [aws_cloudwatch_log_group.contact]
+  # Enforce the origin lock only once every edge is sending the header: the
+  # distribution finishes deploying before this function changes.
+  depends_on = [aws_cloudwatch_log_group.contact, aws_cloudfront_distribution.site]
 }
 
 # ---- the booking desk: /api/schedule/* ------------------------------------
@@ -187,8 +192,13 @@ resource "aws_lambda_function" "schedule" {
       VISITOR_EMAIL  = var.visitor_email_enabled ? "true" : "false"
       DAILY_IP_LIMIT = "3"
       DAILY_LIMIT    = "10"
+      # Only CloudFront sends this value; the handler refuses requests
+      # without it. See random_password.origin_verify.
+      ORIGIN_VERIFY = random_password.origin_verify.result
     }
   }
 
-  depends_on = [aws_cloudwatch_log_group.schedule]
+  # Enforce the origin lock only once every edge is sending the header: the
+  # distribution finishes deploying before this function changes.
+  depends_on = [aws_cloudwatch_log_group.schedule, aws_cloudfront_distribution.site]
 }

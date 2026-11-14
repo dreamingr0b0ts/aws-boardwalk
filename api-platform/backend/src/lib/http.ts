@@ -2,7 +2,7 @@
 // proxy integrations (payload format 1.0). Each service imports only this —
 // there is deliberately no shared data layer, because each microservice owns
 // its own table.
-import { createHash } from 'node:crypto';
+import { createHash, timingSafeEqual } from 'node:crypto';
 import type { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 
 export type Handler = (event: APIGatewayProxyEvent) => Promise<APIGatewayProxyResult>;
@@ -110,8 +110,24 @@ export function pageLimit(event: APIGatewayProxyEvent, cap = 50): number {
   return Math.min(n, cap);
 }
 
+/**
+ * The origin lock. CloudFront adds a secret x-origin-verify header to every
+ * request it forwards here (infra/cloudfront.tf). A request without it reached
+ * the execute-api hostname directly: around the WAF, and with an
+ * X-Forwarded-For chain the caller wrote themselves. Fails closed, so a
+ * function deployed without the secret trusts nothing.
+ */
+export function fromEdge(event: APIGatewayProxyEvent): boolean {
+  const want = Buffer.from(process.env.ORIGIN_VERIFY ?? '');
+  const got = Buffer.from(header(event, 'x-origin-verify') ?? '');
+  return want.length > 0 && got.length === want.length && timingSafeEqual(got, want);
+}
+
 export function route(routes: Record<string, Handler>): Handler {
   return async (event) => {
+    if (!fromEdge(event)) {
+      return errorJson(403, 'forbidden', 'This API is served through its public hostname only.');
+    }
     const key = `${event.httpMethod} ${event.resource}`;
     const handler = routes[key];
     if (!handler) return errorJson(404, 'not_found', `No route for ${key}.`);

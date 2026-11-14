@@ -169,6 +169,20 @@ USAGE=$(curl -sS "$SITE/api/summary" | jq '.usage')
 echo "$USAGE" | jq -e '.used >= 3 and .limit == 150' > /dev/null
 check $? "global daily execution counter advanced ($(echo "$USAGE" | jq -r '.used')/150)"
 
+# ---- the origin lock: the API answers CloudFront, never the open internet ----
+# Straight at the execute-api hostname there is no WAF, and the caller writes
+# the whole X-Forwarded-For chain the visitor caps key on. So every handler
+# refuses a request that lacks the secret header only the distribution sends.
+API_DIRECT=$($TF output -raw api_endpoint)
+for ROUTE in /api/summary; do
+  DIRECT=$(curl -sS -o /dev/null -w '%{http_code}' "$API_DIRECT$ROUTE")
+  [ "$DIRECT" = "403" ]; check $? "direct call to the API origin is refused: GET $ROUTE ($DIRECT)"
+done
+GUESS=$(curl -sS -o /dev/null -w '%{http_code}' -H 'x-origin-verify: guess' "$API_DIRECT/api/summary")
+[ "$GUESS" = "403" ]; check $? "a guessed origin header is refused too ($GUESS)"
+VIA=$(curl -sS -o /dev/null -w '%{http_code}' -H 'x-origin-verify: guess' "$SITE/api/summary")
+[ "$VIA" = "200" ]; check $? "through CloudFront a viewer-sent origin header is replaced, not trusted ($VIA)"
+
 echo
 echo "passed $PASS, failed $FAIL"
 [ "$FAIL" = "0" ]
